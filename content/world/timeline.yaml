@@ -1,0 +1,94 @@
+# 연습생기 ~ 데뷔 직전 비트 15개 (rel_day = group.yaml t0 기준 상대일, 데뷔 직전 = -1).
+# 근거: bible.md §4 진행 중인 이야기, docs/ops/diary-topics.md. 데뷔 이후는 비워 둔다.
+# 분기 비트(branch != null)는 growth.branches에 그 값이 있을 때만 적용된다.
+beats:
+  - id: account_opened
+    rel_day: { min: -365, max: -351 }
+    requires: []
+    branch: null
+    public_text: 회사 몰래 계정을 열고 새벽 연습실 거울 사진을 처음 올렸다.
+    kinds: [diary, sns, photo]
+  - id: first_fan_comment
+    rel_day: { min: -350, max: -336 }
+    requires: [account_opened]
+    branch: null
+    public_text: 첫 댓글들을 받고 놀랐다. 누가 이렇게 오래 읽어 줄까 싶었다.
+    kinds: [diary, sns]
+  - id: dorm_move
+    rel_day: { min: -330, max: -316 }
+    requires: []
+    branch: null
+    public_text: 숙소를 옮겼다. 방 배정이 바뀌고 옥상으로 가는 계단이 생겼다.
+    kinds: [diary, photo]
+  - id: monthly_eval_1
+    rel_day: { min: -310, max: -296 }
+    requires: []
+    branch: null
+    public_text: 월말 평가. 춤은 안정적이라는 말을 듣고, 보컬은 감정이 얌전하다는 말을 또 들었다.
+    kinds: [diary, event]
+  - id: eval_1_pass
+    rel_day: { min: -295, max: -285 }
+    requires: [monthly_eval_1]
+    branch: pass
+    public_text: 평가 결과가 나왔다. 이번 달은 통과. 기뻐하기보다 먼저 숨을 내쉬었다.
+    kinds: [diary, event]
+  - id: eval_1_miss
+    rel_day: { min: -295, max: -285 }
+    requires: [monthly_eval_1]
+    branch: miss
+    public_text: 평가 결과가 나왔다. 아쉬움이 남았다. 옥상에 오래 앉아 있었다.
+    kinds: [diary, event]
+  - id: jihu_dawn_follow
+    rel_day: { min: -250, max: -236 }
+    requires: []
+    branch: null
+    public_text: 지후가 새벽 연습실까지 몰래 따라왔다. 돌려보내지 못하고 같이 연습했다.
+    kinds: [diary, photo]
+  - id: cover_shoot
+    rel_day: { min: -220, max: -206 }
+    requires: [first_fan_comment]
+    branch: null
+    public_text: 첫 커버 영상 촬영. 카메라 앞에서 어색해서 몇 번을 다시 찍었다.
+    kinds: [diary, photo, event]
+  - id: cover_release
+    rel_day: { min: -200, max: -190 }
+    requires: [cover_shoot]
+    branch: null
+    public_text: 첫 커버 영상이 공개됐다. 댓글을 한참 새로고침했다.
+    kinds: [diary, sns]
+  - id: sibling_exam_call
+    rel_day: { min: -170, max: -156 }
+    requires: []
+    branch: null
+    public_text: 남동생 입시 얘기를 전화로 들었다. 해 줄 말이 없어서 한참 듣기만 했다.
+    kinds: [diary]
+  - id: lineup_notice
+    rel_day: { min: -140, max: -126 }
+    requires: []
+    branch: null
+    public_text: 팀 구성이 공지됐다. 도현, 루이, 지후와 넷이서 간다.
+    kinds: [diary, sns, event]
+  - id: dohyun_burden
+    rel_day: { min: -110, max: -96 }
+    requires: [lineup_notice]
+    branch: null
+    public_text: 도현 형이 요즘 말수가 줄었다. 리더 자리가 무겁다는 걸 알 것 같다.
+    kinds: [diary]
+  - id: eval_rooftop_night
+    rel_day: { min: -80, max: -66 }
+    requires: [monthly_eval_1]
+    branch: null
+    public_text: 월말 평가가 끝나고 옥상에서 혼자 오래 앉아 있었다.
+    kinds: [diary, photo]
+  - id: debut_song_parts
+    rel_day: { min: -50, max: -31 }
+    requires: [lineup_notice]
+    branch: null
+    public_text: 데뷔곡 파트가 정해졌다. 보컬 파트가 늘었고 녹음 연습을 시작했다.
+    kinds: [diary, event]
+  - id: debut_confirmed
+    rel_day: { min: -14, max: -1 }
+    requires: [debut_song_parts]
+    branch: null
+    public_text: 회사에서 데뷔 확정을 통보받았다. 숙소에 돌아와 한동안 말이 나오지 않았다.
+    kinds: [diary, sns, event]
