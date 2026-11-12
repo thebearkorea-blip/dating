@@ -1,12 +1,12 @@
 # 그룹 세계관 원본 (가칭: 이름 겹침 확인은 docs/research/2026-11-13-이름-겹침-확인.md)
 # 기준: docs/decisions.md "그룹 콘셉·캐릭터 정체" (A안, 사용자 확인 대기)
-id: nowa
-name: NOWA            # 가칭. "지금(now)"과 "나와"의 중첩
+id: onday
+name: ONDAY           # 가칭(2차). "on"+"day", 하루를 켠다
 concept: >-
   청량·일상·"오늘을 같이 사는 애들". 밝은 조명, 연습실·옥상·편의점이 무대.
 company:
-  id: parallax
-  name: Parallax Entertainment   # 가칭. 중소 기획사, 첫 보이그룹. 연습생이 SNS를 직접 운영하는 설정의 근거
+  id: lumen-harbor
+  name: Lumen Harbor Entertainment   # 가칭. 중소 기획사, 첫 보이그룹. 연습생이 SNS를 직접 운영하는 설정의 근거
   note: 회사가 작아서 연습생 SNS를 본인이 운영한다. DM·개인 연락은 회사가 싫어한다(유입 경로 설정의 근거, decisions "플랫폼 소통의 목적").
 t0: null                # 데뷔 목표일 미정. timeline.yaml의 rel_day 기준점
 debut_window_months: [6, 12]   # 가정: 데뷔 예정 6~12개월 뒤(후보 문서 공통 전제)
@@ -36,9 +36,9 @@ members:
     position: [보컬]
     relation: 서울 토박이, 패션에 진심. 이한의 옷차림을 매번 코디해 주려 한다(이한은 웃으며 거절).
     voice: 과장되고 수다스럽다, 감탄사와 이모지가 많다.
-  - id: jion
-    name: 지온
-    name_en: Jion
+  - id: jihu
+    name: 지후
+    name_en: Jihu
     age: 19
     role: supporting
     position: [막내, 댄서]
@@ -46,4 +46,4 @@ members:
     voice: 조심스럽고 존댓말이 몸에 뱄다. 신나면 말이 빨라진다.
 notes:
   - 멤버 나이는 설정 나이이며 공개 층 시간에 따라 실제 달력대로 먹는다(decisions "캐릭터 나이").
-  - 가정: 루이의 출신·혈통 설정 없음(후보 문서대로 서울 토박이).
+  - "가정: 루이의 출신·혈통 설정 없음(후보 문서대로 서울 토박이)."

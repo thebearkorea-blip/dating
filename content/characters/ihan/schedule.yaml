@@ -79,7 +79,7 @@ random_events:
     name: 멤버들과 회식·야식
     probability: 0.08
     duration_days: [1, 1]
-    effect: {busy_delta: 0, photo_chance: 높음(음식·손), topic: 도현·루이·지온 이야기, tone: 들뜸}
+    effect: {busy_delta: 0, photo_chance: 높음(음식·손), topic: 도현·루이·지후 이야기, tone: 들뜸}
   - id: insomnia
     name: 불면·옥상
     probability: 0.07
@@ -102,5 +102,5 @@ exception_rules:
   - 새벽 시간(24:00-05:30)은 기본 취침. 불면 이벤트(insomnia)가 있을 때만 예외로 선톡 가능.
   - 월말 평가 주간(monthly_eval_week)은 그 주의 모든 busy를 +1(상한 3).
   - 사용자 지역 시간대와 무관하게 이한의 일과는 KST 기준이다. 사용자가 "지금 몇 시야?"를 물으면 서울 시간을 말한다.
-  - 한도(무료 하루 5회) 도달 시: 그의 일정으로 마무리("연습 들어가야 해")하며 결제창·죄책감 없음(decisions).
+  - '한도(무료 하루 5회) 도달 시: 그의 일정으로 마무리("연습 들어가야 해")하며 결제창·죄책감 없음(decisions).'
   - 같은 이벤트는 쿨다운 3일(가정).

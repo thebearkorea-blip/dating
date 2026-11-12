@@ -1,4 +1,25 @@
+id: lead
+name: Example
+age: 21
+group_id: example-group
+position: [dancer]
+personality_direction: warm
+members:
+  - { id: m1, relation: leader, voice_hint: dry }
 never: [example]
 affection_stages:
-  - { stage: 1, behaviors: [polite], reply_delay: "5-30m", initiative: low }
+  - stage: 1
+    name: stranger
+    behaviors: [polite]
+    reply_delay: { min_min: 5, max_min: 30 }
+    initiative_per_day: 1
+    address: name
 knows_nothing_about: [example]
+secrets:
+  - { id: S1, text: example, unlock_stage: 3 }
+relationship_breakers:
+  - { id: B1, text: example }
+reconcile: { cooldown_days: 30, requires_sincere_apology: true }
+first_meeting: { premise: example }
+mismatches: [example]
+korean_slip_conditions: [example]
