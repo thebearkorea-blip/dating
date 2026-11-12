@@ -56,7 +56,8 @@
 
 | 서비스 | 용도 | 이유 | 상태 |
 |---|---|---|---|
-| Claude (Vercel AI Gateway) — Haiku 5.5 판단용, Sonnet 5.5 대화용 | LLM 전부 | 공식 단가 확인(Haiku $0.10/$0.50, 캐시 읽기 $0.01 per MTok). 모델 이름은 `src/llm`에만 | 📝 |
+| Claude (Vercel AI Gateway) — Haiku 5.5 판단용, Sonnet 5.5 대화용 | LLM 기본 | 공식 단가 확인(Haiku $0.10/$0.50, 캐시 읽기 $0.01 per MTok). 모델 이름은 `src/llm`에만 | 📝 |
+| 다른 AI 서비스(LLM·이미지·음성·영상) | 필요한 경우 | **AI는 Claude만 쓰지 않는다**(2026-11-13 사용자 결정). 용도별로 품질·단가·정책이 더 맞는 서비스를 쓴다. 단 Q5 조건 유지: 쓰는 이유를 이 표에 한 줄 남기고, 같은 일을 하는 서비스를 둘 쓰지 않는다. 공급자 교체가 `src/llm` 한 곳에서 끝나게 설계 | 📝 |
 | fal.ai | LoRA 학습 + 이미지 생성 | 학습 $2/1,000 step, 생성 $0.035/MP, "commercial rights included" 안내. Replicate와 중복 사용 금지 | 📝 (BFL 라이선스 문구 상충 ❓) |
 | Vercel (Hosting·Cron·Queues·Blob) | 배포·배치·파일 | 한 플랫폼, 1인 운영 | 📝 |
 | Neon Postgres | DB | 스키마 4개 GRANT 분리가 Postgres로 바로 됨 | 📝 |
