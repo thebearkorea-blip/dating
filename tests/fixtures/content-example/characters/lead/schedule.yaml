@@ -1,0 +1,6 @@
+weekly:
+  - { day: mon, time: "09:00-12:00", activity: practice, busy: 3 }
+exceptions:
+  - { id: e1, rule: comeback week overridden by timeline beat }
+random_events:
+  - { id: r1, probability: 0.1, effect: late reply }

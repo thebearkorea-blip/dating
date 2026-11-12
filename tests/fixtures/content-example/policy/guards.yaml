@@ -1,0 +1,2 @@
+rules:
+  - { id: g1, scope: content, kind: regex, severity: block, text: "example" }

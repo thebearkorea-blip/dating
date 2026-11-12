@@ -1,0 +1,4 @@
+never: [example]
+affection_stages:
+  - { stage: 1, behaviors: [polite], reply_delay: "5-30m", initiative: low }
+knows_nothing_about: [example]

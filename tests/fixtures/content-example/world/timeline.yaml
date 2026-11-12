@@ -1,0 +1,7 @@
+beats:
+  - id: b1
+    rel_day: { min: -200, max: -190 }
+    requires: []
+    branch: null
+    public_text: example beat
+    kinds: [diary, photo]

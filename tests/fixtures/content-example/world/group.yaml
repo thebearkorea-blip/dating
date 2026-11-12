@@ -1,0 +1,9 @@
+id: example-group
+name: Example Group
+concept: example concept
+members:
+  - { id: lead, role: lead }
+  - { id: m2, role: support }
+  - { id: m3, role: support }
+  - { id: m4, role: support }
+t0: null

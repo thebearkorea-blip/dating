@@ -1,0 +1,12 @@
+node_modules
+.env*
+!.env.example
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.gif
+*.heic
+content/**/photos/*.jpg
+content/**/photos/*.png
+content/**/photos/*.webp
