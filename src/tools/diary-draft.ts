@@ -1,5 +1,6 @@
 // 사용법: node --import tsx src/tools/diary-draft.ts --date YYYY-MM-DD --n 3 [--rel-day N] [--dry-run]
-// rel-day(D1~D30)는 docs/ops/diary-topics.md의 행. 생략하면 날짜의 일(day)을 1~30으로 맞춘 값.
+// rel-day는 타임라인 기준 값(예: -180). docs/ops/diary-topics.md 표 맨 끝 rel_day 열과 맞춘다.
+// 생략하면 -181 + min(30, 날짜의 day).
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -39,17 +40,20 @@ export interface Topic {
 export function parseTopics(md: string): Topic[] {
   const out: Topic[] = [];
   for (const line of md.split("\n")) {
-    const m = /^\|\s*D(\d+)\s*\|(.+)$/.exec(line);
+    const m = /^\|\s*D\d+\s*\|(.+)$/.exec(line);
     if (!m) continue;
-    const cells = (m[2] as string).split("|").map((c) => c.trim());
-    out.push({ relDay: Number(m[1]), topic: cells[0] ?? "", scheduleActivity: cells[1] ?? "", photoTags: cells[2] ?? "" });
+    const cells = (m[1] as string).split("|").map((c) => c.trim());
+    if (cells.at(-1) === "") cells.pop();
+    const relDay = Number(cells.at(-1));
+    if (!Number.isInteger(relDay)) continue;
+    out.push({ relDay, topic: cells[0] ?? "", scheduleActivity: cells[1] ?? "", photoTags: cells[2] ?? "" });
   }
   return out;
 }
 
-/** 날짜 순서 기본값: 날짜의 일(day)을 1~30으로 */
+/** 날짜 순서 기본값(타임라인 rel_day): -181 + min(30, 날짜의 day) */
 export function defaultRelDay(date: string): number {
-  return Math.min(30, Number(date.slice(8, 10)));
+  return -181 + Math.min(30, Number(date.slice(8, 10)));
 }
 
 export interface Draft {
@@ -133,7 +137,7 @@ export async function runDraft(opts: DraftOptions): Promise<DraftResult> {
   const relDay = opts.relDay ?? defaultRelDay(opts.date);
   const topics = parseTopics(readFileSync(resolve(root, "docs/ops/diary-topics.md"), "utf8"));
   const topic = topics.find((t) => t.relDay === relDay);
-  if (!topic) throw new Error(`diary-topics에 D${relDay} 없음`);
+  if (!topic) throw new Error(`diary-topics에 rel_day ${relDay} 없음`);
 
   const ctx = loadContext(root);
   const activity = activityAt(
@@ -146,7 +150,7 @@ export async function runDraft(opts: DraftOptions): Promise<DraftResult> {
   const result: DraftResult = { topic, activity, persona, promptTokens, files: [] };
 
   if (opts.dryRun) {
-    console.log(`[dry-run] ${opts.date} D${relDay}: ${topic.topic}`);
+    console.log(`[dry-run] ${opts.date} rel_day ${relDay}: ${topic.topic}`);
     console.log(`활동: ${activity.activity} / 기분: ${activity.mood}`);
     console.log(`프롬프트 토큰 추정: ${promptTokens} (system ${persona.tokens_estimate}) x ${opts.n}회, 모델 ${CHAT_MODEL}`);
     console.log("--- user prompt ---\n" + userPrompt(topic, activity, TONES[0] as string));

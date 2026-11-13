@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { validateDiaryText } from "../../src/content/load.js";
 import { diaryFrontmatterSchema } from "../../src/content/schemas/index.js";
 import { approveDiary, BlockedDraftError } from "../../src/tools/diary-approve.js";
-import { renderDraft, runDraft } from "../../src/tools/diary-draft.js";
+import { defaultRelDay, parseTopics, renderDraft, runDraft } from "../../src/tools/diary-draft.js";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const fm = { date: "2026-11-20", rel_day: 20, activity: "convenience store", mood: "calm", photos: [] as string[], audience: "public" as const };
@@ -74,5 +74,18 @@ describe("diary-draft --dry-run", () => {
     expect(out).toMatch(/프롬프트 토큰 추정: \d+/);
     expect(r.promptTokens).toBeGreaterThan(0);
     expect(r.files).toEqual([]);
+  });
+});
+
+describe("diary-topics 파서", () => {
+  it("표 맨 끝 rel_day 열을 relDay로 읽는다", () => {
+    const md = "| D1 | 주제 | 활동 | tag-a, tag-b | 없음 | -180 |\n| D30 | 주제2 | 활동2 | tag-c | 없음 | -151 |\n";
+    const t = parseTopics(md);
+    expect(t.map((x) => x.relDay)).toEqual([-180, -151]);
+    expect(t[0]).toMatchObject({ topic: "주제", scheduleActivity: "활동", photoTags: "tag-a, tag-b" });
+  });
+  it("기본 rel_day는 -181 + min(30, day)", () => {
+    expect(defaultRelDay("2026-11-20")).toBe(-161);
+    expect(defaultRelDay("2026-12-31")).toBe(-151);
   });
 });

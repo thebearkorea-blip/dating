@@ -23,6 +23,7 @@ export const groupSchema = z
             position: z.array(z.string()),
             relation: z.string(),
             voice: z.string(),
+            status: z.enum(["trainee", "debuted", "eliminated"]).optional(),
           })
           .strict(),
       )
