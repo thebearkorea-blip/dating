@@ -6,7 +6,7 @@ import { and, asc, desc, eq, gte, isNull } from "drizzle-orm";
 import { splitFrontmatter } from "../content/schemas/diary.js";
 import type { CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
-import { canonFacts, memories, messages, relationships, users } from "../db/schema/index";
+import { canonFacts, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { currentActivity, CHARACTER_ID, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
 import { buildPersona } from "../engine/persona.js";
@@ -82,24 +82,31 @@ function windowOf(w: PushWindow | null): { start: number; len: number } {
   return { start: s, len: e - s };
 }
 
-/** 규칙만으로 선톡 후보 여부를 판정한다. 같은 입력 → 같은 출력. LLM·DB·시계 접근 없음. */
-export function decideProactive(i: ProactiveInput): ProactiveCandidate | null {
-  if (!i.activity.canInitiate || i.activity.busy >= 3) return null;
+/** 규칙만으로 선톡 후보 여부를 판정한다. 후보가 아니면 사유를 돌려준다(--verbose용). */
+export function explainProactive(i: ProactiveInput): { cand: ProactiveCandidate } | { reason: string } {
+  if (!i.activity.canInitiate) return { reason: "cannot_initiate" };
+  if (i.activity.busy >= 3) return { reason: "busy3" };
   const win = windowOf(i.pushWindow);
   const local = localParts(i.now, i.tz);
   const rel = (((local.minutes - win.start) % 1440) + 1440) % 1440;
-  if (rel >= win.len) return null;
+  if (rel >= win.len) return { reason: "outside_push_window" };
 
   const silent = silenceDays(i.now, i.lastUserAt, i.startedAt);
   const base = Math.min(i.pushMax ?? DEFAULT_PUSH_MAX, i.initiativePerDay);
   const cap = decayCap(base, silent);
   const todayCount = i.proactiveAts.filter((t) => localParts(t, i.tz).date === local.date).length;
-  if (todayCount >= cap) return null;
+  if (todayCount >= cap) return { reason: `daily_cap(${todayCount}/${cap})` };
 
   // 마지막 접촉(사용자 메시지·선톡) 뒤 최소 간격: 창 길이를 (상한+1)로 나눈 값.
   const lastContact = Math.max((i.lastUserAt ?? i.startedAt).getTime(), ...i.proactiveAts.map((t) => t.getTime()));
-  if (i.now.getTime() - lastContact < (win.len / (cap + 1)) * 60000) return null;
-  return { cap, silenceDays: silent, todayCount };
+  if (i.now.getTime() - lastContact < (win.len / (cap + 1)) * 60000) return { reason: "min_gap" };
+  return { cand: { cap, silenceDays: silent, todayCount } };
+}
+
+/** 규칙만으로 선톡 후보 여부를 판정한다. 같은 입력 → 같은 출력. LLM·DB·시계 접근 없음. */
+export function decideProactive(i: ProactiveInput): ProactiveCandidate | null {
+  const r = explainProactive(i);
+  return "cand" in r ? r.cand : null;
 }
 
 /** 최근 일기 1편(오늘 KST 이하 날짜 중 가장 늦은 것) 본문 앞부분. 없으면 null. */
@@ -122,6 +129,8 @@ export interface ProactiveDeps {
   llm?: (req: LlmRequest) => Promise<LlmResponse>;
   rules?: GuardRule[];
   push?: PushSender;
+  /** 관계별 판정·skip 사유를 한 줄씩 출력 */
+  verbose?: boolean;
 }
 
 export interface TickResult {
@@ -130,6 +139,14 @@ export interface TickResult {
   saved: number;
   skipped: number;
   pushed: number;
+}
+
+/** 생성 실패(건너뜀) 사유. reason은 `proactive_skip:` 뒤에 붙는다. */
+interface SkipInfo {
+  reason: string;
+  severity: "block" | "flag";
+  quote: string;
+  detail: string;
 }
 
 let guardsCache: GuardRule[] | undefined;
@@ -183,7 +200,7 @@ async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: str
   return scenes[hash32(`${rel.id}:${kstParts(now).date}:reward`) % scenes.length] ?? null;
 }
 
-async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | null> {
+async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | { skip: SkipInfo }> {
   const { db } = deps;
   const llm = trackedLlm(db, "proactive", { relId: rel.id, userId: rel.userId, now }, deps.llm ?? complete);
   const rules = deps.rules ?? (guardsCache ??= loadGuards(join(CONTENT_ROOT, "policy/guards.yaml")));
@@ -216,10 +233,17 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   let text: string;
   try {
     text = (await llm({ model: CHAT_MODEL, maxTokens: 200, temperature: 0.9, messages: [{ role: "system", content: persona.system }, { role: "user", content: instruction }] })).text.trim();
-  } catch {
-    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const status = /^\w+ (\d{3}):/.exec(msg)?.[1];
+    return { skip: { reason: `llm_error:${status ?? "other"}`, severity: "flag", quote: "", detail: msg.slice(0, 300) } };
   }
-  if (!text || guardOutput(text, rules).blocked) return null;
+  if (!text) return { skip: { reason: "empty", severity: "flag", quote: "", detail: "빈 응답" } };
+  const g = guardOutput(text, rules);
+  if (g.blocked) {
+    const blocks = g.findings.filter((f) => f.severity === "block");
+    return { skip: { reason: `guard:${blocks.map((f) => f.rule_id).join(",")}`, severity: "block", quote: blocks.map((f) => f.quote).join(" | ").slice(0, 300), detail: `생성문: ${text.slice(0, 300)}` } };
+  }
 
   let mediaId: string | null = null;
   const rate = Number(process.env.PROACTIVE_PHOTO_RATE ?? "0.3");
@@ -242,6 +266,9 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
   const now = deps.now ?? new Date();
   const push = deps.push ?? sendPushToUser;
   const result: TickResult = { relationships: 0, candidates: 0, saved: 0, skipped: 0, pushed: 0 };
+  const say = (rid: string, msg: string): void => {
+    if (deps.verbose) console.log(`  rel=${rid.slice(0, 8)} ${msg}`);
+  };
 
   const rels: RelRow[] = await db
     .select({
@@ -263,7 +290,10 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
 
   for (const rel of rels) {
     // 토라진 동안은 먼저 연락하지 않는다.
-    if (isSulking(rel.sulkState)) continue;
+    if (isSulking(rel.sulkState)) {
+      say(rel.id, "not_candidate: sulking");
+      continue;
+    }
     const [lastUser] = await db
       .select({ at: messages.at })
       .from(messages)
@@ -276,7 +306,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       .where(and(eq(messages.relId, rel.id), eq(messages.origin, "proactive"), gte(messages.at, new Date(now.getTime() - 2 * DAY_MS))));
     const activity = await currentActivity(db, rel.stage, now);
     const stageDef = bible.affection_stages.find((s) => s.stage === rel.stage);
-    const cand = decideProactive({
+    const decision = explainProactive({
       now,
       tz: rel.tz || DEFAULT_TZ,
       stage: rel.stage,
@@ -288,7 +318,11 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       activity,
       initiativePerDay: stageDef?.initiative_per_day ?? 0,
     });
-    if (!cand) continue;
+    if (!("cand" in decision)) {
+      say(rel.id, `not_candidate: ${decision.reason} (activity=${activity.activity}, busy=${activity.busy})`);
+      continue;
+    }
+    say(rel.id, `candidate: cap=${decision.cand.cap} silenceDays=${decision.cand.silenceDays} todayCount=${decision.cand.todayCount}`);
     result.candidates++;
     const reward = await rewardFor(db, rel, now);
     if (reward) {
@@ -303,6 +337,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
         await db.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text, mediaId: raw.includes("{{photo}}") ? photo : null, origin: "proactive", tag: "reward" });
       }
       result.saved++;
+      say(rel.id, "saved: reward");
       try {
         result.pushed += await push(db, rel.userId, { title: bible.name, body: first.slice(0, 120), url: "/chat" });
       } catch {
@@ -311,8 +346,15 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       continue;
     }
     const gen = await generateProactive(deps, rel, activity, now);
-    if (!gen) {
+    if ("skip" in gen) {
       result.skipped++;
+      const k = gen.skip;
+      say(rel.id, `skipped: ${k.reason}${k.detail ? ` | ${k.detail}` : ""}`);
+      try {
+        await db.insert(reviewFindings).values({ relId: rel.id, ruleId: `proactive_skip:${k.reason}`, severity: k.severity, quote: k.quote, reason: k.detail });
+      } catch {
+        // 기록 실패는 틱에 영향이 없다.
+      }
       continue;
     }
     const promise = isPromiseText(gen.text);
@@ -321,6 +363,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       .values({ relId: rel.id, at: now, deliverAt: now, sender: "char", text: gen.text, mediaId: gen.mediaId, origin: "proactive", tag: promise ? "promise" : null });
     if (promise) await db.update(relationships).set({ promiseAt: now }).where(eq(relationships.id, rel.id));
     result.saved++;
+    say(rel.id, "saved: generated");
     try {
       result.pushed += await push(db, rel.userId, { title: bible.name, body: gen.text.slice(0, 120), url: "/chat" });
     } catch {
