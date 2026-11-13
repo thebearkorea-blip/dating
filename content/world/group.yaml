@@ -22,6 +22,9 @@ members:
     relation: 주인공. 연습생 2년 차. 동생 둘을 돌보다시피 해서 멤버들도 자연스럽게 챙긴다.
     voice: 다정하고 먼저 묻는다. 말끝을 부드럽게 흐리지만 자기 힘든 건 한 줄로 넘긴다.
     status: trainee
+    archetype: "다정한 올라운더 (M1)"
+    look: "adult male, average athletic build, soft oval face, natural dark brown hair, clean casual knit and jacket"
+    vibe: "먼저 묻고 챙기지만 자기 힘든 건 한 줄로 넘김"
   - id: dohyun
     name: 도현
     name_en: Dohyun
@@ -31,6 +34,9 @@ members:
     relation: 리더이자 형. 이한을 "애늙은이"라 놀리지만 제일 먼저 이한의 컨디션을 알아챈다.
     voice: 건조한 농담, 짧은 문장, 놀릴 때 반말 섞인 한국어 호칭("야, 애늙은이").
     status: trainee
+    archetype: "시크 반항아 리더 (M2)"
+    look: "adult male, lean angular build, sharp eyes and jawline, short black undercut hair, black leather jacket and silver earring"
+    vibe: "무심한 척 건조한 농담, 속은 책임을 지는 리더"
   - id: rui
     name: 루이
     name_en: Rui
@@ -40,6 +46,9 @@ members:
     relation: 서울 토박이, 패션에 진심. 이한의 옷차림을 매번 코디해 주려 한다(이한은 웃으며 거절).
     voice: 과장되고 수다스럽다, 감탄사와 이모지가 많다.
     status: trainee
+    archetype: "트렌드세터 모델형 (M3)"
+    look: "adult male, tall slim long-limbed build, sharp jawline, bleached blonde layered hair, layered high-fashion streetwear"
+    vibe: "수다스럽고 감각에 자신 있음, 패션에 진심"
   - id: jihu
     name: 지후
     name_en: Jihu
@@ -49,6 +58,9 @@ members:
     relation: 막내. 이한을 제일 따른다. 이한의 새벽 연습에 몰래 따라 나온다.
     voice: 조심스럽고 존댓말이 몸에 뱄다. 신나면 말이 빨라진다.
     status: trainee
+    archetype: "순둥 강아지 막내 (M7)"
+    look: "adult male, slim youthful build, round eyes, soft cheeks, light brown fluffy hair, bright cardigan"
+    vibe: "예의 바르고 조심스러움, 신나면 말이 빨라짐"
   - id: hajun
     name: 하준
     name_en: Hajun
@@ -58,6 +70,9 @@ members:
     relation: 이한과 같은 보컬 라인. 이한의 보컬을 은근히 신경 쓰고 연습 후에 목 상태를 묻는다.
     voice: 차분하고 말끝이 정돈돼 있다. 칭찬은 짧게, 걱정은 길게 한다.
     status: trainee
+    archetype: "모범생 보컬 (M5)"
+    look: "adult male, slender neat build, clean side-parted dark hair, clear skin, tidy shirt and knit vest"
+    vibe: "차분하고 정돈됨, 칭찬은 짧게 걱정은 길게"
   - id: sunwoo
     name: 선우
     name_en: Sunwoo
@@ -67,6 +82,9 @@ members:
     relation: 댄스 라인. 이한과 안무를 맞추며 자주 경쟁하듯 연습하지만 끝나면 먼저 어깨를 두드린다.
     voice: 장난기 많고 목소리가 크다. 반말과 존댓말을 섞어 쓴다.
     status: trainee
+    archetype: "개구쟁이 분위기메이커 (M6)"
+    look: "adult male, athletic lean build, bright grin, thick eyebrows, tousled hair, sporty hoodie"
+    vibe: "장난기 많고 목소리 큼, 경쟁하다 먼저 어깨 두드림"
   - id: eunchan
     name: 은찬
     name_en: Eunchan
@@ -76,6 +94,9 @@ members:
     relation: 이한의 방 짝(합숙 룸메이트). 말수가 적고 밤늦게까지 혼자 연습한다. 데뷔 전 최종 발표에서 탈락하는 멤버(대본 고정).
     voice: 낮고 느린 말투, 문장이 짧다. 속마음은 메모로 남긴다.
     status: trainee
+    archetype: "몽상가 감성 동생 (M8)"
+    look: "adult male, thin pale build, long soft bangs, gentle tired eyes, oversized plain knit sweater"
+    vibe: "낮고 느린 말투, 속마음은 메모로 남김"
   - id: minjae
     name: 민재
     name_en: Minjae
@@ -85,6 +106,9 @@ members:
     relation: 최연장 라인. 도현과 함께 분위기를 정리하고, 이한에게 요리를 자주 얻어먹는다.
     voice: 느긋하고 농담 끝에 한숨이 섞인다. 어른스러운 척하다가 들킨다.
     status: trainee
+    archetype: "근육 곰형 큰형 (M4)"
+    look: "adult male, broad-shouldered muscular build, round friendly face, short hair with forehead visible, fitted tank top under open shirt"
+    vibe: "느긋하고 든든함, 어른인 척하다 들킴"
 notes:
   - 멤버 나이는 설정 나이이며 공개 층 시간에 따라 실제 달력대로 먹는다(decisions "캐릭터 나이").
   - "가정: 루이의 출신·혈통 설정 없음(후보 문서대로 서울 토박이)."

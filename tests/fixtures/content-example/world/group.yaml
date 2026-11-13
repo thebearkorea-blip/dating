@@ -7,7 +7,7 @@ debut_window_months: [6, 12]
 language_of_content: ko-setting_en-examples
 members:
   - { id: lead, name: Lead, name_en: Lead, age: 21, role: protagonist, position: [dancer], relation: example, voice: example, status: trainee }
-  - { id: m2, name: M2, name_en: M2, age: 20, role: supporting, position: [vocal], relation: example, voice: example }
+  - { id: m2, name: M2, name_en: M2, age: 20, role: supporting, position: [vocal], relation: example, voice: example, archetype: example archetype, look: adult example look, vibe: example vibe }
   - { id: m3, name: M3, name_en: M3, age: 19, position: [rapper], relation: example, voice: example }
   - { id: m4, name: M4, name_en: M4, age: 19, position: [dancer], relation: example, voice: example }
 notes: [example]

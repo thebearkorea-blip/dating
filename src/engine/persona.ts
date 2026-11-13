@@ -1,5 +1,5 @@
 // 페르소나 프롬프트 조립. 순수 함수. 모델 문자열은 다루지 않는다(src/llm/index.ts 몫).
-import type { Bible, CanonRow } from "../content/schemas/index.js";
+import type { Bible, CanonRow, Group } from "../content/schemas/index.js";
 import type { Activity } from "./schedule.js";
 
 export interface PersonaInput {
@@ -21,6 +21,8 @@ export interface PersonaInput {
   /** 이미 털어놓은 비밀 id(중복 고백 방지, 선택) */
   disclosed?: string[];
   canonLimit?: number;
+  /** 그룹 세계관(선택). 있으면 멤버 줄에 archetype·vibe를 붙인다 */
+  group?: Group;
 }
 
 export interface PersonaPrompt {
@@ -38,12 +40,18 @@ function voiceRules(md: string): string {
   return (i < 0 ? md : md.slice(0, i)).trim();
 }
 
-function biblePrefix(b: Bible): string {
+function memberTrait(g: Group | undefined, id: string): string {
+  const m = g?.members.find((x) => x.id === id);
+  const parts = [m?.archetype, m?.vibe].filter((x): x is string => !!x);
+  return parts.length ? ` [개성: ${parts.join(" / ")}]` : "";
+}
+
+function biblePrefix(b: Bible, g?: Group): string {
   const lines = [
     `# 캐릭터: ${b.name} (${b.id}), ${b.age}세, 그룹 ${b.group_id}, 포지션 ${b.position.join("·")}`,
     `성격 방향: ${b.personality_direction}`,
     "## 멤버",
-    ...b.members.map((m) => `- ${m.id}: ${m.relation} (말투: ${m.voice_hint})`),
+    ...b.members.map((m) => `- ${m.id}: ${m.relation} (말투: ${m.voice_hint})${memberTrait(g, m.id)}`),
     "## 절대 하지 않는 행동",
     ...b.never.map((x) => `- ${x}`),
     "## 모르는 것",
@@ -101,7 +109,7 @@ function suffix(i: PersonaInput): string {
 
 export function buildPersona(input: PersonaInput): PersonaPrompt {
   const cacheable_prefix = [
-    biblePrefix(input.bible),
+    biblePrefix(input.bible, input.group),
     "# 말투 규칙·예문",
     voiceRules(input.voiceMd),
     canonPrefix(input.canon, input.canonLimit ?? CANON_LIMIT),

@@ -1,11 +1,11 @@
 // 채팅 한 턴의 핵심 로직. DB·LLM·시각을 주입받아 단위 테스트가 가능하다(Server Action은 얇은 껍데기).
 // 숨김 컬럼은 읽지도 싣지도 않는다(선택 컬럼만).
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { now as clockNow } from "../clock";
 import { join } from "node:path";
 import { and, asc, count, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
-import { bibleSchema, scheduleSchema, timelineSchema, type CanonRow } from "../content/schemas/index.js";
+import { bibleSchema, groupSchema, scheduleSchema, timelineSchema, type CanonRow, type Group } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
 import { canonFacts, characters, disclosures, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
@@ -56,6 +56,20 @@ function timeline(): EngineCharacter["timeline"] {
   return timelineCache;
 }
 
+const groupCache = new Map<string, Group | undefined>();
+/** content/world/group*.yaml 중 id가 groupId인 그룹(1회 캐시). 없으면 undefined. */
+export function loadGroup(groupId: string): Group | undefined {
+  if (!groupCache.has(groupId)) {
+    const dir = join(CONTENT_ROOT, "world");
+    const found = readdirSync(dir)
+      .filter((f) => /^group.*\.yaml$/.test(f))
+      .map((f) => groupSchema.parse(parseYaml(readFileSync(join(dir, f), "utf8"))))
+      .find((g) => g.id === groupId);
+    groupCache.set(groupId, found);
+  }
+  return groupCache.get(groupId);
+}
+
 export async function relDayOf(db: Db): Promise<number> {
   const [g] = await db.select({ d: growthState.currentRelDay }).from(growthState).where(eq(growthState.id, 1)).limit(1);
   return g?.d ?? DEFAULT_REL_DAY;
@@ -71,7 +85,7 @@ export async function loadCharacter(db: Db) {
     timeline: timeline(),
     affectionStages: bible.affection_stages,
   };
-  return { bible, voiceMd: c.voiceMd, engine };
+  return { bible, voiceMd: c.voiceMd, engine, group: loadGroup(bible.group_id) };
 }
 
 /** 지금 그의 활동(바쁨·답장 지연 범위). */
@@ -185,7 +199,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   await logFindings(db, rel.id, userMsg.id, detectBreakers(text));
 
   // 애정(숨김)·토라짐 반영. 그의 직전 말이 질문이었으면 "답함".
-  const { bible, voiceMd } = await loadCharacter(db);
+  const { bible, voiceMd, group } = await loadCharacter(db);
   const [lastChar] = await db
     .select({ text: messages.text })
     .from(messages)
@@ -224,6 +238,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     );
     const persona = buildPersona({
       bible,
+      group,
       voiceMd,
       canon,
       activity,

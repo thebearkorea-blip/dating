@@ -24,6 +24,9 @@ export const groupSchema = z
             relation: z.string(),
             voice: z.string(),
             status: z.enum(["trainee", "debuted", "eliminated"]).optional(),
+            archetype: z.string().optional(),
+            look: z.string().optional(),
+            vibe: z.string().optional(),
           })
           .strict(),
       )

@@ -5,6 +5,7 @@ import { parse as parseYaml } from "yaml";
 import {
   bibleSchema,
   canonRowSchema,
+  groupSchema,
   scheduleSchema,
   timelineSchema,
   type CanonRow,
@@ -21,6 +22,7 @@ if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
 const root = resolve("content");
 const yaml = (p: string): unknown => parseYaml(readFileSync(resolve(root, p), "utf8"));
 const bible = bibleSchema.parse(yaml("characters/ihan/bible.yaml"));
+const group = groupSchema.parse(yaml("world/group.yaml"));
 const schedule = scheduleSchema.parse(yaml("characters/ihan/schedule.yaml"));
 const timeline = timelineSchema.parse(yaml("world/timeline.yaml"));
 const voiceMd = readFileSync(resolve(root, "characters/ihan/voice.md"), "utf8");
@@ -40,7 +42,7 @@ const activity = activityAt(
   worldTime,
   { relDay: Number(rel), stage },
 );
-const persona = buildPersona({ bible, voiceMd, canon, activity, stage });
+const persona = buildPersona({ bible, voiceMd, canon, activity, stage, group });
 
 console.log(`시각(KST): ${date} ${hm} / 애정 단계 ${stage} / relDay ${rel}`);
 console.log(`활동: ${activity.activity} (${activity.kind}${activity.tags.length ? `: ${activity.tags.join(",")}` : ""})`);
@@ -49,3 +51,5 @@ console.log(`답장 지연(분): ${activity.replyDelayRange.min}~${activity.repl
 console.log(
   `토큰 추정: 전체 ${persona.tokens_estimate} (prefix ${Math.ceil(persona.cacheable_prefix.length / 4)}, suffix ${Math.ceil(persona.dynamic_suffix.length / 4)})`,
 );
+console.log("멤버:");
+console.log(persona.cacheable_prefix.split("\n").filter((l) => l.includes("[개성:")).join("\n"));

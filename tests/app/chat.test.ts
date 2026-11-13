@@ -53,6 +53,13 @@ const send = (text: string, minutes = 0) =>
 const chars = () =>
   db.select().from(messages).where(and(eq(messages.relId, relId), eq(messages.sender, "char")));
 
+describe("페르소나 멤버 개성", () => {
+  it("system 프롬프트의 멤버 줄에 archetype·vibe가 들어간다", async () => {
+    await send("hello", 0);
+    expect(calls[0]!.messages[0]!.content).toContain("[개성:");
+  });
+});
+
 describe("한도", () => {
   it("5회째까지 LLM을 부르고 6회째는 0회 + 오버레이 문장", async () => {
     for (let i = 0; i < 5; i++) await send(`hello ${i}`, i);

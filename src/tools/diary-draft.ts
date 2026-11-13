@@ -145,7 +145,7 @@ export async function runDraft(opts: DraftOptions): Promise<DraftResult> {
     new Date(`${opts.date}T${WRITE_TIME}:00+09:00`),
     { relDay, stage: STAGE },
   );
-  const persona = buildPersona({ bible: ctx.bible, voiceMd: ctx.voiceMd, canon: ctx.canon, activity, stage: STAGE });
+  const persona = buildPersona({ bible: ctx.bible, voiceMd: ctx.voiceMd, canon: ctx.canon, activity, stage: STAGE, group: ctx.group });
   const promptTokens = persona.tokens_estimate + Math.ceil(userPrompt(topic, activity, TONES[0] as string).length / 4);
   const result: DraftResult = { topic, activity, persona, promptTokens, files: [] };
 

@@ -33,8 +33,9 @@ const EXPRS = ["neutral relaxed expression", "gentle closed-mouth smile", "wide 
 const LIGHTS = ["soft even studio light", "warm window light from the side", "cool daylight, overcast", "dim warm indoor light", "bright flat softbox light"];
 const OUTFITS = ["plain white t-shirt", "plain black crewneck sweatshirt", "gray hoodie with no print", "navy button-up shirt"];
 
+const EXTRA = arg("extra");
 function promptOf(i: number): string {
-  return `Photo of the same person as the reference: same person, same hair color/style, no logos or text on clothing. ${VIEWS[i % 6]}, ${EXPRS[i % 7]}, ${LIGHTS[i % 5]}, wearing a ${OUTFITS[i % 4]}. Plain simple background, face large in frame, head and shoulders, sharp focus, photorealistic.`;
+  return `Photo of the same person as the reference: same person, same hair color/style, no logos or text on clothing. ${VIEWS[i % 6]}, ${EXPRS[i % 7]}, ${LIGHTS[i % 5]}, wearing a ${OUTFITS[i % 4]}. Plain simple background, face large in frame, head and shoulders, sharp focus, photorealistic.${EXTRA ? " " + EXTRA : ""}`;
 }
 
 function makeZip(id: string, dir: string, keep: string[], dry: boolean) {
