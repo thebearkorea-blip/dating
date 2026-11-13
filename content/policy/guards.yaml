@@ -8,6 +8,11 @@ rules:
     kind: regex
     severity: block
     text: '\byou(.?re| are)( so| such a| really| just)? (lazy|stupid|pathetic|ugly|fat|a loser|a mess|hopeless)\b|너(는|\s)?(진짜\s)?(한심|게으르|못생|뚱뚱|바보)'
+  - id: A10-deny-ai-regex
+    scope: output
+    kind: regex
+    severity: block
+    text: 'i.?m (a )?real (person|human)|\bnot an ai\b|\bi am (a )?human\b'
   - id: C3-always-never-regex
     scope: output
     kind: regex
