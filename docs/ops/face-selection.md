@@ -224,3 +224,17 @@ fal 확인(2026-11-13, openapi `https://fal.ai/api/openapi/queue/openapi.json?en
 - 기본 트레이너 `blackforestlabs/flux-3/klein/base/trainer`: 필수 `images_data_url`(zip URL), 선택 `steps`(100~10000, 기본 1000)·`learning_rate`(1e-4)·`resolution`(512/768/1024)·`trigger_phrase`(캡션 없는 이미지 전부의 캡션)·`enable_safety_checker`. 출력 `lora_file.url`·`config_file.url`. 단가 $0.0043/step(1000step $4.30).
 - 추론 `blackforestlabs/flux-3/klein/base/text-to-image/lora`: `prompt`·`loras[{path,scale}]`(최대 3)·`image_size`·`num_inference_steps`(기본 50)·`output_format`. $0.035/MP. 트레이너와 같은 base라 이 쌍을 쓴다. (4B LoRA 추론 `fal-ai/flux-2/klein/4b/base/lora`는 있으나 맞는 트레이너가 없어 쓰지 않는다.)
 - FLUX 3 klein의 BFL 라이선스(상업 이용·출력물 조건)는 fal 표기만 확인했고 원문 미확인 -> 학습 전에 확인.
+
+## 이솔 50장 (Gateway 참조 편집, 2026-11-13)
+
+LoRA 없이 `bfl/flux-2-pro` 참조 편집. 참조 `.data/photos/candidates/isol/N-front.jpg`, 계획 `content/characters/isol/photos/plan.jsonl` 50행. 도구: `node --import tsx src/tools/generate-photos.ts --character isol --plan content/characters/isol/photos/plan.jsonl --provider gateway --ref .data/photos/candidates/isol/N-front.jpg --model bfl/flux-2-pro` (4:5, 이어하기 지원). 문구: "same person as the reference, same dark hair color and wavy bob, female, 23-year-old adult who looks 21-22, K-pop idol trainee. <prompt_hint>. Setting: <place>. no logos or text." + K-팝 음악방송 심의 수준 복장 문구(성적 구도·가슴/허리 클로즈업 금지). 이미지 `.data/photos/isol/<id>.jpg`, 매니페스트 50행(`validate-content content` OK). 호출 51회 중 503 1회(p017은 재호출로 성공). 판정은 메인 1차(저해상도 8장 시트 확인, 검수자 확인 대기).
+
+| 항목 | 결과 |
+|---|---|
+| 같은 사람(face=true 24장) | 대체로 같음. 의심: p006(표정 과장·얼굴 달라 보임), p009·p022(앞머리 생김, 참조는 앞머리 없음), p050(머리색 밝은 갈색) |
+| 성인 외모 | 모두 20대 초중반으로 보임, 미성년 인상 없음 |
+| 복장 수위 | 대체로 연습복·민소매·크롭 수준. 경계: p010(스포츠브라+수건), p017·p018·p019·p043·p048(허리·다리 위주 크롭), p029·p030(가슴 높이까지 토르소 크롭), p039 |
+| face=false 위반 | 얼굴이 보임: p021, p032, p033, p049. 빈 무대여야 하나 인물이 있음: p038 |
+| 아티팩트 | p044 얼굴이 뭉개짐, p046 소매 형태 깨짐, p040 실루엣 5명(계획 8명)+타이트한 뒷모습, p034 한글 비슷한 과자 포장 글자, p033 가격표 글자 깨짐, p037 모자 로고 |
+
+폐기(매니페스트 `used`에 `{"where":"rejected","at":"2026-11-13"}`): isol-p021, p032, p033, p038, p040, p044, p046, p049 (8장, 확정 가능 수 42장). 보류(검수자 판단): p006, p009, p022, p050, p029, p030, p034, p037, p010, p018, p048.

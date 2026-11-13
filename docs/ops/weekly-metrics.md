@@ -10,3 +10,4 @@
 | 2026-11-13 | consistency-test (ihan 10 + isol 11 kontext-pro, ihan 10 flux-2-pro) | bfl/flux-kontext-pro + bfl/flux-2-pro | - | - | 0.84 + flux-2-pro 10장(단가 미공개, $0.04 가정 시 0.40) |
 | 2026-11-13 | consistency-test 재측정 (ihan 10 + isol 10, face=true) | bfl/flux-2-pro | - | - | 도구 추정 0 (단가 미공개), $0.04/장 가정 시 0.80 |
 | 2026-11-13 | face-candidates 4차 (ihan 4 + isol 4 정면 t2i) | bfl/flux-2-pro | - | - | 도구 추정 0 (단가 미공개), $0.04/장 가정 시 0.32 |
+| 2026-11-13 | generate-photos 이솔 50장 (gateway 참조 편집, 성공 50 + 503 1회) | bfl/flux-2-pro | - | - | 도구 추정 0 (단가 미공개), $0.04/장 가정 시 2.00 |
