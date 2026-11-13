@@ -41,7 +41,7 @@ describe("activityAt", () => {
   });
 
   it("a timeline beat overrides the weekly activity on its day", () => {
-    const beat = timeline.beats.find((b) => b.id === "account_opened")!;
+    const beat = timeline.beats.find((b) => b.id === "debut_group_confirmed")!;
     const hit = Array.from({ length: beat.rel_day.max - beat.rel_day.min + 1 }, (_, i) => beat.rel_day.min + i).filter(
       (r) => activityAt(character, new Date("2026-12-01T03:00:00Z"), { relDay: r, stage: 1 }).kind === "beat",
     );

@@ -10,6 +10,7 @@ company:
   note: 회사가 작아서 연습생 SNS를 본인이 운영한다. DM·개인 연락은 회사가 싫어한다(유입 경로 설정의 근거, decisions "플랫폼 소통의 목적").
 t0: null                # 데뷔 목표일 미정. timeline.yaml의 rel_day 기준점
 debut_window_months: [6, 12]   # 가정: 데뷔 예정 6~12개월 뒤(후보 문서 공통 전제)
+# 연습생 8명으로 시작, 데뷔 전 1명(eunchan) 탈락, 7명 데뷔. 이한은 탈락하지 않는다. (status 필드는 스키마 확장 후 추가)
 language_of_content: ko-setting_en-examples
 members:
   - id: ihan
@@ -44,6 +45,38 @@ members:
     position: [막내, 댄서]
     relation: 막내. 이한을 제일 따른다. 이한의 새벽 연습에 몰래 따라 나온다.
     voice: 조심스럽고 존댓말이 몸에 뱄다. 신나면 말이 빨라진다.
+  - id: hajun
+    name: 하준
+    name_en: Hajun
+    age: 20
+    role: supporting
+    position: [보컬]
+    relation: 이한과 같은 보컬 라인. 이한의 보컬을 은근히 신경 쓰고 연습 후에 목 상태를 묻는다.
+    voice: 차분하고 말끝이 정돈돼 있다. 칭찬은 짧게, 걱정은 길게 한다.
+  - id: sunwoo
+    name: 선우
+    name_en: Sunwoo
+    age: 22
+    role: supporting
+    position: [댄서, 래퍼]
+    relation: 댄스 라인. 이한과 안무를 맞추며 자주 경쟁하듯 연습하지만 끝나면 먼저 어깨를 두드린다.
+    voice: 장난기 많고 목소리가 크다. 반말과 존댓말을 섞어 쓴다.
+  - id: eunchan
+    name: 은찬
+    name_en: Eunchan
+    age: 21
+    role: supporting
+    position: [보컬]
+    relation: 이한의 방 짝(합숙 룸메이트). 말수가 적고 밤늦게까지 혼자 연습한다. 데뷔 전 최종 발표에서 탈락하는 멤버(대본 고정).
+    voice: 낮고 느린 말투, 문장이 짧다. 속마음은 메모로 남긴다.
+  - id: minjae
+    name: 민재
+    name_en: Minjae
+    age: 23
+    role: supporting
+    position: [래퍼, 댄서]
+    relation: 최연장 라인. 도현과 함께 분위기를 정리하고, 이한에게 요리를 자주 얻어먹는다.
+    voice: 느긋하고 농담 끝에 한숨이 섞인다. 어른스러운 척하다가 들킨다.
 notes:
   - 멤버 나이는 설정 나이이며 공개 층 시간에 따라 실제 달력대로 먹는다(decisions "캐릭터 나이").
   - "가정: 루이의 출신·혈통 설정 없음(후보 문서대로 서울 토박이)."
