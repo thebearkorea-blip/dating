@@ -1,28 +1,64 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, desc, eq, lte } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
-import { relationships } from "@/db/schema/index";
+import { activityLine, currentActivity, nextDeliverAt } from "@/engine/chat";
+import { messages, relationships } from "@/db/schema/index";
 import { DevBanner } from "../_components/DevBanner";
+import { Composer } from "./Composer";
+import { DeliveryTimer } from "./DeliveryTimer";
 
-// 채팅 본체는 ②. 여기서는 정말 빈 상태 + 입력창만 둔다.
+export const dynamic = "force-dynamic";
+
 export default async function Chat() {
   const user = await getCurrentUser();
   if (!user) redirect("/dev-login");
-  const [rel] = await getDb()
-    .select({ id: relationships.id })
+  const db = getDb();
+  // 숨김 컬럼은 선택하지 않는다(화면·DTO에 싣지 않음).
+  const [rel] = await db
+    .select({ id: relationships.id, stage: relationships.stage })
     .from(relationships)
     .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")))
     .limit(1);
   if (!rel) redirect("/onboarding");
 
+  const now = new Date();
+  const rows = await db
+    .select({ id: messages.id, sender: messages.sender, text: messages.text })
+    .from(messages)
+    .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
+    .orderBy(desc(messages.at))
+    .limit(100);
+  const list = rows.reverse();
+  const next = await nextDeliverAt(db, rel.id, now);
+  const line = activityLine(await currentActivity(db, rel.stage, now));
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col">
       <DevBanner />
-      <div className="flex-1" />
-      <form className="flex gap-2 p-4">
-        <input name="text" aria-label="message" className="field" autoComplete="off" />
-      </form>
+      <header className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] px-4 py-3">
+        <p className="text-sm text-[var(--color-ink-soft)]">{line}</p>
+        <Link href="/me" className="text-sm underline">
+          Memories
+        </Link>
+      </header>
+      <ul className="flex flex-1 flex-col gap-2 p-4">
+        {list.map((m) => (
+          <li
+            key={m.id}
+            className={
+              m.sender === "user"
+                ? "ml-auto max-w-[80%] rounded-[var(--radius-bubble-mine)] bg-[var(--color-bubble-mine)] px-4 py-2 text-[var(--color-bubble-mine-ink)]"
+                : "mr-auto max-w-[80%] rounded-[var(--radius-bubble)] bg-[var(--color-bubble-his)] px-4 py-2 text-[var(--color-bubble-his-ink)]"
+            }
+          >
+            {m.text}
+          </li>
+        ))}
+      </ul>
+      {next ? <DeliveryTimer at={next.toISOString()} /> : null}
+      <Composer />
     </main>
   );
 }

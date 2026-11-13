@@ -41,6 +41,8 @@ export const relationships = personal.table(
     pushMax: integer("push_max"),
     profile: jsonb("profile"),
     endedAt: timestamp("ended_at", { withTimezone: true }),
+    /** 기억 추출이 처리한 마지막 사용자 메시지 시각 */
+    memoryCursorAt: timestamp("memory_cursor_at", { withTimezone: true }),
   },
   (t) => [unique("relationships_user_character_uq").on(t.userId, t.characterId)],
 );
@@ -54,6 +56,20 @@ export const messages = personal.table("messages", {
   mediaId: text("media_id"),
   ttsUrl: text("tts_url"),
   origin: text("origin"), // reply | proactive | catchup
+  /** 이 시각 전에는 화면에 내보내지 않는다(사람다운 답장 지연). 사용자 메시지는 at과 같다. */
+  deliverAt: timestamp("deliver_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** 검수·감지 로그(차단·플래그·relationship_breakers 감지). 화면에 싣지 않는다. */
+export const reviewFindings = personal.table("review_findings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  relId: uuid("rel_id").notNull().references(() => relationships.id),
+  messageId: uuid("message_id"),
+  ruleId: text("rule_id").notNull(),
+  severity: text("severity").notNull(), // block | flag
+  quote: text("quote").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const memories = personal.table("memories", {

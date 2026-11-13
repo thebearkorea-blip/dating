@@ -8,6 +8,8 @@ export const entitlements = billing.table("entitlements", {
   plan: text("plan").notNull().default("free"),
   dailyQuota: integer("daily_quota").notNull().default(0),
   quotaUsedToday: integer("quota_used_today").notNull().default(0),
+  /** quota_used_today가 속한 KST 날짜(YYYY-MM-DD). 날짜가 바뀌면 0으로 리셋 */
+  quotaDay: text("quota_day"),
   quotaExhaustedAt: timestamp("quota_exhausted_at", { withTimezone: true }),
   callCredits: integer("call_credits").notNull().default(0),
 });

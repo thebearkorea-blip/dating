@@ -40,10 +40,9 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
           <span>Birth year</span>
           <input name="birthYear" type="number" required min={year - 100} max={year} className="field" />
         </label>
-        <AppVoice screen="ai_notice">그는 AI 캐릭터예요. 실제 사람이 아니며, 이야기는 모두 지어낸 것입니다.</AppVoice>
         <label className="flex items-start gap-2">
           <input type="checkbox" name="aiNotice" required />
-          <span>He is an AI character, and I understand that.</span>
+          <span>He is an AI character.</span>
         </label>
         <button type="submit" className="btn">
           Continue

@@ -8,6 +8,13 @@
       "when": 1794540327947,
       "tag": "0000_rainy_hiroim",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794540731416,
+      "tag": "0001_plain_mojo",
+      "breakpoints": true
     }
   ]
 }
