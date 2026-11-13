@@ -8,7 +8,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContent } from "../../src/db/load-content.js";
 import * as schema from "../../src/db/schema/index.js";
 import { BUSY_OVERLAY_LINES, UNAVAILABLE_LINES } from "../../src/engine/busy-overlay.js";
-import { handleUserMessage, selectMemories } from "../../src/engine/chat.js";
+import { handleUserMessage, nextDeliverAt, selectMemories } from "../../src/engine/chat.js";
 import { extractMemories } from "../../src/jobs/memory-extract.js";
 import { FALLBACK_LINES, guardOutput } from "../../src/policy/output-guard.js";
 import { loadGuards } from "../../src/policy/rules.js";
@@ -147,6 +147,20 @@ describe("전송 지연", () => {
     const min = (r!.deliverAt.getTime() - T0.getTime()) / 60000;
     expect(min).toBeGreaterThanOrEqual(5);
     expect(min).toBeLessThanOrEqual(30 * 3);
+  });
+});
+
+describe("전송 지연 화면 갱신", () => {
+  it("한도 3·4건 전송: 답장 4건 모두 저장(3건 LLM + 오버레이), 전달 전 가장 이른 deliver_at을 돌려준다", async () => {
+    process.env.DAILY_QUOTA_OVERRIDE = "3";
+    for (let i = 0; i < 4; i++) await send(`hello ${i}`, i);
+    expect(llm).toHaveBeenCalledTimes(3);
+    const rs = await chars();
+    expect(rs).toHaveLength(4);
+    const next = await nextDeliverAt(db, relId, at(3));
+    const earliest = Math.min(...rs.map((r) => r.deliverAt.getTime()).filter((t) => t > at(3).getTime()));
+    expect(next?.getTime()).toBe(earliest);
+    expect(await nextDeliverAt(db, relId, at(100000))).toBeNull();
   });
 });
 

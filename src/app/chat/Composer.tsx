@@ -22,12 +22,13 @@ export function Composer() {
         name="text"
         aria-label="message"
         className="field"
+        suppressHydrationWarning
         autoComplete="off"
         maxLength={1000}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <button type="submit" className="btn" disabled={pending}>
+      <button type="submit" className="btn" disabled={pending} suppressHydrationWarning>
         Send
       </button>
     </form>
