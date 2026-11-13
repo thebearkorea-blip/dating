@@ -25,7 +25,7 @@ export default async function Chat() {
 
   const now = new Date();
   const rows = await db
-    .select({ id: messages.id, sender: messages.sender, text: messages.text })
+    .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId })
     .from(messages)
     .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
     .orderBy(desc(messages.at))
@@ -39,9 +39,14 @@ export default async function Chat() {
       <DevBanner />
       <header className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] px-4 py-3">
         <p className="text-sm text-[var(--color-ink-soft)]">{line}</p>
-        <Link href="/me" className="text-sm underline">
-          Memories
-        </Link>
+        <span className="flex gap-3">
+          <Link href="/me" className="text-sm underline">
+            Memories
+          </Link>
+          <Link href="/settings" className="text-sm underline">
+            Settings
+          </Link>
+        </span>
       </header>
       <ul className="flex flex-1 flex-col gap-2 p-4">
         {list.map((m) => (
@@ -53,6 +58,7 @@ export default async function Chat() {
                 : "mr-auto max-w-[80%] rounded-[var(--radius-bubble)] bg-[var(--color-bubble-his)] px-4 py-2 text-[var(--color-bubble-his-ink)]"
             }
           >
+            {m.mediaId ? <img src={`/api/media/${m.mediaId}`} alt="" className="mb-2 w-full rounded-[var(--radius-control)]" /> : null}
             {m.text}
           </li>
         ))}

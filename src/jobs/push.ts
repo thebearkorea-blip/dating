@@ -1,8 +1,11 @@
 // Web Push 발송. VAPID 키(.env.local)가 없으면 아무것도 하지 않는다. 키·구독 값은 로그에 남기지 않는다.
 import { eq } from "drizzle-orm";
-import webpush from "web-push";
+import * as wp from "web-push";
 import type { Db } from "../db/client";
 import { pushSubscriptions } from "../db/schema/index";
+
+// CJS 패키지: 실행 환경(tsx·vitest·webpack)에 따라 default 유무가 다르다.
+const webpush: typeof wp = (wp as unknown as { default?: typeof wp }).default ?? wp;
 
 export interface PushPayload {
   title: string;

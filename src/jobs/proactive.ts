@@ -214,8 +214,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     .innerJoin(users, eq(users.id, relationships.userId))
     .where(and(eq(relationships.characterId, CHARACTER_ID), isNull(relationships.endedAt)));
   if (rels.length === 0) return result;
-  const { bible, engine } = await loadCharacter(db);
-  void engine;
+  const { bible } = await loadCharacter(db);
   result.relationships = rels.length;
 
   for (const rel of rels) {

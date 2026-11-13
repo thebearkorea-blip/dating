@@ -15,6 +15,13 @@
       "when": 1794540731416,
       "tag": "0001_plain_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794546258065,
+      "tag": "0002_petite_vindicator",
+      "breakpoints": true
     }
   ]
 }
