@@ -303,3 +303,17 @@ M2 유료 셀 측정: 프로필 방문·팔로우·대기 명단 등록 1건당 
 | isol | 44 | 44 | 0 |
 
 isol 누락이었던 table-food(isol-p032), laundry-folded(isol-p044), fruit-stand(isol-p033), sidewalk-pov(isol-p046)는 2026-11-13 flux-3-image-klein으로 재생성·연결했다(누락 0).
+
+## 7. 게시 팩 사용법
+
+수동 게시용으로 큐(`content/characters/<c>/sns/queue.jsonl`)에서 날짜별 팩을 만든다. 원본 사진은 `photos/manifest.jsonl`의 `blob_url`로 찾는다.
+
+```
+node --import tsx src/tools/make-post-pack.ts --character ihan --date 2026-11-17 [--platform tiktok|instagram|all] [--dry-run]
+node --import tsx src/tools/make-post-pack.ts --character ihan --all-dates   # 큐 전체
+```
+
+- 출력: `.data/sns/<character>/<date>/<platform>/` 에 `slide-01.jpg …`(1080×1350, 4:5 크롭 + 하단 `text_overlay` 합성), `caption.txt`(캡션 + 해시태그), `meta.json`(`post_time_kst`·`ai_label:true`·`photo_ids`·체크리스트).
+- `photo_id`가 null이거나 파일이 없는 슬라이드는 건너뛰고 경고한다. 슬라이드 0장이면 팩을 만들지 않는다.
+- 게시 순서: 슬라이드를 순서대로 업로드 → 캡션 붙여넣기 → **AI 라벨 켜기**(§1-3) → `post_time_kst`에 게시.
+- 요구: `/opt/homebrew/bin/ffmpeg`, macOS 시스템 폰트(Arial Unicode), python3 + Pillow(이 머신의 ffmpeg에는 drawtext가 없어 텍스트 띠는 Pillow로 그려 overlay 합성).
