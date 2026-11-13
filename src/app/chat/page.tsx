@@ -2,6 +2,7 @@ import { and, asc, desc, eq, lte } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
+import { takePaywall } from "@/billing/paywall";
 import { getDb } from "@/db/client";
 import { activityLine, currentActivity, nextDeliverAt } from "@/engine/chat";
 import { messages, relationships } from "@/db/schema/index";
@@ -24,6 +25,7 @@ export default async function Chat() {
   if (!rel) redirect("/onboarding");
 
   const now = new Date();
+  if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const rows = await db
     .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId })
     .from(messages)

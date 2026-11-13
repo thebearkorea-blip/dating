@@ -1,4 +1,4 @@
-import { integer, pgSchema, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgSchema, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const billing = pgSchema("billing");
 
@@ -11,5 +11,10 @@ export const entitlements = billing.table("entitlements", {
   /** quota_used_today가 속한 KST 날짜(YYYY-MM-DD). 날짜가 바뀌면 0으로 리셋 */
   quotaDay: text("quota_day"),
   quotaExhaustedAt: timestamp("quota_exhausted_at", { withTimezone: true }),
+  /** 유료 기간 끝. 취소(cancel_at_period_end)한 뒤 이 시각이 지나면 quota.ts가 읽을 때 free로 되돌린다 */
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  /** 아침 유료 안내를 마지막으로 보여 준 KST 날짜(YYYY-MM-DD). 하루 1회 상한 */
+  paywallShownDay: text("paywall_shown_day"),
   callCredits: integer("call_credits").notNull().default(0),
 });

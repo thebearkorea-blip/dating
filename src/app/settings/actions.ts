@@ -1,8 +1,10 @@
 "use server";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
+import { getBillingProvider } from "@/billing/index";
 import { pushSubscriptions, relationships, users } from "@/db/schema/index";
 
 function validTz(tz: string): boolean {
@@ -49,4 +51,18 @@ export async function removePushSubscription(endpoint: string): Promise<{ ok: bo
   if (!user) return { ok: false };
   await getDb().delete(pushSubscriptions).where(and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.userId, user.id)));
   return { ok: true };
+}
+
+export async function startCheckout(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const { url } = await getBillingProvider(getDb()).createCheckout(user.id);
+  redirect(url);
+}
+
+export async function cancelSubscription(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await getBillingProvider(getDb()).cancel(user.id);
+  revalidatePath("/settings");
 }

@@ -41,6 +41,7 @@ export function parseModelId(id: ModelId): { provider: string; model: string } {
 // ---- W2: 호출 구현 ----
 // 패키지 설치가 막혀 SDK 없이 Anthropic Messages API를 fetch로 직접 호출한다(공급자: Anthropic 직접 또는 Vercel AI Gateway, Messages 호환).
 import { existsSync } from "node:fs";
+import { assertDevOnly } from "../dev-only.js";
 
 /** .env, .env.local을 읽는다(이미 있는 환경변수는 덮어쓰지 않는다). */
 function loadEnv(): void {
@@ -54,6 +55,7 @@ function loadEnv(): void {
 export function activeProvider(): "anthropic" | "gateway" | "mock" {
   loadEnv();
   const forced = process.env.LLM_PROVIDER;
+  if (forced === "mock") assertDevOnly("LLM_PROVIDER=mock");
   if (forced === "mock" || forced === "anthropic" || forced === "gateway") return forced;
   if (process.env.ANTHROPIC_API_KEY) return "anthropic";
   if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return "gateway";
@@ -182,7 +184,10 @@ const providers: Record<string, LlmProvider> = { anthropic: anthropicProvider };
 
 export async function complete(req: LlmRequest): Promise<LlmResponse> {
   // 키가 없으면(mock) 모델 공급자와 상관없이 mock이 받는다. 출시 금지.
-  if (activeProvider() === "mock") return mockProvider.complete(req);
+  if (activeProvider() === "mock") {
+    assertDevOnly("LLM mock 응답");
+    return mockProvider.complete(req);
+  }
   const p = providers[parseModelId(req.model).provider];
   if (!p) throw new Error(`공급자 없음: ${req.model}`);
   return p.complete(req);

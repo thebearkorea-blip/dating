@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { getDb } from "@/db/client";
 import { users } from "@/db/schema/index";
+import { assertDevOnly } from "@/dev-only";
 
 export const SESSION_COOKIE = "dev_session";
 export type CurrentUser = typeof users.$inferSelect;
@@ -20,6 +21,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
 export async function devLogin(displayName: string): Promise<CurrentUser> {
   "use server";
+  assertDevOnly("dev-login");
   const name = displayName.trim().slice(0, 40) || "dev";
   const [u] = await getDb().insert(users).values({ displayName: name }).returning();
   if (!u) throw new Error("user insert failed");

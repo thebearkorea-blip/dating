@@ -2,10 +2,11 @@ import { and, eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
+import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
-import { saveSettings } from "./actions";
+import { cancelSubscription, saveSettings, startCheckout } from "./actions";
 import { PushToggle } from "./PushToggle";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ export default async function Settings() {
     .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")))
     .limit(1);
   if (!rel) redirect("/onboarding");
+  const plan = await getPlanView(getDb(), user.id, new Date());
   const w = (rel.pushWindow as { start?: string; end?: string } | null) ?? {};
 
   return (
@@ -31,6 +33,30 @@ export default async function Settings() {
       </header>
       <AppVoice screen="settings">
         <p>Payments never affect his growth.</p>
+        {plan.plan === "paid" ? (
+          <p>
+            Plan: Paid
+            {plan.periodEnd ? ` · ${plan.cancelAtPeriodEnd ? "ends" : "renews"} ${plan.periodEnd.toISOString().slice(0, 10)}` : ""}
+          </p>
+        ) : (
+          <p>Plan: Free</p>
+        )}
+        <p>$10 / month · 100 messages a day · photos</p>
+        {plan.plan === "paid" ? (
+          plan.cancelAtPeriodEnd ? null : (
+            <form action={cancelSubscription}>
+              <button type="submit" className="btn">
+                Cancel
+              </button>
+            </form>
+          )
+        ) : (
+          <form action={startCheckout}>
+            <button type="submit" className="btn">
+              Subscribe
+            </button>
+          </form>
+        )}
       </AppVoice>
       <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY ?? ""} />
       <form action={saveSettings} className="flex flex-col gap-3">
