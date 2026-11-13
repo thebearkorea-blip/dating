@@ -11,6 +11,6 @@
 - 기본값 확인: 이솔 23세·HALFTONE / 은찬 탈락 D-90 / D1 = 2026-11-17 / 핸들 가칭 2개
 
 ## 다음 할 일
-1. 카드 등록 뒤: AI Gateway 실호출 → W2 2단 골든·일기 44편·캡션 28건 2단 검수 → 실모델 채팅 품질 확인(검수자)
-2. 카드 뒤: W5a 후보 24장 → 검수자 선택 → 일관성 테스트(8/10) → W5c 100+50장 → W5d 유사도 검사 → 선톡 사진·틱톡 슬라이드 연결
-3. Neon·Clerk 연결 + Vercel 프리뷰 배포 + `roles.sql`(push_subscriptions·review_findings·admin billing 읽기) + 지역 차단 실검증 → `docs/deploy-log.md`
+1. 사용자·검수자: 사진 84장 전수 확인(`.data/photos/{ihan,isol}`, 이한 얼굴이 참조보다 어림), 말투 예문 선별(W1c), 틱톡·인스타 계정 개설(`docs/ops/account-setup.md`) → 첫 게시(큐 7일분 준비됨)
+2. Neon·Clerk 약관 승인 → 연결 → Vercel 프리뷰 배포(`deploy-log.md`) → 지역 차단·푸시 실검증
+3. W5 priority 2·3 사진 57장(이한 LoRA) · W5d 유사도 검사(AWS 키 또는 수동) · 선톡 실시간 1회 확인
