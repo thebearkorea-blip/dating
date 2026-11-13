@@ -1,4 +1,4 @@
-// 기억 최소판. 마지막 사용자 메시지 후 30분(세션 종료) 또는 사용자 메시지 20건마다 sendMessage 끝에서 인라인 호출.
+// 기억 최소판. 마지막 사용자 메시지 후 30분(세션 종료), 첫 추출은 사용자 메시지 5건, 그 뒤 20건마다 sendMessage 끝에서 인라인 호출.
 // mock 공급자(키 없음)면 규칙 추출: 사용자 메시지 중 I/my/I'm 1인칭 사실 문장 -> fact. 아니면 JUDGE_MODEL.
 import { and, asc, eq, gt, lte } from "drizzle-orm";
 import type { Db } from "../db/client";
@@ -6,7 +6,14 @@ import { memories, messages, relationships } from "../db/schema/index";
 import { activeProvider, complete, JUDGE_MODEL, type LlmRequest, type LlmResponse } from "../llm/index.js";
 
 export const SESSION_GAP_MS = 30 * 60 * 1000;
-export const EXTRACT_EVERY = 20;
+const intEnv = (name: string, def: number) => {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : def;
+};
+/** 관계의 첫 추출 시점(사용자 메시지 수). 환경변수 MEMORY_FIRST_AFTER, 기본 5. */
+export const memoryFirstAfter = () => intEnv("MEMORY_FIRST_AFTER", 5);
+/** 첫 추출 뒤 추출 간격(사용자 메시지 수). 환경변수 MEMORY_EVERY, 기본 20. */
+export const memoryEvery = () => intEnv("MEMORY_EVERY", 20);
 const MAX_FACTS = 5;
 
 export type CompleteFn = (req: LlmRequest) => Promise<LlmResponse>;

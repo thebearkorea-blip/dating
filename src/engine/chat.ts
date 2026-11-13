@@ -8,7 +8,7 @@ import { bibleSchema, scheduleSchema, timelineSchema, type CanonRow } from "../c
 import type { Db } from "../db/client";
 import { canonFacts, characters, growthState, memories, messages, relationships, reviewFindings } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
-import { extractMemories, EXTRACT_EVERY, SESSION_GAP_MS } from "../jobs/memory-extract.js";
+import { extractMemories, memoryEvery, memoryFirstAfter, SESSION_GAP_MS } from "../jobs/memory-extract.js";
 import { detectBreakers } from "../policy/breakers.js";
 import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
@@ -52,7 +52,7 @@ async function relDayOf(db: Db): Promise<number> {
   return g?.d ?? DEFAULT_REL_DAY;
 }
 
-async function loadCharacter(db: Db) {
+export async function loadCharacter(db: Db) {
   const [c] = await db.select().from(characters).where(eq(characters.id, CHARACTER_ID)).limit(1);
   if (!c) throw new Error("캐릭터 데이터 없음: load-content를 먼저 실행하세요");
   const bible = bibleSchema.parse(c.bible);
@@ -213,13 +213,13 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     }
   }
 
-  // 기억 추출(인라인). 세션이 30분 넘게 끊겼으면 이전 세션 분, 20건째면 지금까지.
+  // 기억 추출(인라인). 세션이 30분 넘게 끊겼으면 이전 세션 분, 첫 추출은 5건째, 그 뒤 20건마다.
   if (prev && now.getTime() - prev.at.getTime() > SESSION_GAP_MS) await extractMemories(db, rel.id, prev.at, { mode: deps.memoryMode, llm });
-  const [n] = await db
-    .select({ n: count() })
-    .from(messages)
-    .where(and(eq(messages.relId, rel.id), eq(messages.sender, "user")));
-  if (n && n.n % EXTRACT_EVERY === 0) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm });
+  const [cur] = await db.select({ cursor: relationships.memoryCursorAt }).from(relationships).where(eq(relationships.id, rel.id)).limit(1);
+  const sinceConds = [eq(messages.relId, rel.id), eq(messages.sender, "user")];
+  if (cur?.cursor) sinceConds.push(gt(messages.at, cur.cursor));
+  const [n] = await db.select({ n: count() }).from(messages).where(and(...sinceConds));
+  if (n && n.n >= (cur?.cursor ? memoryEvery() : memoryFirstAfter())) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm });
   return "ok";
 }
 

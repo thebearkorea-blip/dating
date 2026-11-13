@@ -165,8 +165,8 @@ describe("전송 지연 화면 갱신", () => {
 });
 
 describe("기억", () => {
-  it("사용자 메시지 20건 뒤 memories >= 1", async () => {
-    for (let i = 0; i < 20; i++) await send(`I really like jazz number ${i}.`, i);
+  it("사용자 메시지 5건 뒤 첫 추출로 memories >= 1", async () => {
+    for (let i = 0; i < 5; i++) await send(`I really like jazz number ${i}.`, i);
     const rows = await db.select().from(memories).where(eq(memories.relId, relId));
     expect(rows.length).toBeGreaterThanOrEqual(1);
     expect(rows.every((m) => m.userVisible)).toBe(true);
