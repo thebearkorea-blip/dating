@@ -1,0 +1,33 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+.app-voice {
+  background: var(--color-system-bg);
+  color: var(--color-system-ink);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.875rem;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-6);
+  font-weight: 600;
+}
+
+.field {
+  display: block;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  padding: var(--space-3) var(--space-4);
+}

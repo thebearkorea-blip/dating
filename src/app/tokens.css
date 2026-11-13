@@ -1,0 +1,27 @@
+/* 디자인 토큰 한 곳. 색·간격·말풍선 반경. 카카오(노랑/갈색)·라인(초록)과 겹치지 않는 팔레트. */
+:root {
+  --color-bg: #f6f3f8;
+  --color-surface: #ffffff;
+  --color-ink: #1d1a24;
+  --color-ink-soft: #6b6577;
+  --color-accent: #5b4bdb; /* 인디고 보라 */
+  --color-accent-ink: #ffffff;
+  --color-bubble-mine: #5b4bdb;
+  --color-bubble-mine-ink: #ffffff;
+  --color-bubble-his: #e6e0f0;
+  --color-bubble-his-ink: #1d1a24;
+  --color-system-bg: #fff4d6;
+  --color-system-ink: #5a4500;
+  --color-line: #ded8e8;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --radius-bubble: 18px 18px 18px 6px; /* 그의 말풍선: 왼쪽 아래만 뾰족 */
+  --radius-bubble-mine: 18px 18px 6px 18px;
+  --radius-control: 12px;
+}

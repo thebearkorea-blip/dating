@@ -49,16 +49,17 @@ function loadEnv(): void {
   }
 }
 
-/** 공급자 선택: ANTHROPIC_API_KEY가 있으면 직접, 없고 Gateway 토큰이 있으면 Gateway. */
-export function activeProvider(): "anthropic" | "gateway" | null {
+/** 공급자 선택: ANTHROPIC_API_KEY가 있으면 직접, 없고 Gateway 토큰이 있으면 Gateway, 키가 하나도 없으면 mock. */
+export function activeProvider(): "anthropic" | "gateway" | "mock" {
   loadEnv();
   if (process.env.ANTHROPIC_API_KEY) return "anthropic";
   if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return "gateway";
-  return null;
+  return "mock";
 }
 
+/** 실제 LLM 키가 있는지. mock은 키가 아니므로 false(기존 호출자의 "키 없음" 분기를 유지한다). */
 export function hasLlmKey(): boolean {
-  return activeProvider() !== null;
+  return activeProvider() !== "mock";
 }
 
 /** 모델 상수 -> 공급자별 모델 ID. */
@@ -103,7 +104,7 @@ export const anthropicProvider: LlmProvider = {
   provider: "anthropic",
   async complete(req) {
     const kind = activeProvider();
-    if (!kind) throw new Error("LLM 키 없음(ANTHROPIC_API_KEY, AI_GATEWAY_API_KEY, VERCEL_OIDC_TOKEN)");
+    if (kind === "mock") throw new Error("LLM 키 없음(ANTHROPIC_API_KEY, AI_GATEWAY_API_KEY, VERCEL_OIDC_TOKEN)");
     const model = PROVIDER_MODEL_ID[kind][req.model];
     if (!model) throw new Error(`모델 매핑 없음: ${req.model} (${kind})`);
     const headers: Record<string, string> =
@@ -152,9 +153,32 @@ export const anthropicProvider: LlmProvider = {
   },
 };
 
+// 출시 금지: mock은 로컬 개발 전용. 키가 없을 때만 자동 선택되며, UI는 dev_banner를 띄워야 한다.
+const MOCK_REPLIES = [
+  "Hey, you're here. I was just thinking about that.",
+  "Hmm, tell me more. I'm listening.",
+  "Okay, wait, that's actually kind of funny. Say it again?",
+] as const;
+
+export const mockProvider: LlmProvider = {
+  provider: "mock",
+  async complete(req) {
+    const last = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+    let h = 0;
+    for (const ch of last) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
+    return {
+      text: MOCK_REPLIES[h % MOCK_REPLIES.length] as string,
+      model: req.model,
+      usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 },
+    };
+  },
+};
+
 const providers: Record<string, LlmProvider> = { anthropic: anthropicProvider };
 
 export async function complete(req: LlmRequest): Promise<LlmResponse> {
+  // 키가 없으면(mock) 모델 공급자와 상관없이 mock이 받는다. 출시 금지.
+  if (activeProvider() === "mock") return mockProvider.complete(req);
   const p = providers[parseModelId(req.model).provider];
   if (!p) throw new Error(`공급자 없음: ${req.model}`);
   return p.complete(req);

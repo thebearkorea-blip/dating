@@ -22,12 +22,12 @@ const SHOTS: Shot[] = [
 ];
 
 const COMMON =
-  "candid photorealistic photograph, natural light, 35mm, shallow depth of field, a Korean adult clearly in his or her 20s, mature adult face, no makeup retouching, everyday clothes";
+  "candid photorealistic photograph, natural light, 35mm, shallow depth of field, everyday clothes";
 
 type Cand = { cand: string; face: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
-    subject: "Korean man, about 24 years old, athletic dancer's build, sun-tanned skin, short black hair, eyes crinkle into crescents when he smiles",
+    subject: "a Korean man in his early twenties (21), athletic build from daily dance practice, short hair, sun-tanned skin, eyes that crease when he smiles, clearly an adult",
     places: ["dance practice room with mirrors", "dormitory room", "city street at dusk", "dance practice room with mirrors"],
     cands: [
       { cand: "A", face: "soft rounded jaw, gentle kind eyes, thick straight eyebrows" },
@@ -37,7 +37,7 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
     ],
   },
   isol: {
-    subject: "Korean woman, about 25 years old, working-adult everyday look, expressive face, natural unstyled shoulder-length dark hair",
+    subject: "a Korean woman, 23 years old, mature adult with the composure of a working professional, clearly an adult",
     places: ["dance practice room with mirrors", "dormitory room", "city street at dusk", "dormitory room"],
     cands: [
       { cand: "A", face: "oval face, large expressive eyes, straight eyebrows, light freckles" },

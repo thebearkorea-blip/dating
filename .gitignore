@@ -11,3 +11,7 @@ content/**/photos/*.jpg
 content/**/photos/*.png
 content/**/photos/*.webp
 .vercel
+.data/
+.next/
+next-env.d.ts
+tsconfig.tsbuildinfo
