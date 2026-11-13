@@ -44,4 +44,12 @@ describe("buildPersona", () => {
     expect(p.dynamic_suffix).toContain("went hiking");
     expect(p.cacheable_prefix).not.toContain("went hiking");
   });
+
+  it("suffix carries a stage-specific length directive", () => {
+    expect(build(1).dynamic_suffix).toContain("1–2 short sentences (max ~40 words). One question at most.");
+    expect(build(3).dynamic_suffix).toContain("1–3 sentences.");
+    expect(build(5).dynamic_suffix).toContain("occasionally longer at night");
+    const sulky = buildPersona({ bible, voiceMd, canon, activity: act(1), stage: 1, sulk: "a bit hurt" });
+    expect(sulky.dynamic_suffix).toContain("one short sentence");
+  });
 });

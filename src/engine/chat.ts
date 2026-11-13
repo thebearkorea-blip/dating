@@ -274,7 +274,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     while (turns[0]?.role === "assistant") turns.shift();
     try {
       const reply = await generateGuardedReply(
-        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 400, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
+        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: stage <= 2 ? 160 : 400, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
         rules,
         `${userMsg.id}:fallback`,
       );

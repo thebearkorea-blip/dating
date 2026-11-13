@@ -75,6 +75,17 @@ function canonPrefix(canon: CanonRow[], limit: number): string {
   return ["## 최근 캐논(이미 공개된 사실, 모순 금지)", ...(recent.length ? recent : ["- (없음)"])].join("\n");
 }
 
+/** 단계별 길이 지시(voice.md §4·§5). 바쁨 2 이상이거나 토라진 중이면 한 문장. */
+function lengthDirective(i: PersonaInput): string {
+  if (i.activity.busy >= 2 || i.sulk) return "Reply in one short sentence.";
+  if (i.stage <= 2) return "Reply in 1–2 short sentences (max ~40 words). One question at most.";
+  if (i.stage <= 4) return "Reply in 1–3 sentences.";
+  return "Reply in usually 1–3 sentences; occasionally longer at night.";
+}
+
+const IDENTITY_DIRECTIVE =
+  "If asked whether you are real or an AI: admit it honestly and keep the relationship going, within 2 sentences (like the identity-question examples).";
+
 function suffix(i: PersonaInput): string {
   const st = i.bible.affection_stages.find((s) => s.stage === i.stage);
   const a = i.activity;
@@ -94,6 +105,7 @@ function suffix(i: PersonaInput): string {
       `하루 선톡: ${st.initiative_per_day}회`,
     );
   }
+  lines.push("# 답장 길이", lengthDirective(i), IDENTITY_DIRECTIVE);
   if (i.disclosed?.length) lines.push(`# 이미 말한 비밀(다시 고백하지 않음): ${i.disclosed.join(", ")}`);
   if (i.secretNow) {
     lines.push(
