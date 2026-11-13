@@ -5,9 +5,11 @@ import { outcome, review, type Outcome, type Verdict } from "../policy/reviewer.
 const args = process.argv.slice(2);
 const json = args.includes("--json");
 const noLlm = args.includes("--no-llm");
-const inputs = args.filter((a) => !a.startsWith("--"));
+const chIdx = args.indexOf("--character");
+const chArg = chIdx >= 0 ? args[chIdx + 1] : undefined;
+const inputs = args.filter((a, i) => !a.startsWith("--") && !(chIdx >= 0 && i === chIdx + 1));
 if (inputs.length === 0) {
-  console.error("usage: tsx src/tools/review.ts <file|dir>... [--json] [--no-llm]");
+  console.error("usage: tsx src/tools/review.ts <file|dir>... [--json] [--no-llm] [--character <id>]");
   process.exit(2);
 }
 
@@ -34,7 +36,8 @@ const rows: Row[] = [];
 for (const p of inputs.flatMap((i) => collect(resolve(i)))) {
   const raw = readFileSync(p, "utf8");
   const h = HEADER.exec(raw);
-  const verdict = await review(raw.replace(HEADER, ""), { useLlm: !noLlm });
+  const inferred = /content\/characters\/([^/]+)\//.exec(p.split("\\").join("/"))?.[1];
+  const verdict = await review(raw.replace(HEADER, ""), { useLlm: !noLlm, characterId: chArg ?? inferred });
   const got = outcome(verdict);
   const expect = h ? (h[1] as Outcome) : undefined;
   let status: Row["status"] = "";

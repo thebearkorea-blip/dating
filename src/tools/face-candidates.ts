@@ -1,4 +1,4 @@
-// W5a 기준 얼굴 후보 생성 도구. 사용: pnpm tsx src/tools/face-candidates.ts --character ihan|isol --n 4 --shots 3 [--provider gateway|fal|mock] [--dry-run]
+// W5a 기준 얼굴 후보 생성 도구. 사용: pnpm tsx src/tools/face-candidates.ts --character ihan|isol --n 4 [--cands E,F,G,H] --shots 3 [--provider gateway|fal|mock] [--dry-run]
 // 공급자는 src/img가 고른다(IMG_PROVIDER > Gateway 토큰 > FAL_KEY > mock). 정면은 text-to-image, 나머지 컷은 정면을 참조로 한 edit.
 // 이미지는 .data/photos/candidates/(gitignore), 저장소에는 매니페스트만 남긴다.
 import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
@@ -18,7 +18,14 @@ const SHOTS: Shot[] = [
 const COMMON =
   "candid photorealistic photograph, natural light, 35mm, shallow depth of field, everyday clothes";
 
-type Cand = { cand: string; face: string };
+// 2차(E~H): 성인이 분명한 20대 초중반 K-팝 연습생 비주얼. 1차(A~D)는 COMMON/subject를 그대로 쓴다.
+const COMMON2 =
+  "photorealistic editorial-quality but candid portrait, K-pop trainee visual, photogenic, soft natural window light with a subtle warm rim light, clear healthy skin with natural texture, styled hair, camera-aware confident expression, 85mm, shallow depth of field, clean stylish casual outfit";
+
+const S2_IHAN = "a Korean man in his early-to-mid twenties, clearly an adult, slim and toned dancer's physique, mature defined facial structure, no baby fat";
+const S2_ISOL = "a Korean woman in her mid twenties, clearly an adult, slim toned physique, mature defined facial structure, no baby fat, polished and sophisticated rather than cute";
+
+type Cand = { cand: string; face: string; v2?: boolean; subject?: string; place?: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
     subject: "a Korean man in his early twenties (21), athletic build from daily dance practice, short hair, sun-tanned skin, eyes that crease when he smiles, clearly an adult",
@@ -28,6 +35,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "B", face: "defined jawline, slightly upturned eyes, small mole under left eye" },
       { cand: "C", face: "oval face, high cheekbones, relaxed warm look, faint stubble" },
       { cand: "D", face: "broad forehead, strong nose bridge, full lips, buzzed short hair" },
+      { cand: "E", v2: true, subject: S2_IHAN, place: "dance practice room with soft window light", face: "sharp jawline, double eyelids, straight thick brows, warm smile lines, idol-trainee look" },
+      { cand: "F", v2: true, subject: S2_IHAN, place: "bright dormitory room by a window", face: "soft V-line jaw, monolid eyes with long lashes, pale clear skin, two-block haircut" },
+      { cand: "G", v2: true, subject: S2_IHAN, place: "city rooftop at golden hour", face: "high nose bridge, deep-set eyes, athletic shoulders, sun-kissed skin, bright grin" },
+      { cand: "H", v2: true, subject: S2_IHAN, place: "quiet cafe with soft daylight", face: "oval face, dimples, slightly wavy dark hair, calm gaze" },
     ],
   },
   isol: {
@@ -38,6 +49,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "B", face: "sharp chin, single eyelids, wide mouth, confident look" },
       { cand: "C", face: "defined cheekbones, double eyelids, straight nose, quick knowing smile" },
       { cand: "D", face: "long face, defined cheekbones, thick eyebrows, tired-but-bright look" },
+      { cand: "E", v2: true, subject: S2_ISOL, place: "dance practice room with soft window light", face: "sharp defined features, double eyelids, straight refined nose, sleek straight dark hair, polished natural makeup, cool confident gaze" },
+      { cand: "F", v2: true, subject: S2_ISOL, place: "bright dormitory room by a window", face: "slim V-line jaw, subtle monolid eyes with long lashes, luminous clear skin, soft natural makeup, hair in a sleek low ponytail" },
+      { cand: "G", v2: true, subject: S2_ISOL, place: "city street at golden hour", face: "high cheekbones, well-defined eyebrows, deep-set eyes, glossy shoulder-length layered hair, natural makeup, knowing playful smile" },
+      { cand: "H", v2: true, subject: S2_ISOL, place: "quiet cafe with soft daylight", face: "balanced oval face, elegant arched brows, defined lips, wavy dark hair with curtain bangs, natural makeup, composed gaze" },
     ],
   },
 };
@@ -59,18 +74,22 @@ async function main() {
   }
   const ch = id ? CHARACTERS[id] : undefined;
   if (!id || !ch) throw new Error("--character ihan|isol 필요");
-  const cands = ch.cands.slice(0, n);
+  const pick = arg("cands");
+  const cands = pick ? ch.cands.filter((c) => pick.split(",").includes(c.cand)) : ch.cands.slice(0, n);
+  if (!cands.length) throw new Error("--cands에 해당하는 후보 없음");
   const shots = SHOTS.slice(0, shotCount);
 
   const prompts: { cand: string; shot: Shot; prompt: string; seed: number }[] = [];
   cands.forEach((c, ci) => {
-    const base = `${COMMON}. ${ch.subject}. Face: ${c.face}. Setting: ${ch.places[ci]}.`;
+    const base = c.v2
+      ? `${COMMON2}. ${c.subject}. Face: ${c.face}. Setting: ${c.place}.`
+      : `${COMMON}. ${ch.subject}. Face: ${c.face}. Setting: ${ch.places[ci]}.`;
     shots.forEach((s, si) => {
       const prompt =
         si === 0
           ? `${base} ${s.text}.`
           : `Photo of the same person as in the reference image, same face, hair, skin tone and clothes, same setting. ${s.text}.`;
-      prompts.push({ cand: c.cand, shot: s, prompt, seed: 5000 + ci * 111 });
+      prompts.push({ cand: c.cand, shot: s, prompt, seed: 5000 + ch.cands.indexOf(c) * 111 });
     });
   });
 

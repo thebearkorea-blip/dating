@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { parse } from "yaml";
 import { complete, estimateCostUsd, hasLlmKey, JUDGE_MODEL } from "../llm/index.js";
 import { loadGuards, runStage1, type Finding, type GuardRule } from "./rules.js";
 
@@ -9,6 +10,8 @@ export interface Verdict {
   /** 2단 상태: ran | not-needed(1단 block) | skipped(키 없음 또는 비활성) */
   stage2: "ran" | "not-needed" | "skipped";
   usage: { inputTokens: number; outputTokens: number; costUsd: number };
+  /** 2단에 주입한 캐릭터·never 규칙 수(bible.md §6 번호 항목 + bible.yaml never)·canon 건수 */
+  meta: { character: string; neverRules: { md: number; yaml: number }; canonCount: number };
 }
 
 export interface ReviewOptions {
@@ -16,28 +19,48 @@ export interface ReviewOptions {
   rules?: GuardRule[];
   /** false면 2단을 부르지 않는다. */
   useLlm?: boolean;
-  /** canon 항목(최근 30건만 쓴다). */
+  /** canon 항목 직접 지정(없으면 content/world/canon.jsonl에서 characterId 행 최근 30건). */
   canon?: string[];
   root?: string;
+  /** 기본 ihan */
+  characterId?: string;
 }
 
 function readIfExists(p: string): string {
   return existsSync(p) ? readFileSync(p, "utf8") : "";
 }
 
-/** bible.md §6 never 절만 뽑는다. */
-function bibleNever(root: string): string {
-  const s = readIfExists(resolve(root, "content/characters/ihan/bible.md"));
+/** bible.md §6 never 절 + bible.yaml never. */
+function bibleNever(root: string, id: string): { text: string; md: number; yaml: number } {
+  const dir = resolve(root, "content/characters", id);
+  const s = readIfExists(resolve(dir, "bible.md"));
   const a = s.indexOf("## 6.");
   const b = s.indexOf("## 7.");
-  return a >= 0 ? s.slice(a, b > a ? b : undefined) : "";
+  const md = a >= 0 ? s.slice(a, b > a ? b : undefined) : "";
+  const y = readIfExists(resolve(dir, "bible.yaml"));
+  const never: string[] = y ? ((parse(y) as { never?: string[] }).never ?? []) : [];
+  const text = [md, never.length ? "### bible.yaml never\n" + never.map((n) => `- ${n}`).join("\n") : ""]
+    .filter(Boolean)
+    .join("\n\n");
+  return { text, md: (md.match(/^\d+(-\d+)?\. /gm) ?? []).length, yaml: never.length };
 }
 
-function buildSystem(root: string, classifiers: GuardRule[], canon: string[]): string {
+/** canon.jsonl에서 그 캐릭터 행만 최근 30건의 fact. */
+function characterCanon(root: string, id: string): string[] {
+  return readIfExists(resolve(root, "content/world/canon.jsonl"))
+    .split("\n")
+    .filter(Boolean)
+    .map((l) => JSON.parse(l) as { character: string; fact: string })
+    .filter((r) => r.character === id)
+    .map((r) => r.fact)
+    .slice(-30);
+}
+
+function buildSystem(root: string, classifiers: GuardRule[], canon: string[], never: string): string {
   return [
     "너는 캐릭터 콘텐츠 검수자다. 아래 정책에 비추어 입력 텍스트의 위반만 찾는다.",
     "## 정책 원문\n" + readIfExists(resolve(root, "content/policy/lines.md")),
-    "## 캐릭터 never 규칙\n" + bibleNever(root),
+    "## 캐릭터 never 규칙\n" + never,
     canon.length ? "## 최근 canon\n" + canon.slice(-30).join("\n") : "",
     "## 검사할 규칙(id: 설명, 기본 severity)\n" +
       classifiers.map((r) => `- ${r.id} [${r.severity}]: ${r.text}`).join("\n"),
@@ -60,6 +83,10 @@ export async function review(text: string, opts: ReviewOptions = {}): Promise<Ve
   const root = opts.root ?? process.cwd();
   const rules = opts.rules ?? loadGuards(resolve(root, "content/policy/guards.yaml"));
   const findings = runStage1(text, rules);
+  const character = opts.characterId ?? "ihan";
+  const never = bibleNever(root, character);
+  const canon = opts.canon ?? characterCanon(root, character);
+  const meta = { character, neverRules: { md: never.md, yaml: never.yaml }, canonCount: Math.min(canon.length, 30) };
   const usage = { inputTokens: 0, outputTokens: 0, costUsd: 0 };
 
   let stage2: Verdict["stage2"];
@@ -74,7 +101,7 @@ export async function review(text: string, opts: ReviewOptions = {}): Promise<Ve
       maxTokens: 1024,
       temperature: 0,
       messages: [
-        { role: "system", content: buildSystem(root, classifiers, opts.canon ?? []) },
+        { role: "system", content: buildSystem(root, classifiers, canon, never.text) },
         { role: "user", content: `<input>\n${text}\n</input>` },
       ],
     });
@@ -86,7 +113,7 @@ export async function review(text: string, opts: ReviewOptions = {}): Promise<Ve
     }
     stage2 = "ran";
   }
-  return { pass: findings.length === 0, findings, stage2, usage };
+  return { pass: findings.length === 0, findings, stage2, usage, meta };
 }
 
 export type Outcome = "block" | "flag" | "pass";
