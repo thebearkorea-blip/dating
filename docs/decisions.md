@@ -80,7 +80,8 @@
 |---|---|---|---|
 | Claude (Vercel AI Gateway) — Haiku 5.5 판단용, Sonnet 5.5 대화용 | LLM 기본 | 공식 단가 확인(Haiku $0.10/$0.50, 캐시 읽기 $0.01 per MTok). 모델 이름은 `src/llm`에만 | 📝 |
 | 다른 AI 서비스(LLM·이미지·음성·영상) | 필요한 경우 | **AI는 Claude만 쓰지 않는다**(2026-11-13 사용자 결정). 용도별로 품질·단가·정책이 더 맞는 서비스를 쓴다. 단 Q5 조건 유지: 쓰는 이유를 이 표에 한 줄 남기고, 같은 일을 하는 서비스를 둘 쓰지 않는다. 공급자 교체가 `src/llm` 한 곳에서 끝나게 설계 | 📝 |
-| fal.ai | LoRA 학습 + 이미지 생성 | 생성 $0.035/MP, "commercial rights included" 안내. **모델은 FLUX.2 [klein] 4B(Apache 2.0)** — FLUX.1 [dev]는 §4(a)가 파생물(LoRA) 상업 이용을 막아 제외(2026-11-13 조사). 대안 FLUX.1 [schnell]. 보정 보조 Kontext [pro]. Replicate와 중복 사용 금지 | 📝 (klein 4B 트레이너 지원·단가 착수 시 확인 ❓) |
+| **이미지 생성 = Vercel AI Gateway**(1차) | 기준 얼굴·사진 100+50장 | ~~fal.ai 전용~~ → 사용자 질문("fal이 필수인가")으로 재조사(2026-11-13): AI Gateway 모델 목록에 `bfl/flux-2-klein-4b`(같은 모델), `bfl/flux-3-image-klein`($0.009/장), `bytedance/seedream-4.5`($0.04)·`5.0`($0.035), `google/gemini-3.1-flash-image`, `bfl/flux-kontext-pro`($0.04, 참조 편집) 전부 있음 → **별도 fal 계정 없이 Vercel 카드 하나로** 생성 가능. 얼굴 일관성은 LoRA 대신 **참조 이미지 편집(Seedream 4.5 / Kontext / Gemini)** 으로 — 후보 1종 고른 뒤 10장 테스트에서 검수자 "같은 사람" 8/10 미만이면 그때만 fal LoRA로 보강. 비용: 150장 ≈ $2~6. 공급자 교체는 `src/img`(새 추상화) 한 곳 | 📝 |
+| fal.ai (예비) | LoRA 학습(참조 편집으로 일관성이 부족할 때만) | 키는 `.env.local`에 있음, 잔액 0. 쓰게 되면 FLUX.2 klein 4B 트레이너(Apache 2.0). 같은 일을 하는 서비스 중복 금지 원칙상 Gateway와 동시에 쓰지 않음 | 📝 예비 |
 | AWS Rekognition | 실존 인물 유사도 검사(RecognizeCelebrities·CompareFaces) | 약 $0.001/장. Azure Face는 Limited Access로 1인 불가, Google 유명인 인식은 제거 예정(2차). 한국 연예인 커버리지 미확인이라 Google Lens·TinEye 수동 검사를 병행 | 📝 |
 | Vercel (Hosting·Cron·Queues·Blob) | 배포·배치·파일 | 한 플랫폼, 1인 운영. **요금제: M1~M2는 Hobby(무료, 비상업 전용·cron 하루 1회), M3 결제 개시 전 Pro($20/월) 전환 필수**(상업 이용·15분 cron). 예산 표의 AI 30만 원·광고 20만 원과 별도 항목(2026-11-13) | 📝 |
 | Neon Postgres | DB | 스키마 4개 GRANT 분리가 Postgres로 바로 됨 | 📝 |

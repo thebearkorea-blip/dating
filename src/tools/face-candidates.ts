@@ -1,15 +1,9 @@
-// W5a 기준 얼굴 후보 생성 도구. 사용: pnpm tsx src/tools/face-candidates.ts --character ihan|isol --n 4 --shots 3 [--dry-run]
-// fal 큐 REST를 fetch로 직접 호출한다(패키지 설치 없음). 정면은 text-to-image, 나머지 컷은 정면을 참조로 한 edit.
+// W5a 기준 얼굴 후보 생성 도구. 사용: pnpm tsx src/tools/face-candidates.ts --character ihan|isol --n 4 --shots 3 [--provider gateway|fal|mock] [--dry-run]
+// 공급자는 src/img가 고른다(IMG_PROVIDER > Gateway 토큰 > FAL_KEY > mock). 정면은 text-to-image, 나머지 컷은 정면을 참조로 한 edit.
 // 이미지는 .data/photos/candidates/(gitignore), 저장소에는 매니페스트만 남긴다.
 import { existsSync, mkdirSync, readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-
-const T2I = "fal-ai/flux-2/klein/4b"; // FLUX.2 [klein] 4B, Apache 2.0
-const EDIT = "fal-ai/flux-2/klein/4b/edit";
-// 단가: fal 페이지 pricingInfoOverride가 4B/9B를 구분해 표시하지 않아 상한($0.011/MP)으로 추정한다.
-const USD_PER_MP = 0.011;
-const MP_T2I = 1.0; // 정면: 출력 1MP
-const MP_EDIT = 2.0; // edit: 입력 1MP + 출력 1MP
+import { activeImageProvider, defaultModel, estimateImageCostUsd, generateImage, toDataUrl } from "../img/index.js";
 
 type Shot = { name: string; text: string };
 const SHOTS: Shot[] = [
@@ -53,34 +47,16 @@ function arg(name: string, def?: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : def;
 }
 
-function loadKey(): string {
-  if (existsSync(".env.local")) process.loadEnvFile(".env.local");
-  const k = process.env.FAL_KEY;
-  if (!k) throw new Error("FAL_KEY가 .env.local에 없다");
-  return k;
-}
-
-async function fal(key: string, model: string, body: unknown): Promise<any> {
-  const H = { Authorization: `Key ${key}`, "Content-Type": "application/json" };
-  const sub = await fetch(`https://queue.fal.run/${model}`, { method: "POST", headers: H, body: JSON.stringify(body) });
-  if (!sub.ok) throw new Error(`제출 실패 ${sub.status}: ${(await sub.text()).slice(0, 300)}`);
-  const { status_url, response_url } = (await sub.json()) as { status_url: string; response_url: string };
-  for (let i = 0; i < 90; i++) {
-    const st = (await (await fetch(status_url, { headers: H })).json()) as { status: string };
-    if (st.status === "COMPLETED") break;
-    if (st.status !== "IN_QUEUE" && st.status !== "IN_PROGRESS") throw new Error(`상태 ${st.status}`);
-    await new Promise((r) => setTimeout(r, 2000));
-  }
-  const res = await fetch(response_url, { headers: H });
-  if (!res.ok) throw new Error(`결과 실패 ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return res.json();
-}
-
 async function main() {
   const id = arg("character");
   const n = Number(arg("n", "4"));
   const shotCount = Number(arg("shots", "3"));
   const dry = process.argv.includes("--dry-run");
+  const prov = arg("provider");
+  if (prov) {
+    if (prov !== "gateway" && prov !== "fal" && prov !== "mock") throw new Error("--provider gateway|fal|mock");
+    process.env.IMG_PROVIDER = prov;
+  }
   const ch = id ? CHARACTERS[id] : undefined;
   if (!id || !ch) throw new Error("--character ihan|isol 필요");
   const cands = ch.cands.slice(0, n);
@@ -98,52 +74,47 @@ async function main() {
     });
   });
 
+  const provider = activeImageProvider();
+  const mT2I = defaultModel(provider, false);
+  const mEdit = defaultModel(provider, true);
   const fronts = prompts.filter((p) => p.shot.name === "front").length;
   const edits = prompts.length - fronts;
-  const est = (fronts * MP_T2I + edits * MP_EDIT) * USD_PER_MP;
-  console.log(`${id}: ${prompts.length}장(t2i ${fronts} + edit ${edits}), 예상 비용 상한 $${est.toFixed(3)} (단가 $${USD_PER_MP}/MP)`);
+  const est = fronts * estimateImageCostUsd(provider, mT2I) + edits * estimateImageCostUsd(provider, mEdit, true);
+  console.log(`${id}: ${prompts.length}장(t2i ${fronts} + edit ${edits}), 공급자 ${provider}, 모델 t2i=${mT2I} edit=${mEdit}, 예상 비용 $${est.toFixed(3)}`);
   if (dry) {
     for (const p of prompts) console.log(`[${p.cand}-${p.shot.name}] seed=${p.seed} ${p.prompt}`);
     return;
   }
 
-  const key = loadKey();
   const dir = join(".data/photos/candidates", id);
   const manDir = join("content/characters", id, "photos");
   mkdirSync(dir, { recursive: true });
-  mkdirSync(manDir, { recursive: true });
-  const manifest = join(manDir, "candidates.jsonl");
+  // mock 산출물이 content 매니페스트와 이어하기(skip) 기록을 오염시키지 않게 .data에 따로 둔다.
+  const manifest = provider === "mock" ? join(dir, "candidates.mock.jsonl") : join(manDir, "candidates.jsonl");
+  if (provider !== "mock") mkdirSync(manDir, { recursive: true });
   const done = new Set<string>(
     existsSync(manifest)
       ? readFileSync(manifest, "utf8").split("\n").filter(Boolean).map((l) => { const r = JSON.parse(l); return `${r.cand}-${r.shot}`; })
       : [],
   );
-  const frontUrl: Record<string, string> = {};
+  const frontRef: Record<string, string> = {};
   let spent = 0;
   let failed = 0;
   for (const p of prompts) {
     const tag = `${p.cand}-${p.shot.name}`;
     if (done.has(tag)) { console.log(`skip ${tag}`); continue; }
     try {
-      const common = { output_format: "jpeg", num_images: 1, seed: p.seed, enable_safety_checker: true, image_size: "portrait_4_3" };
-      let out: any;
-      if (p.shot.name === "front") {
-        out = await fal(key, T2I, { ...common, prompt: p.prompt });
-        spent += MP_T2I * USD_PER_MP;
-      } else {
-        const ref = frontUrl[p.cand];
-        if (!ref) throw new Error("정면 참조 없음");
-        out = await fal(key, EDIT, { ...common, prompt: p.prompt, image_urls: [ref] });
-        spent += MP_EDIT * USD_PER_MP;
-      }
-      const url: string = out.images[0].url;
-      if (p.shot.name === "front") frontUrl[p.cand] = url;
-      const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
-      const path = join(dir, `${tag}.jpg`);
-      writeFileSync(path, buf);
+      const front = p.shot.name === "front";
+      const ref = frontRef[p.cand];
+      if (!front && !ref) throw new Error("정면 참조 없음");
+      const out = await generateImage({ prompt: p.prompt, aspect: "3:4", seed: p.seed, ...(front ? {} : { referenceImages: [ref!] }) });
+      spent += out.costUsd;
+      if (front) frontRef[p.cand] = toDataUrl(out);
+      const path = join(dir, `${tag}.${out.ext}`);
+      writeFileSync(path, out.bytes);
       appendFileSync(
         manifest,
-        JSON.stringify({ cand: p.cand, shot: p.shot.name, path: `/Users/gim-yeonho/v/date/${path}`, prompt: p.prompt, model: p.shot.name === "front" ? T2I : EDIT, seed: out.seed ?? p.seed, created_at: new Date().toISOString() }) + "\n",
+        JSON.stringify({ cand: p.cand, shot: p.shot.name, path: `/Users/gim-yeonho/v/date/${path}`, prompt: p.prompt, model: out.model, seed: p.seed, created_at: new Date().toISOString() }) + "\n",
       );
       console.log(`ok ${tag}`);
     } catch (e) {
