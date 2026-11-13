@@ -7,11 +7,13 @@ import { splitFrontmatter } from "../content/schemas/diary.js";
 import type { CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
 import { canonFacts, memories, messages, relationships, users } from "../db/schema/index";
-import { currentActivity, CHARACTER_ID, loadCharacter } from "../engine/chat.js";
+import { currentActivity, CHARACTER_ID, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
 import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
-import { hash32, kstParts, type Activity } from "../engine/schedule.js";
+import { scenesByTrigger } from "../engine/scenes.js";
+import { isSulking } from "../engine/sulk.js";
+import { activityAt, hash32, kstParts, type Activity } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { guardOutput } from "../policy/output-guard.js";
 import { loadGuards, type GuardRule } from "../policy/rules.js";
@@ -135,10 +137,49 @@ interface RelRow {
   id: string;
   userId: string;
   stage: number;
+  sulkState: string;
   startedAt: Date;
   pushWindow: unknown;
   pushMax: number | null;
   tz: string | null;
+}
+
+/** 그가 약속을 제안한 선톡인지(휴리스틱). 사용자가 24시간 답하지 않으면 토라짐 진입(sulk.ts). */
+const PROMISE_RE = /\b(let'?s|shall we|want to|wanna|how about|are you free)\b[^.?!]*\b(tonight|tomorrow|this weekend|on (sat|sun|mon|tue|wed|thu|fri)\w*|later today)\b|\b(tonight|tomorrow|this weekend)\b[^.?!]*\?/i;
+export const isPromiseText = (t: string): boolean => PROMISE_RE.test(t);
+
+/** 바쁜 날 판정용: 깨어 있는 시간(07~22시, 3시간 간격 6곳)의 평균 busy가 이 값 이상이면 "busy=3 기간의 하루"(컴백·평가 주간 등).
+ * 일과표에는 연습·취침 블록이 매일 busy=3이라 "하루에 busy=3이 있었나"로는 기간을 가를 수 없다. */
+export const HEAVY_DAY_MEAN = 2.4;
+/** 기간으로 칠 최소 연속 일수. */
+export const HEAVY_RUN_DAYS = 3;
+
+/** busy=3 기간이 어제 끝났는가: 어제까지 연속 HEAVY_RUN_DAYS일 이상 바쁜 날이었고 오늘은 아니다. */
+export async function busy3EndedYesterday(db: Db, stage: number, now: Date): Promise<boolean> {
+  const { engine } = await loadCharacter(db);
+  const relDay = await relDayOf(db);
+  const dayStart = Math.floor(now.getTime() / 60000) * 60000 - kstParts(now).minutes * 60000;
+  const heavy = (offset: number): boolean => {
+    let sum = 0;
+    for (const h of [7, 10, 13, 16, 19, 22]) sum += activityAt(engine, new Date(dayStart + (offset * 24 + h) * 3600000), { relDay: relDay + offset, stage }).busy;
+    return sum / 6 >= HEAVY_DAY_MEAN;
+  };
+  if (heavy(0)) return false;
+  for (let i = 1; i <= HEAVY_RUN_DAYS; i++) if (!heavy(-i)) return false;
+  return true;
+}
+
+/** 보상 이벤트 장면: scenes trigger=after_busy3_period 중 결정적 1개. 해당 없으면 null. */
+async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: string[] } | null> {
+  const scenes = scenesByTrigger(CHARACTER_ID, "after_busy3_period").filter((s) => s.stageMin <= rel.stage);
+  if (scenes.length === 0) return null;
+  const [recent] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(and(eq(messages.relId, rel.id), eq(messages.tag, "reward"), gte(messages.at, new Date(now.getTime() - 3 * DAY_MS))))
+    .limit(1);
+  if (recent || !(await busy3EndedYesterday(db, rel.stage, now))) return null;
+  return scenes[hash32(`${rel.id}:${kstParts(now).date}:reward`) % scenes.length] ?? null;
 }
 
 async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | null> {
@@ -205,6 +246,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       id: relationships.id,
       userId: relationships.userId,
       stage: relationships.stage,
+      sulkState: relationships.sulkState,
       startedAt: relationships.startedAt,
       pushWindow: relationships.pushWindow,
       pushMax: relationships.pushMax,
@@ -218,6 +260,8 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
   result.relationships = rels.length;
 
   for (const rel of rels) {
+    // 토라진 동안은 먼저 연락하지 않는다.
+    if (isSulking(rel.sulkState)) continue;
     const [lastUser] = await db
       .select({ at: messages.at })
       .from(messages)
@@ -244,14 +288,36 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     });
     if (!cand) continue;
     result.candidates++;
+    const reward = await rewardFor(db, rel, now);
+    if (reward) {
+      // 보상 이벤트: 장면 대본 그대로(LLM 없음). {{photo}}는 사진이 있으면 그 말풍선에 붙이고 없으면 지운다.
+      const photo = await pickPhoto(db, { relId: rel.id, characterId: CHARACTER_ID, situation: activity.activity, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
+      let first = "";
+      for (const [i, raw] of reward.bubbles.entries()) {
+        const text = raw.replace(/\{\{photo\}\}/g, "").replace(/ {2,}/g, " ").trim();
+        if (!text) continue;
+        first ||= text;
+        const when = new Date(now.getTime() + i * 4000);
+        await db.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text, mediaId: raw.includes("{{photo}}") ? photo : null, origin: "proactive", tag: "reward" });
+      }
+      result.saved++;
+      try {
+        result.pushed += await push(db, rel.userId, { title: bible.name, body: first.slice(0, 120), url: "/chat" });
+      } catch {
+        // 푸시 실패는 선톡 저장에 영향이 없다.
+      }
+      continue;
+    }
     const gen = await generateProactive(deps, rel, activity, now);
     if (!gen) {
       result.skipped++;
       continue;
     }
+    const promise = isPromiseText(gen.text);
     await db
       .insert(messages)
-      .values({ relId: rel.id, at: now, deliverAt: now, sender: "char", text: gen.text, mediaId: gen.mediaId, origin: "proactive" });
+      .values({ relId: rel.id, at: now, deliverAt: now, sender: "char", text: gen.text, mediaId: gen.mediaId, origin: "proactive", tag: promise ? "promise" : null });
+    if (promise) await db.update(relationships).set({ promiseAt: now }).where(eq(relationships.id, rel.id));
     result.saved++;
     try {
       result.pushed += await push(db, rel.userId, { title: bible.name, body: gen.text.slice(0, 120), url: "/chat" });

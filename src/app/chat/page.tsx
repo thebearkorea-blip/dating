@@ -5,10 +5,13 @@ import { getCurrentUser } from "@/auth/index";
 import { takePaywall } from "@/billing/paywall";
 import { getDb } from "@/db/client";
 import { activityLine, currentActivity, nextDeliverAt } from "@/engine/chat";
+import { reconcileStatus } from "@/engine/reconcile";
 import { messages, relationships } from "@/db/schema/index";
+import { AppVoice } from "../_components/AppVoice";
 import { DevBanner } from "../_components/DevBanner";
 import { Composer } from "./Composer";
 import { DeliveryTimer } from "./DeliveryTimer";
+import { ReconcileForm } from "./ReconcileForm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +37,7 @@ export default async function Chat() {
     .limit(100);
   const list = rows.reverse();
   const next = await nextDeliverAt(db, rel.id, now);
+  const status = await reconcileStatus(db, rel.id, now);
   const line = activityLine(await currentActivity(db, rel.stage, now));
 
   return (
@@ -66,7 +70,13 @@ export default async function Chat() {
         ))}
       </ul>
       {next ? <DeliveryTimer at={next.toISOString()} /> : null}
-      <Composer />
+      {status === "active" ? (
+        <Composer />
+      ) : (
+        <AppVoice screen="reconcile">
+          <ReconcileForm open={status === "open"} />
+        </AppVoice>
+      )}
     </main>
   );
 }

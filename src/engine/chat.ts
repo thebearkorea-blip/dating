@@ -6,17 +6,23 @@ import { and, asc, count, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import { bibleSchema, scheduleSchema, timelineSchema, type CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
-import { canonFacts, characters, growthState, memories, messages, relationships, reviewFindings } from "../db/schema/index";
+import { canonFacts, characters, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { extractMemories, memoryEvery, memoryFirstAfter, SESSION_GAP_MS } from "../jobs/memory-extract.js";
 import { detectBreakers } from "../policy/breakers.js";
 import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
+import { applyUserMessage } from "./affection.js";
+import { breakerTurn } from "./breakup.js";
 import { pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
+import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
+import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
 import { activityAt, hash32, type Activity, type EngineCharacter } from "./schedule.js";
+import { peekSecret, recordDisclosure } from "./secrets.js";
+import { onUserMessageSulk, sulkDirective } from "./sulk.js";
 
 export const CHARACTER_ID = "ihan";
 const CONTENT_ROOT = "content";
@@ -47,7 +53,7 @@ function timeline(): EngineCharacter["timeline"] {
   return timelineCache;
 }
 
-async function relDayOf(db: Db): Promise<number> {
+export async function relDayOf(db: Db): Promise<number> {
   const [g] = await db.select({ d: growthState.currentRelDay }).from(growthState).where(eq(growthState.id, 1)).limit(1);
   return g?.d ?? DEFAULT_REL_DAY;
 }
@@ -121,7 +127,7 @@ function llmErrorReason(e: unknown): string {
   return m ? `llm http ${m[1]}` : "llm call failed (network/timeout)";
 }
 
-export type SendResult = "ok" | "empty";
+export type SendResult = "ok" | "empty" | "ended";
 
 /** 사용자 메시지 1건을 받아 그의 답장(전송 지연 포함)까지 저장한다. */
 export async function handleUserMessage(deps: ChatDeps, userId: string, rawText: string): Promise<SendResult> {
@@ -133,11 +139,21 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const rules = deps.rules ?? defaultRules();
 
   const [rel] = await db
-    .select({ id: relationships.id, stage: relationships.stage })
+    .select({
+      id: relationships.id,
+      stage: relationships.stage,
+      startedAt: relationships.startedAt,
+      endedAt: relationships.endedAt,
+      pendingBreaker: relationships.pendingBreaker,
+      promiseAt: relationships.promiseAt,
+      profile: relationships.profile,
+    })
     .from(relationships)
     .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID)))
     .limit(1);
   if (!rel) throw new Error("관계 없음: 온보딩 필요");
+  // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
+  if (rel.endedAt) return "ended";
 
   const [prev] = await db
     .select({ at: messages.at })
@@ -162,18 +178,40 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
 
   await logFindings(db, rel.id, userMsg.id, detectBreakers(text));
 
-  const activity = await currentActivity(db, rel.stage, now);
+  // 애정(숨김)·토라짐 반영. 그의 직전 말이 질문이었으면 "답함".
+  const { bible, voiceMd } = await loadCharacter(db);
+  const [lastChar] = await db
+    .select({ text: messages.text })
+    .from(messages)
+    .where(and(eq(messages.relId, rel.id), eq(messages.sender, "char"), lte(messages.deliverAt, now)))
+    .orderBy(desc(messages.at))
+    .limit(1);
+  if (rel.promiseAt) await db.update(relationships).set({ promiseAt: null }).where(eq(relationships.id, rel.id));
+  const sulk = await onUserMessageSulk(db, rel.id, now, {
+    text,
+    silentDays: prev ? silenceDays(now, prev.at, rel.startedAt) : null,
+    mode: deps.memoryMode,
+    llm,
+  });
+  const stage = (await applyUserMessage(db, rel.id, bible, now, !!lastChar?.text.trimEnd().endsWith("?"))).stage;
+
+  const activity = await currentActivity(db, stage, now);
   const deliverAt = new Date(now.getTime() + delayMinutes(activity, `${userMsg.id}:delay`) * 60000);
 
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
+  // 이별 전이(확인 질문 → 이별 장면). 위기 신호는 안전 대본이 먼저라 분류하지 않는다.
+  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, { mode: deps.memoryMode, llm });
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
     await saveReply(SAFETY_SCRIPT, now);
+  } else if (turn === "asked" || turn === "ended") {
+    // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {
     await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`), deliverAt);
   } else {
-    const { bible, voiceMd, engine } = await loadCharacter(db);
+    const [u] = await db.select({ tz: users.tz }).from(users).where(eq(users.id, userId)).limit(1);
+    const secretNow = await peekSecret(db, rel.id, bible, now, u?.tz ?? null, text);
     const canon = (await db.select().from(canonFacts).orderBy(asc(canonFacts.at))).map(
       (r): CanonRow => ({ at: r.at, character: r.character, fact: r.fact, source: r.source as CanonRow["source"], ...(r.eventId ? { event_id: r.eventId } : {}) }),
     );
@@ -182,8 +220,11 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       voiceMd,
       canon,
       activity,
-      stage: rel.stage,
+      stage,
       memories: await selectMemories(db, rel.id, text),
+      profile: profileText(rel.profile),
+      sulk: sulkDirective(sulk),
+      secretNow,
     });
     const history = await db
       .select({ sender: messages.sender, text: messages.text })
@@ -204,6 +245,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       );
       const replyId = await saveReply(reply.text, deliverAt);
       await logFindings(db, rel.id, replyId, reply.findings);
+      if (secretNow) await recordDisclosure(db, rel.id, secretNow.id);
     } catch (e) {
       // LLM 실패(네트워크·4xx·5xx·타임아웃)는 그의 사정으로 처리한다. 앱은 에러를 말하지 않는다.
       // 한도는 되돌리고, 사유에는 상태 코드만 남긴다(토큰·응답 본문 없음).
@@ -220,6 +262,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   if (cur?.cursor) sinceConds.push(gt(messages.at, cur.cursor));
   const [n] = await db.select({ n: count() }).from(messages).where(and(...sinceConds));
   if (n && n.n >= (cur?.cursor ? memoryEvery() : memoryFirstAfter())) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm });
+  await maybeFreezeProfile(db, rel.id, now);
   return "ok";
 }
 

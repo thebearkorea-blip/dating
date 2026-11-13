@@ -8,6 +8,7 @@ export const APP_VOICE_SCREENS = [
   "paywall_morning",
   "geo_block",
   "dev_banner",
+  "reconcile",
 ] as const;
 
 export type AppVoiceScreen = (typeof APP_VOICE_SCREENS)[number];

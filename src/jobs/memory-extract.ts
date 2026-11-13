@@ -3,6 +3,7 @@
 import { and, asc, eq, gt, lte } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { memories, messages, relationships } from "../db/schema/index";
+import { accumulateSuggestions } from "../engine/profile.js";
 import { activeProvider, complete, JUDGE_MODEL, type LlmRequest, type LlmResponse } from "../llm/index.js";
 
 export const SESSION_GAP_MS = 30 * 60 * 1000;
@@ -96,5 +97,7 @@ export async function extractMemories(
     added++;
   }
   await db.update(relationships).set({ memoryCursorAt: upTo }).where(eq(relationships.id, relId));
+  // 2층 프로필 제안 누적(굳힌 뒤에는 no-op)
+  await accumulateSuggestions(db, relId, rows.map((r) => r.text), { mode, llm: opts.llm });
   return added;
 }

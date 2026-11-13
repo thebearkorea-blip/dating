@@ -43,6 +43,25 @@ export const relationships = personal.table(
     endedAt: timestamp("ended_at", { withTimezone: true }),
     /** 기억 추출이 처리한 마지막 사용자 메시지 시각 */
     memoryCursorAt: timestamp("memory_cursor_at", { withTimezone: true }),
+    /** 숨김. 일 상한 계산용(KST 날짜·그날 오른 양) */
+    affectionDay: text("affection_day"),
+    affectionDayGain: integer("affection_day_gain").notNull().default(0),
+    /** 일 배치(감쇠)를 마지막으로 돈 KST 날짜. 같은 날 두 번 깎지 않는다. */
+    affectionTickedOn: text("affection_ticked_on"),
+    /** 현재 토라짐 상태가 시작된 시각(mild·sulking은 진입 시각, thawing은 풀리기 시작한 시각) */
+    sulkSince: timestamp("sulk_since", { withTimezone: true }),
+    /** 그가 선톡으로 제안한 약속의 시각. 사용자가 답하면 비운다. */
+    promiseAt: timestamp("promise_at", { withTimezone: true }),
+    /** 감지된 relationship_breakers id(B1~B4). 확인 질문 응답을 기다리는 중. */
+    pendingBreaker: text("pending_breaker"),
+    /** 단계 상승으로 해금돼 아직 말하지 않은 비밀 id */
+    pendingSecret: text("pending_secret"),
+    reconcileAfter: timestamp("reconcile_after", { withTimezone: true }),
+    reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
+    /** 2층 프로필 제안 누적({n, playfulness, initiative, directness, weakness_shown}, 0~1 평균) */
+    profileSuggestions: jsonb("profile_suggestions"),
+    /** profile이 확정된 시각. 이후 불변. */
+    frozenAt: timestamp("frozen_at", { withTimezone: true }),
   },
   (t) => [unique("relationships_user_character_uq").on(t.userId, t.characterId)],
 );
@@ -56,6 +75,7 @@ export const messages = personal.table("messages", {
   mediaId: text("media_id"),
   ttsUrl: text("tts_url"),
   origin: text("origin"), // reply | proactive | catchup
+  tag: text("tag"), // promise | reward (선톡 분류용, 화면에 싣지 않음)
   /** 이 시각 전에는 화면에 내보내지 않는다(사람다운 답장 지연). 사용자 메시지는 at과 같다. */
   deliverAt: timestamp("deliver_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -103,3 +123,15 @@ export const pushSubscriptions = personal.table("push_subscriptions", {
   auth: text("auth").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** 이미 털어놓은 비밀(bible secrets id). 같은 비밀을 두 번 말하지 않는다. */
+export const disclosures = personal.table(
+  "disclosures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    relId: uuid("rel_id").notNull().references(() => relationships.id),
+    secretId: text("secret_id").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("disclosures_rel_secret_uq").on(t.relId, t.secretId)],
+);

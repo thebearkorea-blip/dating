@@ -14,6 +14,10 @@ export interface PersonaInput {
   profile?: string;
   /** 3층: 기억(선택) */
   memories?: string[];
+  /** 토라짐 지시(sulkDirective 결과, 선택) */
+  sulk?: string | null;
+  /** 이번 답장에서 한 번 자연스럽게 털어놓을 비밀(선택) */
+  secretNow?: { id: string; text: string } | null;
   canonLimit?: number;
 }
 
@@ -82,6 +86,13 @@ function suffix(i: PersonaInput): string {
   }
   const secrets = i.bible.secrets.filter((s) => s.unlock_stage <= i.stage);
   if (secrets.length) lines.push("# 털어놓을 수 있는 비밀", ...secrets.map((s) => `- ${s.id}: ${s.text}`));
+  if (i.secretNow) {
+    lines.push(
+      "# 이번에 한 번만 털어놓기",
+      `Somewhere natural in this reply, quietly open up about this (once, in your own words, no announcement): ${i.secretNow.text}`,
+    );
+  }
+  if (i.sulk) lines.push("# 지금의 서운함", i.sulk);
   if (i.profile) lines.push("# 사용자 관계 프로필", i.profile);
   if (i.memories?.length) lines.push("# 기억", ...i.memories.map((m) => `- ${m}`));
   return lines.join("\n");
