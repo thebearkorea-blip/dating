@@ -39,7 +39,7 @@ export function parseModelId(id: ModelId): { provider: string; model: string } {
 }
 
 // ---- W2: 호출 구현 ----
-// 패키지 설치가 막혀 SDK 없이 Anthropic Messages API를 fetch로 직접 호출한다(공급자: anthropic만).
+// 패키지 설치가 막혀 SDK 없이 Anthropic Messages API를 fetch로 직접 호출한다(공급자: Anthropic 직접 또는 Vercel AI Gateway, Messages 호환).
 import { existsSync } from "node:fs";
 
 /** .env, .env.local을 읽는다(이미 있는 환경변수는 덮어쓰지 않는다). */
@@ -49,10 +49,29 @@ function loadEnv(): void {
   }
 }
 
-export function hasLlmKey(): boolean {
+/** 공급자 선택: ANTHROPIC_API_KEY가 있으면 직접, 없고 Gateway 토큰이 있으면 Gateway. */
+export function activeProvider(): "anthropic" | "gateway" | null {
   loadEnv();
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
+  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return "gateway";
+  return null;
 }
+
+export function hasLlmKey(): boolean {
+  return activeProvider() !== null;
+}
+
+/** 모델 상수 -> 공급자별 모델 ID. */
+const PROVIDER_MODEL_ID: Record<"anthropic" | "gateway", Record<string, string>> = {
+  anthropic: {
+    [CHAT_MODEL]: "claude-sonnet-5-5",
+    [JUDGE_MODEL]: "claude-haiku-5-5",
+  },
+  gateway: {
+    [CHAT_MODEL]: "anthropic/claude-sonnet-5.5",
+    [JUDGE_MODEL]: "anthropic/claude-haiku-5.5",
+  },
+};
 
 /** USD / 100만 토큰. 출처: docs/research/2026-11-13-외부서비스-조사.md §4. */
 const PRICE_PER_MTOK: Record<string, { input: number; output: number; cacheRead: number }> = {
@@ -75,25 +94,37 @@ export function estimateCostUsd(
   );
 }
 
+const ENDPOINT = {
+  anthropic: "https://api.anthropic.com/v1/messages",
+  gateway: "https://ai-gateway.vercel.sh/v1/messages",
+} as const;
+
 export const anthropicProvider: LlmProvider = {
   provider: "anthropic",
   async complete(req) {
-    loadEnv();
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key) throw new Error("ANTHROPIC_API_KEY 없음");
-    const { model } = parseModelId(req.model);
+    const kind = activeProvider();
+    if (!kind) throw new Error("LLM 키 없음(ANTHROPIC_API_KEY, AI_GATEWAY_API_KEY, VERCEL_OIDC_TOKEN)");
+    const model = PROVIDER_MODEL_ID[kind][req.model];
+    if (!model) throw new Error(`모델 매핑 없음: ${req.model} (${kind})`);
+    const headers: Record<string, string> =
+      kind === "anthropic"
+        ? {
+            "content-type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY!,
+            "anthropic-version": "2023-06-01",
+          }
+        : {
+            "content-type": "application/json",
+            authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN}`,
+          };
     const system = req.messages
       .filter((m) => m.role === "system")
       .map((m) => m.content)
       .join("\n\n");
     const messages = req.messages.filter((m) => m.role !== "system");
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch(ENDPOINT[kind], {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": key,
-        "anthropic-version": "2023-06-01",
-      },
+      headers,
       body: JSON.stringify({
         model,
         max_tokens: req.maxTokens ?? 1024,
@@ -102,7 +133,7 @@ export const anthropicProvider: LlmProvider = {
         messages,
       }),
     });
-    if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`${kind} ${res.status}: ${await res.text()}`);
     const data = (await res.json()) as {
       content: { type: string; text?: string }[];
       usage?: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number };
