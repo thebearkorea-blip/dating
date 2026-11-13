@@ -13,3 +13,4 @@
 | 2026-11-13 | generate-photos 이솔 50장 (gateway 참조 편집, 성공 50 + 503 1회) | bfl/flux-2-pro | - | - | 도구 추정 0 (단가 미공개), $0.04/장 가정 시 2.00 |
 | 2026-11-13 | lora-train ihan (flux-3 klein base trainer 1000step) | blackforestlabs/flux-3/klein/base/trainer | - | - | 4.30 ($0.0043/step) |
 | 2026-11-13 | generate-photos ihan priority 1 (43장, LoRA 추론) | blackforestlabs/flux-3/klein/base/text-to-image/lora | - | - | 1.516 (도구 추정 $0.035/MP, 18장 폐기 포함) |
+| 2026-11-13 | generate-photos --no-lora (ihan face=false 재생성 17장) | bfl/flux-3-image-klein | - | - | 0.23 |

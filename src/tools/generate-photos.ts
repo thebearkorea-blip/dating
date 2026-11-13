@@ -1,5 +1,6 @@
 // W5c 사진 생성: plan.jsonl 행마다 LoRA 추론으로 1장씩 만들고 photos/manifest.jsonl에 행을 더한다.
 // 사용: node --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl [--priority 1] [--model <endpoint>] [--scale 1] [--ids ihan-p001,ihan-p002] [--dry-run]
+// 얼굴 없는 컷(LoRA 없이): ... --provider gateway --no-lora --force --ids ihan-p027,... [--model bfl/flux-3-image-klein]
 // Gateway 참조 편집(LoRA 없이): ... --character isol --plan <plan> --provider gateway --ref .data/photos/candidates/isol/N-front.jpg --model bfl/flux-2-pro [--limit n]
 // 추론 엔드포인트 기본: blackforestlabs/flux-3/klein/base/text-to-image/lora (학습 트레이너와 같은 FLUX 3 klein base. loras[].path = .data/photos/lora/<id>.json의 lora_url).
 // 이어하기: .data/photos/<id>/<plan id>.jpg가 있고 manifest에 행이 있으면 건너뛴다. 이미지는 .data/photos/<id>/(gitignore).
@@ -8,7 +9,7 @@ import { extname, join } from "node:path";
 import { fetchFalPricing, generateFalLora } from "../img/fal.js";
 import { sizeFromAspect } from "../img/index.js";
 import { generateGateway } from "../img/gateway.js";
-import { activeImageProvider } from "../img/index.js";
+import { activeImageProvider, GATEWAY_USD_PER_IMAGE } from "../img/index.js";
 import { photoRowSchema } from "../content/schemas/photos.js";
 
 export const FAL_LORA_INFER = "blackforestlabs/flux-3/klein/base/text-to-image/lora";
@@ -21,6 +22,11 @@ const MIME: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpe
 // 이솔 참조 편집 프롬프트(복장 수위: K-팝 음악방송 심의 수준, docs/decisions.md "노출 수위")
 function gatewayPrompt(r: { prompt_hint: string; face: boolean; place: string }): string {
   return `same person as the reference, same dark hair color and wavy bob, female, 23-year-old adult who looks 21-22, K-pop idol trainee. ${r.prompt_hint}. Setting: ${r.place}. no logos or text. Outfit at K-pop music-show broadcast standard: practice wear, sleeveless or cropped tops allowed; no sexualized composition, no chest or waist close-up.${r.face ? "" : " Keep the face out of frame, as described."}`;
+}
+
+// 얼굴 없는 컷 프롬프트(LoRA·트리거 없음)
+function noFacePrompt(r: { prompt_hint: string; place: string }): string {
+  return `${r.prompt_hint}. Setting: ${r.place}. no face visible, no head in frame, back view or hands/feet/objects only, candid phone photo, a young Korean man's belongings/hands where relevant, dark hair if any hair visible, no logos or text`;
 }
 
 function arg(name: string, def?: string): string | undefined {
@@ -46,9 +52,37 @@ async function main() {
   const outDir = join(".data/photos", id);
   const manifest = join("content/characters", id, "photos/manifest.jsonl");
   const done = new Set(existsSync(manifest) ? readFileSync(manifest, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l).id) : []);
-  const todo = rows.filter((r) => !(done.has(r.id) && (existsSync(join(outDir, `${r.id}.jpg`)) || existsSync(join(outDir, `${r.id}.png`)))));
+  const force = process.argv.includes("--force");
+  const todo = rows.filter((r) => force || !(done.has(r.id) && (existsSync(join(outDir, `${r.id}.jpg`)) || existsSync(join(outDir, `${r.id}.png`)))));
 
   const prov = arg("provider");
+  if (prov === "gateway" && process.argv.includes("--no-lora")) {
+    // 얼굴이 안 나오는 컷(face=false): LoRA·트리거·참조 없이 텍스트 -> 이미지
+    process.env.IMG_PROVIDER = "gateway";
+    activeImageProvider(); // .env 로드
+    const model3 = arg("model", "bfl/flux-3-image-klein")!;
+    const per = GATEWAY_USD_PER_IMAGE[model3] ?? GATEWAY_REF_USD_PER_IMAGE;
+    const list = todo.filter((r) => !r.face);
+    console.log(`${id}: gateway 텍스트->이미지(no-lora) ${list.length}행, 모델 ${model3}, 예상 비용 $${(list.length * per).toFixed(2)}`);
+    if (dry) {
+      for (const r of list.slice(0, 3)) console.log(`[${r.id}] ${noFacePrompt(r)}`);
+      return;
+    }
+    mkdirSync(outDir, { recursive: true });
+    let failed3 = 0;
+    for (const r of list) {
+      try {
+        const out = await generateGateway({ prompt: noFacePrompt(r), aspect: r.aspect ?? "4:5", model: model3 }, false);
+        writeFileSync(join(outDir, `${r.id}.${out.ext}`), out.bytes);
+        console.log(`ok ${r.id}.${out.ext}`);
+      } catch (e) {
+        failed3++;
+        console.log(`FAIL ${r.id}: ${(e as Error).message}`);
+      }
+    }
+    console.log(`${id} 완료. 실패 ${failed3}, 추정 비용 $${((list.length - failed3) * per).toFixed(3)}`);
+    return;
+  }
   if (prov === "gateway") {
     const ref = arg("ref");
     if (!ref) throw new Error("--ref <경로> 필요");
