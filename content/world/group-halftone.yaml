@@ -1,0 +1,65 @@
+# 여성 캐릭터 그룹 세계관 원본 (가칭: 이름 겹침 확인은 docs/research/2026-11-13-이름-겹침-확인.md "여성 캐릭터" 절)
+# 기준: docs/decisions.md "MVP 타깃 (남/여 캐릭터)" — 틱톡 2주 비교 테스트용. 이한 그룹(group.yaml)과 같은 구조.
+# 주의: 이 파일은 아직 스키마 검증 대상이 아니다(validate-content.ts는 world/group.yaml만 검증). 병합·검증 연결은 후속 작업.
+id: halftone
+name: HALFTONE        # 가칭. 인쇄 망점(halftone): 두 톤이 맞물려 한 장면이 되는 것. 티키타카 콘셉
+concept: >-
+  장난·티키타카·"반 박자 먼저 치고 들어오는 애들". 무대 위에서도 서로 받아치는 호흡이 안무가 된다. 연습실·야식·촬영 현장이 무대.
+company:
+  id: lumen-harbor
+  name: Lumen Harbor Entertainment   # 가칭. 이한 그룹 ONDAY와 같은 회사. 두 그룹은 연습실 층이 다르다(이한 쪽과 마주치는 장면은 만들지 않는다).
+  note: 회사가 작아서 연습생 SNS를 본인이 운영한다. DM·개인 연락은 회사가 싫어한다. 첫 걸그룹.
+t0: null                # 데뷔 목표일 미정. 이 계정의 rel_day -180은 데뷔조 확정일 기준
+debut_window_months: [6, 6]   # 가정: 데뷔조 확정 6개월 전에서 출발(이한과 같은 시점)
+# 5명 전원 데뷔 확정(이 그룹은 탈락 없음). 가정.
+language_of_content: ko-setting_en-examples
+members:
+  - id: isol
+    name: 강이솔
+    name_en: Kang Isol
+    age: 23
+    role: protagonist
+    position: [리드댄서, 서브보컬]
+    relation: 주인공. 연습생 2년 차. 농담으로 분위기를 풀고 영상 찍는 걸 좋아한다. 연습 영상 촬영 담당을 자처한다.
+    voice: 장난기, 받아치기, 말끝 올리기. 진짜 힘든 건 농담으로 한 번 감싸고 넘긴다.
+    status: trainee
+  - id: hayun
+    name: 하윤
+    name_en: Hayun
+    age: 24
+    role: supporting
+    position: [리더, 메인보컬]
+    relation: 리더이자 최연장. 이솔의 농담을 제일 잘 받아치지만 이솔이 조용해지면 제일 먼저 알아챈다.
+    voice: 차분한 반말 섞인 한국어, 정리하는 말투, 가끔 한숨 섞인 농담.
+    status: trainee
+  - id: sera
+    name: 세라
+    name_en: Sera
+    age: 23
+    role: supporting
+    position: [래퍼]
+    relation: 이솔과 같은 방을 쓰는 합숙 룸메이트. 야행성 콤비. 둘이 새벽에 안무 챌린지 영상을 같이 찍는다.
+    voice: 빠르고 건조하다. 짧게 쏘고 빠진다.
+    status: trainee
+  - id: naeun
+    name: 나은
+    name_en: Naeun
+    age: 22
+    role: supporting
+    position: [리드보컬]
+    relation: 막내. 말이 느리고 엉뚱하다. 이솔의 장난에 진지하게 대답해서 더 웃기게 만든다.
+    voice: 천천히, 진지한 얼굴로 엉뚱한 말을 한다. 존댓말 섞임.
+    status: trainee
+  - id: dain
+    name: 다인
+    name_en: Dain
+    age: 22
+    role: supporting
+    position: [메인댄서, 서브래퍼]
+    relation: 댄스 라인. 이솔과 안무 디테일로 매일 티격태격하지만 끝나면 먼저 간식을 나눈다.
+    voice: 직설적, 목소리가 크다. 칭찬은 투덜거리듯 한다.
+    status: trainee
+notes:
+  - 멤버 나이는 설정 나이이며 공개 층 시간에 따라 실제 달력대로 먹는다(decisions "캐릭터 나이").
+  - 성인 직장인에 가까운 생활감(월급 대신 연습생 지원금, 장보기, 빨래, 배달 앱)으로 쓴다. 교복·학교 소품·'소녀' 표현 금지(decisions "MVP 타깃").
+  - "가정: 조연 4명 이름은 겹침 확인을 개별로 하지 않았다(흔한 이름)."
