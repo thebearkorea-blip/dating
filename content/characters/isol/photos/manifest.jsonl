@@ -28,8 +28,8 @@
 {"id": "isol-p029", "blob_url": ".data/photos/isol/isol-p029.jpg", "situation": "mint-ice-cream", "time_of_day": "night", "place": "dorm kitchen", "face": false, "audience": "public", "used": []}
 {"id": "isol-p030", "blob_url": ".data/photos/isol/isol-p030.jpg", "situation": "milk-cream-bread", "time_of_day": "night", "place": "dorm kitchen", "face": false, "audience": "public", "used": []}
 {"id": "isol-p031", "blob_url": ".data/photos/isol/isol-p031.jpg", "situation": "tteokbokki-pan", "time_of_day": "night", "place": "dorm kitchen", "face": false, "audience": "public", "used": []}
-{"id": "isol-p032", "blob_url": ".data/photos/isol/isol-p032.jpg", "situation": "table-food", "time_of_day": "night", "place": "dorm living room", "face": false, "audience": "public", "used": [{"where": "rejected", "at": "2026-11-13"}]}
-{"id": "isol-p033", "blob_url": ".data/photos/isol/isol-p033.jpg", "situation": "fruit-stand", "time_of_day": "afternoon", "place": "street market", "face": false, "audience": "public", "used": [{"where": "rejected", "at": "2026-11-13"}]}
+{"id": "isol-p032", "blob_url": ".data/photos/isol/isol-p032.jpg", "situation": "table-food", "time_of_day": "night", "place": "dorm living room", "face": false, "audience": "public", "used": []}
+{"id": "isol-p033", "blob_url": ".data/photos/isol/isol-p033.jpg", "situation": "fruit-stand", "time_of_day": "afternoon", "place": "street market", "face": false, "audience": "public", "used": []}
 {"id": "isol-p034", "blob_url": ".data/photos/isol/isol-p034.jpg", "situation": "daily-snack-run", "time_of_day": "night", "place": "convenience store", "face": true, "audience": "public", "used": []}
 {"id": "isol-p035", "blob_url": ".data/photos/isol/isol-p035.jpg", "situation": "daily-couch-phone", "time_of_day": "night", "place": "dorm living room", "face": true, "audience": "private", "used": []}
 {"id": "isol-p036", "blob_url": ".data/photos/isol/isol-p036.jpg", "situation": "daily-laundry-day", "time_of_day": "afternoon", "place": "dorm laundry room", "face": true, "audience": "private", "used": []}
@@ -40,9 +40,9 @@
 {"id": "isol-p041", "blob_url": ".data/photos/isol/isol-p041.jpg", "situation": "stage-center-pose", "time_of_day": "night", "place": "stage", "face": true, "audience": "public", "used": []}
 {"id": "isol-p042", "blob_url": ".data/photos/isol/isol-p042.jpg", "situation": "concept-studio-soft", "time_of_day": "afternoon", "place": "photo studio", "face": true, "audience": "public", "used": []}
 {"id": "isol-p043", "blob_url": ".data/photos/isol/isol-p043.jpg", "situation": "socks-flatlay", "time_of_day": "morning", "place": "dorm room", "face": false, "audience": "public", "used": []}
-{"id": "isol-p044", "blob_url": ".data/photos/isol/isol-p044.jpg", "situation": "laundry-folded", "time_of_day": "afternoon", "place": "dorm room", "face": false, "audience": "public", "used": [{"where": "rejected", "at": "2026-11-13"}]}
+{"id": "isol-p044", "blob_url": ".data/photos/isol/isol-p044.jpg", "situation": "laundry-folded", "time_of_day": "afternoon", "place": "dorm room", "face": false, "audience": "public", "used": []}
 {"id": "isol-p045", "blob_url": ".data/photos/isol/isol-p045.jpg", "situation": "grocery-bag", "time_of_day": "afternoon", "place": "street near dorm", "face": false, "audience": "public", "used": []}
-{"id": "isol-p046", "blob_url": ".data/photos/isol/isol-p046.jpg", "situation": "sidewalk-pov", "time_of_day": "evening", "place": "street near dorm", "face": false, "audience": "public", "used": [{"where": "rejected", "at": "2026-11-13"}]}
+{"id": "isol-p046", "blob_url": ".data/photos/isol/isol-p046.jpg", "situation": "sidewalk-pov", "time_of_day": "evening", "place": "street near dorm", "face": false, "audience": "public", "used": []}
 {"id": "isol-p047", "blob_url": ".data/photos/isol/isol-p047.jpg", "situation": "hoodie-flatlay-isol", "time_of_day": "morning", "place": "dorm room", "face": false, "audience": "private", "used": []}
 {"id": "isol-p048", "blob_url": ".data/photos/isol/isol-p048.jpg", "situation": "sneakers-flatlay", "time_of_day": "afternoon", "place": "dorm entrance", "face": false, "audience": "public", "used": []}
 {"id": "isol-p049", "blob_url": ".data/photos/isol/isol-p049.jpg", "situation": "outfit-stagewear-rack", "time_of_day": "afternoon", "place": "backstage", "face": false, "audience": "public", "used": [{"where": "rejected", "at": "2026-11-13"}]}

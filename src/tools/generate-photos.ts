@@ -26,7 +26,7 @@ function gatewayPrompt(r: { prompt_hint: string; face: boolean; place: string })
 
 // 얼굴 없는 컷 프롬프트(LoRA·트리거 없음)
 function noFacePrompt(r: { prompt_hint: string; place: string }): string {
-  return `${r.prompt_hint}. Setting: ${r.place}. no face visible, no head in frame, back view or hands/feet/objects only, candid phone photo, a young Korean man's belongings/hands where relevant, dark hair if any hair visible, no logos or text`;
+  return `${r.prompt_hint}. Setting: ${r.place}. no person, no face, no hands unless specified, still life / POV of the scene, candid phone photo, no logos or text`;
 }
 
 function arg(name: string, def?: string): string | undefined {

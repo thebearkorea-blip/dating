@@ -228,6 +228,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
       relId: rel.id,
       characterId: CHARACTER_ID,
       situation: activity.activity,
+      photoTags: activity.photoTags,
       timeOfDay: timeOfDayOf(kstParts(now).minutes),
       seed: `${rel.id}:${today}`,
     });
@@ -292,7 +293,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     const reward = await rewardFor(db, rel, now);
     if (reward) {
       // 보상 이벤트: 장면 대본 그대로(LLM 없음). {{photo}}는 사진이 있으면 그 말풍선에 붙이고 없으면 지운다.
-      const photo = await pickPhoto(db, { relId: rel.id, characterId: CHARACTER_ID, situation: activity.activity, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
+      const photo = await pickPhoto(db, { relId: rel.id, characterId: CHARACTER_ID, situation: activity.activity, photoTags: activity.photoTags, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
       let first = "";
       for (const [i, raw] of reward.bubbles.entries()) {
         const text = raw.replace(/\{\{photo\}\}/g, "").replace(/ {2,}/g, " ").trim();

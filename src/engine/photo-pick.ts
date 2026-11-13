@@ -10,6 +10,8 @@ export interface PhotoQuery {
   characterId: string;
   /** 지금 활동/상황 문구. 사진 situation 태그와 부분 일치로 맞춘다. */
   situation: string;
+  /** 활동 블록의 photo_tags. 있으면 situation slug 접두어 일치로 맞추고, 없으면 활동명 토큰으로 맞춘다. */
+  photoTags?: string[];
   /** morning | noon | afternoon | evening | night */
   timeOfDay: string;
   seed: string;
@@ -26,6 +28,13 @@ export function timeOfDayOf(minutes: number): string {
 
 const norm = (s: unknown) => String(s ?? "").toLowerCase().trim();
 
+function matches(slug: string, sit: string, photoTags: string[] | undefined): boolean {
+  if (slug === "") return false;
+  if (photoTags && photoTags.length > 0) return photoTags.some((t) => slug.startsWith(norm(t)));
+  if (sit.includes(slug) || slug.includes(sit)) return true;
+  return sit.split(/[^\p{L}\p{N}-]+/u).some((tok) => tok.length >= 2 && slug.includes(tok));
+}
+
 export async function pickPhoto(db: Db, q: PhotoQuery): Promise<string | null> {
   const rows = await db.select().from(media).where(and(eq(media.characterId, q.characterId), eq(media.kind, "photo")));
   if (rows.length === 0) return null;
@@ -38,7 +47,7 @@ export async function pickPhoto(db: Db, q: PhotoQuery): Promise<string | null> {
     .map((r) => {
       const tags = r.tags as { situation?: string; time_of_day?: string };
       const s = norm(tags.situation);
-      const situationMatch = s !== "" && (sit.includes(s) || s.includes(sit));
+      const situationMatch = matches(s, sit, q.photoTags);
       return { id: r.id, situationMatch, priv: r.audience === "private" ? 1 : 0, tod: norm(tags.time_of_day) === q.timeOfDay ? 1 : 0 };
     })
     .filter((r) => r.situationMatch);

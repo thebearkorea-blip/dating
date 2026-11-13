@@ -27,6 +27,8 @@ export interface Activity {
   mood: string;
   replyDelayRange: { min: number; max: number };
   canInitiate: boolean;
+  /** 사진 situation slug 접두어 목록(schedule.yaml photo_tags). 비트 활동에는 없다. */
+  photoTags?: string[];
   /** 오늘 적용된 이벤트/비트 id */
   tags: string[];
 }
@@ -183,6 +185,7 @@ export function activityAt(
     mood,
     replyDelayRange,
     canInitiate,
+    ...(!beat && block.photo_tags ? { photoTags: block.photo_tags } : {}),
     tags,
   };
 }

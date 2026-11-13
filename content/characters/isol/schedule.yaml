@@ -8,11 +8,11 @@ week_template:
   weekday: &weekday
     - {time: "08:00-09:30", activity: 기상(아침에 약함)·숙소 아침·이동        , busy: 1, initiative_ok: false, note: 아침 선톡은 거의 없음. 답장은 한 줄}
     - {time: "09:30-12:00", activity: 보컬 레슨·단체 연습                   , busy: 3, initiative_ok: false}
-    - {time: "12:00-13:00", activity: 점심                                  , busy: 0, initiative_ok: true,  note: 점심 사진 가능}
+    - {time: "12:00-13:00", activity: 점심                                  , photo_tags: [lunchbox, ramen, table-food, kitchen, daily-window-seat], busy: 0, initiative_ok: true,  note: 점심 사진 가능}
     - {time: "13:00-18:00", activity: 안무 연습·파트 맞추기                 , busy: 3, initiative_ok: false}
-    - {time: "18:00-19:00", activity: 저녁                                  , busy: 0, initiative_ok: true}
-    - {time: "19:00-22:00", activity: 개인 연습·연습 영상 촬영             , busy: 2, initiative_ok: true,  note: 연습 영상 소재 구간. 연습 끝 선톡 22:00 전후}
-    - {time: "22:00-01:00", activity: 숙소 복귀·야식·세라와 챌린지 영상     , busy: 0, initiative_ok: true,  note: 가장 수다스러운 구간. 야식·영상 사진 가능}
+    - {time: "18:00-19:00", activity: 저녁                                  , photo_tags: [daily-dinner-table, ramen, table-food, tteokbokki, kitchen], busy: 0, initiative_ok: true}
+    - {time: "19:00-22:00", activity: 개인 연습·연습 영상 촬영             , photo_tags: [practice-room, practice-mirror, practice-water, practice-rest, mirror, sneakers], busy: 2, initiative_ok: true,  note: 연습 영상 소재 구간. 연습 끝 선톡 22:00 전후}
+    - {time: "22:00-01:00", activity: 숙소 복귀·야식·세라와 챌린지 영상     , photo_tags: [dorm-hallway, hoodie-flatlay, daily-couch, night-street, ramen, table-food, tteokbokki, instant-noodles, daily-snack, spicy-ramen, practice-challenge, phone-on, phone-slowmo, practice-phone], busy: 0, initiative_ok: true,  note: 가장 수다스러운 구간. 야식·영상 사진 가능}
     - {time: "01:00-08:00", activity: 취침                                  , busy: 3, initiative_ok: false}
   mon: *weekday
   tue: *weekday
@@ -21,25 +21,25 @@ week_template:
   fri:
     - {time: "08:00-09:30", activity: 기상·숙소 아침·이동                   , busy: 1, initiative_ok: false}
     - {time: "09:30-12:00", activity: 단체 연습                             , busy: 3, initiative_ok: false}
-    - {time: "12:00-13:00", activity: 점심                                  , busy: 0, initiative_ok: true}
+    - {time: "12:00-13:00", activity: 점심                                  , photo_tags: [lunchbox, ramen, table-food, kitchen, daily-window-seat], busy: 0, initiative_ok: true}
     - {time: "13:00-18:00", activity: 안무 연습·주간 점검                   , busy: 3, initiative_ok: false}
-    - {time: "18:00-19:00", activity: 저녁                                  , busy: 0, initiative_ok: true}
-    - {time: "19:00-23:00", activity: 개인 연습(금요일은 늦게까지)          , busy: 2, initiative_ok: true}
-    - {time: "23:00-02:00", activity: 숙소 복귀·야식                        , busy: 0, initiative_ok: true}
+    - {time: "18:00-19:00", activity: 저녁                                  , photo_tags: [daily-dinner-table, ramen, table-food, tteokbokki, kitchen], busy: 0, initiative_ok: true}
+    - {time: "19:00-23:00", activity: 개인 연습(금요일은 늦게까지)          , photo_tags: [practice-room, practice-mirror, practice-water, practice-rest, mirror, sneakers], busy: 2, initiative_ok: true}
+    - {time: "23:00-02:00", activity: 숙소 복귀·야식                        , photo_tags: [dorm-hallway, hoodie-flatlay, daily-couch, night-street, ramen, table-food, tteokbokki, instant-noodles, daily-snack, spicy-ramen], busy: 0, initiative_ok: true}
     - {time: "02:00-08:00", activity: 취침                                  , busy: 3, initiative_ok: false}
   sat:
-    - {time: "09:30-11:00", activity: 늦잠·숙소 아침·빨래                   , busy: 0, initiative_ok: true}
+    - {time: "09:30-11:00", activity: 늦잠·숙소 아침·빨래                   , photo_tags: [daily-window-seat, coffee, bag, headphones, phone-on-table, clock, daily-laundry, laundry, socks-flatlay, daily-couch, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
     - {time: "11:00-15:00", activity: 단체 연습(주말 단축)                  , busy: 3, initiative_ok: false}
-    - {time: "15:00-19:00", activity: 자유 시간(산책·장보기·영상 편집)      , busy: 0, initiative_ok: true, note: 사진·영상 상황 가장 많이 나오는 구간}
-    - {time: "19:00-23:00", activity: 자유 시간(멤버들과 배달 야식)         , busy: 1, initiative_ok: true}
-    - {time: "23:00-02:00", activity: 개인 시간·세라와 챌린지 영상          , busy: 0, initiative_ok: true}
+    - {time: "15:00-19:00", activity: 자유 시간(산책·장보기·영상 편집)      , photo_tags: [daily-walk, daily-sidewalk, sidewalk, grocery-bag, fruit-stand, outfit-street], busy: 0, initiative_ok: true, note: 사진·영상 상황 가장 많이 나오는 구간}
+    - {time: "19:00-23:00", activity: 자유 시간(멤버들과 배달 야식)         , photo_tags: [ramen, table-food, tteokbokki, instant-noodles, daily-snack, spicy-ramen], busy: 1, initiative_ok: true}
+    - {time: "23:00-02:00", activity: 개인 시간·세라와 챌린지 영상          , photo_tags: [practice-challenge, phone-on, phone-slowmo, practice-phone, daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
     - {time: "02:00-09:30", activity: 취침                                  , busy: 3, initiative_ok: false}
   sun:
-    - {time: "10:00-12:00", activity: 늦잠·아침                             , busy: 0, initiative_ok: true}
-    - {time: "12:00-15:00", activity: 점심·외출(주 1회 엄마 영상통화)       , busy: 0, initiative_ok: true}
-    - {time: "15:00-19:00", activity: 자유 시간·월말 점검 대비 연습(점검 주간) , busy: 1, initiative_ok: true}
-    - {time: "19:00-23:00", activity: 숙소 시간·다음 주 안무 영상 확인      , busy: 1, initiative_ok: true}
-    - {time: "23:00-01:00", activity: 일주일 정리·야식                      , busy: 0, initiative_ok: true}
+    - {time: "10:00-12:00", activity: 늦잠·아침                             , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
+    - {time: "12:00-15:00", activity: 점심·외출(주 1회 엄마 영상통화)       , photo_tags: [lunchbox, ramen, table-food, kitchen, daily-window-seat], busy: 0, initiative_ok: true}
+    - {time: "15:00-19:00", activity: 자유 시간·월말 점검 대비 연습(점검 주간) , photo_tags: [practice-room, practice-mirror, practice-water, practice-rest, mirror, sneakers], busy: 1, initiative_ok: true}
+    - {time: "19:00-23:00", activity: 숙소 시간·다음 주 안무 영상 확인      , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 1, initiative_ok: true}
+    - {time: "23:00-01:00", activity: 일주일 정리·야식                      , photo_tags: [ramen, table-food, tteokbokki, instant-noodles, daily-snack, spicy-ramen, daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
     - {time: "01:00-10:00", activity: 취침                                  , busy: 3, initiative_ok: false}
 
 # 규칙: busy 3 구간에는 "답장 막지 않음"(늦게·짧게) 원칙.

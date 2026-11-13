@@ -300,6 +300,6 @@ M2 유료 셀 측정: 프로필 방문·팔로우·대기 명단 등록 1건당 
 | 캐릭터 | 슬라이드 | 연결 | 누락 |
 |---|---|---|---|
 | ihan | 44 | 44 | 0 |
-| isol | 44 | 34 | 10 |
+| isol | 44 | 44 | 0 |
 
-isol 누락(photo_tag 기준, 틱톡·인스타 동일 슬라이드): table-food(11-20), laundry-folded(11-21), fruit-stand(11-23), sidewalk-pov(11-23). 재생성 후 manifest 갱신 시 `photo_id`를 채운다.
+isol 누락이었던 table-food(isol-p032), laundry-folded(isol-p044), fruit-stand(isol-p033), sidewalk-pov(isol-p046)는 2026-11-13 flux-3-image-klein으로 재생성·연결했다(누락 0).

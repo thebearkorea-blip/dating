@@ -170,6 +170,20 @@ describe("photo-pick", () => {
     await db.insert(messages).values({ relId, sender: "char", text: "hi", mediaId: first, origin: "proactive" });
     expect(await pickPhoto(db, qq)).not.toBe(first);
   });
+  it("한글 활동 + photo_tags: practice-room 사진이 선택된다", async () => {
+    await db.insert(media).values([row("p1", "private", "practice-room-mirror"), row("c1", "private", "convenience-store-night")]);
+    const qq = { ...q(), situation: "개인 연습", photoTags: ["practice-room", "mirror", "sneakers"] };
+    expect(await pickPhoto(db, qq)).toBe("p1");
+  });
+  it("한글 활동 + photo_tags: 매칭 없으면 null", async () => {
+    await db.insert(media).values([row("c1", "private", "convenience-store-night")]);
+    expect(await pickPhoto(db, { ...q(), situation: "개인 연습", photoTags: ["practice-room", "mirror"] })).toBeNull();
+  });
+  it("photo_tags 없으면 활동명 토큰으로 매칭", async () => {
+    await db.insert(media).values([row("t1", "private", "convenience-store-night")]);
+    expect(await pickPhoto(db, { ...q(), situation: "convenience store run" })).toBe("t1");
+    expect(await pickPhoto(db, { ...q(), situation: "개인 연습" })).toBeNull();
+  });
   it("상황이 안 맞으면 null", async () => {
     await db.insert(media).values([row("c", "private", "convenience store")]);
     expect(await pickPhoto(db, q())).toBeNull();

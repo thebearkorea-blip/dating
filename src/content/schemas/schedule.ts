@@ -6,6 +6,7 @@ const block = z
     activity: z.string().min(1),
     busy: z.number().int().min(0).max(3),
     initiative_ok: z.boolean(),
+    photo_tags: z.array(z.string().min(1)).optional(),
     note: z.string().optional(),
   })
   .strict();
