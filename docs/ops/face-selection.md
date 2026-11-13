@@ -210,3 +210,17 @@ Seedream 워터마크: 요청에 `watermark:false`를 넣어 isol I 1장 시험 
 ## 메인 기본값 선택 (2026-11-13)
 - 이한: **N**(옥상, 19~20 외모, 화보 느낌) — 대안 L(3차). P 폐기(17~18), O 보류(간판 로고).
 - 이솔: **N**(옥상, 21 외모, 민소매 일상 수준) — 대안 K(3차)·M. 사용자/검수자가 바꾸면 LoRA 참조만 교체.
+
+## LoRA 파이프라인 도구 (W5b~c, 코드만·미실행)
+
+순서: `lora-refs`(참조 30장) -> 사람 검수 -> `--keep`으로 zip -> `lora-train` -> `generate-photos`. 모든 도구에 `--dry-run`(호출 수·예상 비용만 출력). 산출물은 `.data/photos/`(gitignore), 매니페스트만 `content/characters/<id>/photos/manifest.jsonl`.
+
+1. `node --import tsx src/tools/lora-refs.ts --character ihan --ref <정면 참조> --n 30 [--model bfl/flux-2-pro]` -> `.data/photos/lora-refs/<id>/NN.jpg` + `refs.jsonl`. 검수 뒤 `--keep 01,03,...`로 `<id>-refs.zip` 생성.
+2. `node --import tsx src/tools/lora-train.ts --character ihan --zip <zip> [--steps 1000] [--trigger "ihanx person"]` -> `.data/photos/lora/<id>.json`.
+3. `node --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl [--priority 1] [--dry-run]` (이어하기 지원).
+
+fal 확인(2026-11-13, openapi `https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=<id>`):
+- **fal에 FLUX.2 klein 4B 트레이너는 없다**(`fal-ai/flux-2-klein-4b-base-trainer` = null). 있는 것은 9B(`fal-ai/flux-2-klein-9b-base-trainer`, 9B는 BFL 비상업 라이선스라 제외)와 FLUX 3 klein(`blackforestlabs/flux-3/klein/base/trainer`, fal 표기 licenseType commercial).
+- 기본 트레이너 `blackforestlabs/flux-3/klein/base/trainer`: 필수 `images_data_url`(zip URL), 선택 `steps`(100~10000, 기본 1000)·`learning_rate`(1e-4)·`resolution`(512/768/1024)·`trigger_phrase`(캡션 없는 이미지 전부의 캡션)·`enable_safety_checker`. 출력 `lora_file.url`·`config_file.url`. 단가 $0.0043/step(1000step $4.30).
+- 추론 `blackforestlabs/flux-3/klein/base/text-to-image/lora`: `prompt`·`loras[{path,scale}]`(최대 3)·`image_size`·`num_inference_steps`(기본 50)·`output_format`. $0.035/MP. 트레이너와 같은 base라 이 쌍을 쓴다. (4B LoRA 추론 `fal-ai/flux-2/klein/4b/base/lora`는 있으나 맞는 트레이너가 없어 쓰지 않는다.)
+- FLUX 3 klein의 BFL 라이선스(상업 이용·출력물 조건)는 fal 표기만 확인했고 원문 미확인 -> 학습 전에 확인.
