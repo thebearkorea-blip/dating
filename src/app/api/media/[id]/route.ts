@@ -24,14 +24,14 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     .where(and(eq(messages.mediaId, id), eq(relationships.userId, user.id)))
     .limit(1);
   if (!owned) return new Response(null, { status: 404 });
-  const [m] = await db.select({ url: media.blobUrl }).from(media).where(eq(media.id, id)).limit(1);
+  const [m] = await db.select({ url: media.blobUrl, characterId: media.characterId }).from(media).where(eq(media.id, id)).limit(1);
   if (m && /^https?:\/\//.test(m.url)) return Response.redirect(m.url, 302);
   if (m) {
     const name = basename(m.url);
     const type = TYPES[extname(name).toLowerCase()];
     if (type) {
       try {
-        const buf = await readFile(join(".data", "photos", name));
+        const buf = await readFile(join(".data", "photos", m.characterId, name));
         return new Response(new Uint8Array(buf), { headers: { "content-type": type, "cache-control": "private, max-age=3600" } });
       } catch {
         // 파일 없음 → 플레이스홀더

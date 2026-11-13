@@ -159,6 +159,17 @@ describe("photo-pick", () => {
     await db.insert(media).values([row("b", "public")]);
     expect(await pickPhoto(db, q())).toBe("b");
   });
+  it("실제 매니페스트 적재 후 선택되고 rejected는 적재되지 않으며 재사용 금지 유지", async () => {
+    await loadContent(db, "content");
+    const rows = await db.select().from(media).where(eq(media.characterId, "ihan"));
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.some((r) => r.id === "ihan-p060")).toBe(false);
+    const qq = { ...q(), situation: "practice-room-mirror" };
+    const first = await pickPhoto(db, qq);
+    expect(first).not.toBeNull();
+    await db.insert(messages).values({ relId, sender: "char", text: "hi", mediaId: first, origin: "proactive" });
+    expect(await pickPhoto(db, qq)).not.toBe(first);
+  });
   it("상황이 안 맞으면 null", async () => {
     await db.insert(media).values([row("c", "private", "convenience store")]);
     expect(await pickPhoto(db, q())).toBeNull();

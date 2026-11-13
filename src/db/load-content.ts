@@ -57,10 +57,11 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
 
     for (const raw of jsonl(join(dir, "photos/manifest.jsonl"))) {
       const p = photoRowSchema.parse(raw);
+      if (p.used.some((u) => u.where === "rejected")) continue; // 검수에서 탈락한 사진은 적재하지 않는다
       const mRest = {
         characterId: bible.id,
         kind: "photo",
-        tags: { situation: p.situation, time_of_day: p.time_of_day, place: p.place },
+        tags: { situation: p.situation, time_of_day: p.time_of_day, place: p.place, face: p.face },
         audience: p.audience,
         face: p.face,
         blobUrl: p.blob_url,
