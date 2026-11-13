@@ -38,9 +38,9 @@ async function main() {
     .split("\n")
     .filter(Boolean)
     .map((l) => JSON.parse(l))
-    .filter((r) => r.priority === 1);
+    .filter((r) => r.id);
   const ids = arg("ids")?.split(",");
-  const rows = ids ? all.filter((r) => ids.includes(r.id)) : all.slice(0, n);
+  const rows = ids ? all.filter((r) => ids.includes(r.id)) : all.filter((r) => r.priority === 1).slice(0, n);
   if (rows.length < n) console.log(`priority 1 행이 ${rows.length}개뿐이라 ${rows.length}장만 만든다`);
 
   const provider = activeImageProvider();
@@ -48,9 +48,9 @@ async function main() {
   const est = rows.length * estimateImageCostUsd(provider, model, true);
   console.log(`${id}: ${rows.length}장, 공급자 ${provider}, 모델 ${model}, 예상 비용 $${est.toFixed(3)}`);
   const age = id === "isol" ? 23 : 21;
-  const wear = id === "isol" ? " Casual top that covers shoulders and waist." : "";
+  const wear = id === "isol" ? " Casual top covering shoulders and waist, female." : "";
   const promptOf = (r: Row) =>
-    `Photo of the same person as the reference, same face and hair; K-pop idol trainee, ${age}-year-old adult. ${r.prompt_hint}. Setting: ${r.place}.${wear}`;
+    `Photo of the same person as the reference, same face and hair; keep the exact same hair color (dark brown/black) and hairstyle as the reference; no brand logos or text on clothing; K-pop idol trainee, ${age}-year-old adult. ${r.prompt_hint}. Setting: ${r.place}.${wear}`;
   if (dry) {
     for (const r of rows) console.log(`[${r.id}] ${promptOf(r)}`);
     return;

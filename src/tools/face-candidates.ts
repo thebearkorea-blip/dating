@@ -43,7 +43,13 @@ const IDOL3: Record<string, string> = {
   isol: "professional K-pop female idol group photoshoot portrait, beauty lighting, 85mm. A 23-year-old adult Korean female idol, clearly an adult woman, mature adult shoulder line and neck line, small face, dewy luminous skin, natural idol makeup, slim frame, chic casual outfit.",
 };
 
-type Cand = { cand: string; face: string; v2?: boolean; v3?: boolean; subject?: string; place?: string };
+// 4차(M~P, 정면만): 앳된 외모(이한 19~20·이솔 21~22 인상) + 일상 패션 수준 복장. 교복·학교·girl/boy/teen 단어 금지.
+const IDOL4: Record<string, string> = {
+  ihan: "professional K-pop idol photoshoot portrait, soft beauty lighting, 85mm. A 21-year-old adult Korean male idol trainee who looks youthful, like a first-year university student (19-20 look): fresh clean face, bright eyes, soft jawline, smooth skin, light natural idol makeup, slim frame, trendy casual outfit.",
+  isol: "professional K-pop female idol group photoshoot portrait, soft beauty lighting, 85mm. A 23-year-old adult Korean female idol trainee who looks 21-22: fresh youthful face, clear dewy skin, bright eyes, natural idol makeup, dance practice outfit or casual sleeveless top or cropped tee, no sexualized pose, no chest or waist close-up, waist-up or three-quarter framing.",
+};
+
+type Cand = { cand: string; face: string; v2?: boolean; v3?: boolean; v4?: boolean; subject?: string; place?: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
     subject: "a Korean man in his early twenties (21), athletic build from daily dance practice, short hair, sun-tanned skin, eyes that crease when he smiles, clearly an adult",
@@ -61,6 +67,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "J", v3: true, place: "city rooftop at golden hour", face: "subtle inner-double eyelids (hidden double lid), sharp V-line jaw, neat dandy cut, chic cool mood" },
       { cand: "K", v3: true, place: "quiet cafe with soft daylight", face: "double-lidded eyes with a gentle curve, rounded soft jaw, center-parted soft perm, warm kind mood" },
       { cand: "L", v3: true, place: "city street at dusk with warm shop lights", face: "inner-double eyelids, defined square-ish jawline, two-block haircut swept up, playful mischievous mood" },
+      { cand: "M", v4: true, place: "dance practice room in front of a mirror", face: "fresh and clear mood, trendy two-block haircut with soft fringe" },
+      { cand: "N", v4: true, place: "city rooftop at golden hour", face: "playful mood, soft wavy perm" },
+      { cand: "O", v4: true, place: "convenience store entrance at night with soft shop lights", face: "chic cool mood, wolf cut" },
+      { cand: "P", v4: true, place: "city street in daylight", face: "warm kind mood, light two-block cut with natural bangs" },
     ],
   },
   isol: {
@@ -79,6 +89,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "J", v3: true, place: "city rooftop at golden hour", face: "subtle inner-double eyelids (hidden double lid), sharp defined chin, sleek C-curl bob, chic cool mood" },
       { cand: "K", v3: true, place: "quiet cafe with soft daylight", face: "double-lidded eyes with a soft curve, gently rounded jaw, long hair with soft C-curl ends, warm kind mood" },
       { cand: "L", v3: true, place: "city street at dusk with warm shop lights", face: "inner-double eyelids, defined cheekbones, short chin-length bob with bangs, playful mischievous mood" },
+      { cand: "M", v4: true, place: "dance practice room with mirrors", face: "fresh clear mood, long layered hair, dance practice outfit" },
+      { cand: "N", v4: true, place: "city rooftop at golden hour", face: "playful mood, C-curl hair, sleeveless top" },
+      { cand: "O", v4: true, place: "quiet cafe with soft daylight", face: "chic cool mood, low ponytail, cropped tee" },
+      { cand: "P", v4: true, place: "city street in daylight", face: "warm mood, short bob with bangs, casual sleeveless top" },
     ],
   },
 };
@@ -110,7 +124,9 @@ async function main() {
   const prompts: { cand: string; shot: Shot; prompt: string; seed: number }[] = [];
   cands.forEach((c, ci) => {
     const idol = IDOL_PROMPT[id]!;
-    const base = c.v3
+    const base = c.v4
+      ? `${IDOL4[id]} Face and hair: ${c.face}. Setting: ${c.place}.`
+      : c.v3
       ? `${IDOL3[id]} Face: ${c.face}. Setting: ${c.place}.`
       : model
       ? idol.text.replace("{place}", idol.place)

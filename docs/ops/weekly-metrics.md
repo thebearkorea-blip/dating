@@ -8,3 +8,4 @@
 | 2026-11-13 | face-candidates (24장, t2i 8 + edit 16, 시험 1장 포함 25회 호출) | bfl/flux-3-image-klein + bfl/flux-kontext-pro | - | - | 0.721 (단가표 계산, 응답에 usage 없음) |
 | 2026-11-13 | face-candidates 3차 (flux-2-pro 8장 + seedream-4.5 워터마크 시험 1장) | bfl/flux-2-pro + bytedance/seedream-4.5 | - | - | 0.04 + flux-2-pro 8장(단가 미공개, 메인 확인 필요) |
 | 2026-11-13 | consistency-test (ihan 10 + isol 11 kontext-pro, ihan 10 flux-2-pro) | bfl/flux-kontext-pro + bfl/flux-2-pro | - | - | 0.84 + flux-2-pro 10장(단가 미공개, $0.04 가정 시 0.40) |
+| 2026-11-13 | consistency-test 재측정 (ihan 10 + isol 10, face=true) | bfl/flux-2-pro | - | - | 도구 추정 0 (단가 미공개), $0.04/장 가정 시 0.80 |
