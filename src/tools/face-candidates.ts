@@ -30,7 +30,7 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
     subject: "a Korean man in his early twenties (21), athletic build from daily dance practice, short hair, sun-tanned skin, eyes that crease when he smiles, clearly an adult",
     places: ["dance practice room with mirrors", "dormitory room", "city street at dusk", "dance practice room with mirrors"],
     cands: [
-      { cand: "A", face: "soft rounded jaw, gentle kind eyes, thick straight eyebrows" },
+      { cand: "A", face: "strong rounded jaw, gentle kind eyes, thick straight eyebrows" },
       { cand: "B", face: "defined jawline, slightly upturned eyes, small mole under left eye" },
       { cand: "C", face: "oval face, high cheekbones, relaxed warm look, faint stubble" },
       { cand: "D", face: "broad forehead, strong nose bridge, full lips, buzzed short hair" },
@@ -42,7 +42,7 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
     cands: [
       { cand: "A", face: "oval face, large expressive eyes, straight eyebrows, light freckles" },
       { cand: "B", face: "sharp chin, single eyelids, wide mouth, confident look" },
-      { cand: "C", face: "round cheeks, double eyelids, small nose, playful look" },
+      { cand: "C", face: "defined cheekbones, double eyelids, straight nose, quick knowing smile" },
       { cand: "D", face: "long face, defined cheekbones, thick eyebrows, tired-but-bright look" },
     ],
   },
