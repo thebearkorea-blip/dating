@@ -10,3 +10,4 @@ node_modules
 content/**/photos/*.jpg
 content/**/photos/*.png
 content/**/photos/*.webp
+.vercel
