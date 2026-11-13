@@ -37,7 +37,13 @@ const IDOL_PROMPT: Record<string, { text: string; place: string }> = {
   },
 };
 
-type Cand = { cand: string; face: string; v2?: boolean; subject?: string; place?: string };
+// 3차(I~L, 정면만): IDOL_PROMPT 계열 + 변주(눈매·턱선·머리·분위기). 성인 단서를 유지한다.
+const IDOL3: Record<string, string> = {
+  ihan: "professional K-pop idol photoshoot portrait, beauty lighting with soft key and rim light, 85mm. A 21-year-old adult Korean male idol, a university-aged adult who clearly looks over twenty, mature adult shoulder line and neck line, small face, smooth even glass skin, light natural idol makeup, slim frame, fashionable black-and-white casual outfit.",
+  isol: "professional K-pop female idol group photoshoot portrait, beauty lighting, 85mm. A 23-year-old adult Korean female idol, clearly an adult woman, mature adult shoulder line and neck line, small face, dewy luminous skin, natural idol makeup, slim frame, chic casual outfit.",
+};
+
+type Cand = { cand: string; face: string; v2?: boolean; v3?: boolean; subject?: string; place?: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
     subject: "a Korean man in his early twenties (21), athletic build from daily dance practice, short hair, sun-tanned skin, eyes that crease when he smiles, clearly an adult",
@@ -51,6 +57,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "F", v2: true, subject: S2_IHAN, place: "bright dormitory room by a window", face: "soft V-line jaw, monolid eyes with long lashes, pale clear skin, two-block haircut" },
       { cand: "G", v2: true, subject: S2_IHAN, place: "city rooftop at golden hour", face: "high nose bridge, deep-set eyes, athletic shoulders, sun-kissed skin, bright grin" },
       { cand: "H", v2: true, subject: S2_IHAN, place: "quiet cafe with soft daylight", face: "oval face, dimples, slightly wavy dark hair, calm gaze" },
+      { cand: "I", v3: true, place: "dance practice room with soft window light", face: "double-lidded eyes, soft defined jawline, two-block haircut with soft fringe, fresh and clear mood" },
+      { cand: "J", v3: true, place: "city rooftop at golden hour", face: "subtle inner-double eyelids (hidden double lid), sharp V-line jaw, neat dandy cut, chic cool mood" },
+      { cand: "K", v3: true, place: "quiet cafe with soft daylight", face: "double-lidded eyes with a gentle curve, rounded soft jaw, center-parted soft perm, warm kind mood" },
+      { cand: "L", v3: true, place: "city street at dusk with warm shop lights", face: "inner-double eyelids, defined square-ish jawline, two-block haircut swept up, playful mischievous mood" },
     ],
   },
   isol: {
@@ -65,6 +75,10 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "F", v2: true, subject: S2_ISOL, place: "bright dormitory room by a window", face: "slim V-line jaw, subtle monolid eyes with long lashes, luminous clear skin, soft natural makeup, hair in a sleek low ponytail" },
       { cand: "G", v2: true, subject: S2_ISOL, place: "city street at golden hour", face: "high cheekbones, well-defined eyebrows, deep-set eyes, glossy shoulder-length layered hair, natural makeup, knowing playful smile" },
       { cand: "H", v2: true, subject: S2_ISOL, place: "quiet cafe with soft daylight", face: "balanced oval face, elegant arched brows, defined lips, wavy dark hair with curtain bangs, natural makeup, composed gaze" },
+      { cand: "I", v3: true, place: "dance practice room with soft window light", face: "double-lidded eyes, slim V-line jaw, glossy long straight dark hair, fresh and clear mood" },
+      { cand: "J", v3: true, place: "city rooftop at golden hour", face: "subtle inner-double eyelids (hidden double lid), sharp defined chin, sleek C-curl bob, chic cool mood" },
+      { cand: "K", v3: true, place: "quiet cafe with soft daylight", face: "double-lidded eyes with a soft curve, gently rounded jaw, long hair with soft C-curl ends, warm kind mood" },
+      { cand: "L", v3: true, place: "city street at dusk with warm shop lights", face: "inner-double eyelids, defined cheekbones, short chin-length bob with bangs, playful mischievous mood" },
     ],
   },
 };
@@ -89,14 +103,16 @@ async function main() {
   const pick = arg("cands");
   const model = arg("model");
   const label = arg("label", "M");
-  const cands: Cand[] = model ? [{ cand: label!, face: "" }] : pick ? ch.cands.filter((c) => pick.split(",").includes(c.cand)) : ch.cands.slice(0, n);
+  const cands: Cand[] = model && !pick ? [{ cand: label!, face: "" }] : pick ? ch.cands.filter((c) => pick.split(",").includes(c.cand)) : ch.cands.slice(0, n);
   if (!cands.length) throw new Error("--cands에 해당하는 후보 없음");
   const shots = SHOTS.slice(0, shotCount);
 
   const prompts: { cand: string; shot: Shot; prompt: string; seed: number }[] = [];
   cands.forEach((c, ci) => {
     const idol = IDOL_PROMPT[id]!;
-    const base = model
+    const base = c.v3
+      ? `${IDOL3[id]} Face: ${c.face}. Setting: ${c.place}.`
+      : model
       ? idol.text.replace("{place}", idol.place)
       : c.v2
       ? `${COMMON2}. ${c.subject}. Face: ${c.face}. Setting: ${c.place}.`

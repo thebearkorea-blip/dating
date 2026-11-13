@@ -9,7 +9,7 @@ import { estimateImageCostUsd, gatewayToken, resolveSize, sniffExt, type ImageRe
 const BASE = "https://ai-gateway.vercel.sh/v1";
 const TIMEOUT_MS = 60_000;
 
-export async function generateGateway(req: ImageRequest & { model: string }, edit: boolean): Promise<ImageResult> {
+export async function generateGateway(req: ImageRequest & { model: string; extra?: Record<string, unknown> }, edit: boolean): Promise<ImageResult> {
   const token = gatewayToken();
   if (!token) throw new Error("Gateway 토큰 없음(AI_GATEWAY_API_KEY, VERCEL_OIDC_TOKEN)");
   const dim = resolveSize(req);
@@ -20,6 +20,7 @@ export async function generateGateway(req: ImageRequest & { model: string }, edi
     response_format: "b64_json",
     ...(dim ? { size: `${dim.width}x${dim.height}` } : {}),
     ...(req.seed !== undefined ? { seed: req.seed } : {}),
+    ...req.extra,
     ...(edit ? { images: req.referenceImages!.map((image_url) => ({ image_url })) } : {}),
   };
   const res = await fetch(`${BASE}/images/${edit ? "edits" : "generations"}`, {
