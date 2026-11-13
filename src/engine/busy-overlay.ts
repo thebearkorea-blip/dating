@@ -10,6 +10,17 @@ export const BUSY_OVERLAY_LINES = [
   "Vocal lesson in five minutes. Go easy on me, I'll be back tonight.",
 ] as const;
 
+/** LLM 호출이 실패했을 때(서버 사정) 나가는 문장 풀. 그의 사정으로 읽히게, 앱 목소리·사과·한도 표현 없이. */
+export const UNAVAILABLE_LINES = [
+  "My phone's acting up again… can I text you properly in a bit?",
+  "Signal in this building is terrible. I'll write back once I'm somewhere better.",
+  "My battery's about to die and I left my charger at the practice room. Talk soon?",
+] as const;
+
+export function pickUnavailable(seed: string): string {
+  return UNAVAILABLE_LINES[hash32(seed) % UNAVAILABLE_LINES.length] as string;
+}
+
 /** seed가 같으면 같은 문장. */
 export function pickBusyOverlay(seed: string): string {
   return BUSY_OVERLAY_LINES[hash32(seed) % BUSY_OVERLAY_LINES.length] as string;

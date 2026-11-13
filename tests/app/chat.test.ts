@@ -7,7 +7,7 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContent } from "../../src/db/load-content.js";
 import * as schema from "../../src/db/schema/index.js";
-import { BUSY_OVERLAY_LINES } from "../../src/engine/busy-overlay.js";
+import { BUSY_OVERLAY_LINES, UNAVAILABLE_LINES } from "../../src/engine/busy-overlay.js";
 import { handleUserMessage, selectMemories } from "../../src/engine/chat.js";
 import { extractMemories } from "../../src/jobs/memory-extract.js";
 import { FALLBACK_LINES, guardOutput } from "../../src/policy/output-guard.js";
@@ -82,9 +82,33 @@ describe("한도", () => {
   });
 
   it("오버레이 문장은 출력 가드를 통과한다", () => {
-    for (const l of [...BUSY_OVERLAY_LINES, ...FALLBACK_LINES]) {
+    for (const l of [...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES, ...FALLBACK_LINES]) {
       expect(guardOutput(l, rules).findings).toEqual([]);
     }
+  });
+});
+
+describe("LLM 실패", () => {
+  it("complete가 던져도 예외 없이 unavailable 문장 1건 + llm_error 1건, 한도 미소모", async () => {
+    process.env.DAILY_QUOTA_OVERRIDE = "1";
+    const failing = vi.fn(async (): Promise<LlmResponse> => {
+      throw new Error("gateway 403: secret-body-token");
+    });
+    await expect(
+      handleUserMessage({ db, llm: failing, rules, memoryMode: "rules", now: at(0) }, userId, "hi"),
+    ).resolves.toBe("ok");
+    const rows = await chars();
+    expect(rows).toHaveLength(1);
+    expect(UNAVAILABLE_LINES as readonly string[]).toContain(rows[0]!.text);
+    const f = (await db.select().from(reviewFindings).where(eq(reviewFindings.relId, relId))).filter((x) => x.ruleId === "llm_error");
+    expect(f).toHaveLength(1);
+    expect(f[0]!.severity).toBe("flag");
+    expect(f[0]!.reason).toContain("403");
+    expect(f[0]!.reason).not.toContain("secret");
+    // 한도 미소모: 한도 1회가 그대로 남아 다음 메시지는 LLM을 부른다.
+    llm.mockClear();
+    await send("again", 1);
+    expect(llm).toHaveBeenCalledTimes(1);
   });
 });
 

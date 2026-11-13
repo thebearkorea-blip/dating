@@ -49,9 +49,12 @@ function loadEnv(): void {
   }
 }
 
-/** 공급자 선택: ANTHROPIC_API_KEY가 있으면 직접, 없고 Gateway 토큰이 있으면 Gateway, 키가 하나도 없으면 mock. */
+/** 공급자 선택: LLM_PROVIDER(mock|anthropic|gateway)가 있으면 그것이 이긴다(로컬 개발용 mock 강제).
+ * 없으면 ANTHROPIC_API_KEY가 있을 때 직접, 없고 Gateway 토큰이 있으면 Gateway, 키가 하나도 없으면 mock. */
 export function activeProvider(): "anthropic" | "gateway" | "mock" {
   loadEnv();
+  const forced = process.env.LLM_PROVIDER;
+  if (forced === "mock" || forced === "anthropic" || forced === "gateway") return forced;
   if (process.env.ANTHROPIC_API_KEY) return "anthropic";
   if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN) return "gateway";
   return "mock";
@@ -126,6 +129,7 @@ export const anthropicProvider: LlmProvider = {
     const res = await fetch(ENDPOINT[kind], {
       method: "POST",
       headers,
+      signal: AbortSignal.timeout(30_000),
       body: JSON.stringify({
         model,
         max_tokens: req.maxTokens ?? 1024,

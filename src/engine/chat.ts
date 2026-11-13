@@ -13,9 +13,9 @@ import { detectBreakers } from "../policy/breakers.js";
 import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
-import { pickBusyOverlay } from "./busy-overlay.js";
+import { pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
 import { buildPersona } from "./persona.js";
-import { consumeQuota } from "./quota.js";
+import { consumeQuota, refundQuota } from "./quota.js";
 import { activityAt, hash32, type Activity, type EngineCharacter } from "./schedule.js";
 
 export const CHARACTER_ID = "ihan";
@@ -115,6 +115,12 @@ function delayMinutes(a: Activity, seed: string): number {
   return (min + (hash32(seed) / 0x100000000) * (max - min)) * (Number.isFinite(scale) ? scale : 1);
 }
 
+/** 예외에서 상태 코드만 뽑는다. 없으면 일반 사유. */
+function llmErrorReason(e: unknown): string {
+  const m = e instanceof Error ? /^\w+ (\d{3}):/.exec(e.message) : null;
+  return m ? `llm http ${m[1]}` : "llm call failed (network/timeout)";
+}
+
 export type SendResult = "ok" | "empty";
 
 /** 사용자 메시지 1건을 받아 그의 답장(전송 지연 포함)까지 저장한다. */
@@ -189,14 +195,22 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       .reverse()
       .map((m) => ({ role: m.sender === "user" ? ("user" as const) : ("assistant" as const), content: m.text }));
     while (turns[0]?.role === "assistant") turns.shift();
-    const reply = await generateGuardedReply(
-      async () =>
-        (await llm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })).text.trim(),
-      rules,
-      `${userMsg.id}:fallback`,
-    );
-    const replyId = await saveReply(reply.text, deliverAt);
-    await logFindings(db, rel.id, replyId, reply.findings);
+    try {
+      const reply = await generateGuardedReply(
+        async () =>
+          (await llm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })).text.trim(),
+        rules,
+        `${userMsg.id}:fallback`,
+      );
+      const replyId = await saveReply(reply.text, deliverAt);
+      await logFindings(db, rel.id, replyId, reply.findings);
+    } catch (e) {
+      // LLM 실패(네트워크·4xx·5xx·타임아웃)는 그의 사정으로 처리한다. 앱은 에러를 말하지 않는다.
+      // 한도는 되돌리고, 사유에는 상태 코드만 남긴다(토큰·응답 본문 없음).
+      await refundQuota(db, userId);
+      const replyId = await saveReply(pickUnavailable(`${userMsg.id}:unavailable`), deliverAt);
+      await logFindings(db, rel.id, replyId, [{ rule_id: "llm_error", severity: "flag", quote: "", reason: llmErrorReason(e) }]);
+    }
   }
 
   // 기억 추출(인라인). 세션이 30분 넘게 끊겼으면 이전 세션 분, 20건째면 지금까지.

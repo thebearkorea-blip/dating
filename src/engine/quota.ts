@@ -11,6 +11,14 @@ function limitOf(rowQuota: number): number {
   return process.env.DAILY_QUOTA_OVERRIDE && Number.isInteger(o) && o >= 0 ? o : rowQuota;
 }
 
+/** 소비한 한도 1회분을 되돌린다(LLM 호출이 실패한 턴). 0 아래로 내려가지 않는다. */
+export async function refundQuota(db: Db, userId: string): Promise<void> {
+  await db
+    .update(entitlements)
+    .set({ quotaUsedToday: sql`greatest(${entitlements.quotaUsedToday} - 1, 0)` })
+    .where(eq(entitlements.userId, userId));
+}
+
 /** 한도 1회분을 소비한다. 남아 있으면 true, 소진이면 false(LLM을 부르면 안 된다). */
 export async function consumeQuota(db: Db, userId: string, now: Date): Promise<boolean> {
   const today = kstParts(now).date;

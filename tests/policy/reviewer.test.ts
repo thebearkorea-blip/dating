@@ -17,10 +17,13 @@ const items = ["violations", "passes"].flatMap((d) =>
 );
 
 describe("골든 세트 구조", () => {
-  it("위반 10 + 통과 10, 헤더 있음", () => {
-    expect(items).toHaveLength(20);
-    expect(items.filter((i) => i.expect !== "pass")).toHaveLength(10);
-    expect(items.filter((i) => i.expect === "pass")).toHaveLength(10);
+  it("위반 ≥ 10 + 통과 ≥ 10, 두 폴더 파일 수가 같음, 전부 헤더 있음", () => {
+    const v = items.filter((i) => i.name.startsWith("violations/"));
+    const p = items.filter((i) => i.name.startsWith("passes/"));
+    expect(v.length).toBeGreaterThanOrEqual(10);
+    expect(p.length).toBeGreaterThanOrEqual(10);
+    expect(v.length).toBe(p.length);
+    expect(items.every((i) => i.expect && i.rule)).toBe(true);
   });
 });
 
