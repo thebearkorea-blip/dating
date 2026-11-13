@@ -28,10 +28,12 @@ describe("buildPersona", () => {
     expect(p.system).not.toMatch(/claude|anthropic|sonnet|haiku/i);
   });
 
-  it("suffix differs by affection stage and unlocks secrets", () => {
+  it("suffix differs by stage; secrets only via one-time directive + disclosed id list", () => {
     expect(build(1).dynamic_suffix).not.toBe(build(3).dynamic_suffix);
-    expect(build(1).dynamic_suffix).not.toContain("S1");
-    expect(build(3).dynamic_suffix).toContain("S1");
+    expect(build(3).dynamic_suffix).not.toContain("S1");
+    const p = buildPersona({ bible, voiceMd, canon, activity: act(2), stage: 3, secretNow: { id: "S2", text: "secret two text" }, disclosed: ["S1"] });
+    expect(p.dynamic_suffix).toContain("secret two text");
+    expect(p.dynamic_suffix).toContain("S1");
   });
 
   it("system = prefix + suffix, tokens = chars/4, optional layers go to suffix", () => {

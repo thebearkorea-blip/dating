@@ -6,7 +6,7 @@ import { and, asc, count, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import { bibleSchema, scheduleSchema, timelineSchema, type CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
-import { canonFacts, characters, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
+import { canonFacts, characters, disclosures, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { extractMemories, memoryEvery, memoryFirstAfter, SESSION_GAP_MS } from "../jobs/memory-extract.js";
 import { detectBreakers } from "../policy/breakers.js";
@@ -225,6 +225,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       profile: profileText(rel.profile),
       sulk: sulkDirective(sulk),
       secretNow,
+      disclosed: (await db.select({ id: disclosures.secretId }).from(disclosures).where(eq(disclosures.relId, rel.id))).map((d) => d.id),
     });
     const history = await db
       .select({ sender: messages.sender, text: messages.text })

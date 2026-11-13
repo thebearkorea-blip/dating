@@ -18,6 +18,8 @@ export interface PersonaInput {
   sulk?: string | null;
   /** 이번 답장에서 한 번 자연스럽게 털어놓을 비밀(선택) */
   secretNow?: { id: string; text: string } | null;
+  /** 이미 털어놓은 비밀 id(중복 고백 방지, 선택) */
+  disclosed?: string[];
   canonLimit?: number;
 }
 
@@ -84,8 +86,7 @@ function suffix(i: PersonaInput): string {
       `하루 선톡: ${st.initiative_per_day}회`,
     );
   }
-  const secrets = i.bible.secrets.filter((s) => s.unlock_stage <= i.stage);
-  if (secrets.length) lines.push("# 털어놓을 수 있는 비밀", ...secrets.map((s) => `- ${s.id}: ${s.text}`));
+  if (i.disclosed?.length) lines.push(`# 이미 말한 비밀(다시 고백하지 않음): ${i.disclosed.join(", ")}`);
   if (i.secretNow) {
     lines.push(
       "# 이번에 한 번만 털어놓기",
