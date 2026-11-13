@@ -1,5 +1,5 @@
 // W5b 일관성 테스트: 참조 1장으로 n장을 생성해 검수자가 "같은 사람" 판정(8/10 이상)을 하게 한다.
-// 사용: node --import tsx src/tools/consistency-test.ts --character ihan --ref <경로|URL> --n 10 [--provider gateway|fal|mock] [--dry-run]
+// 사용: node --import tsx src/tools/consistency-test.ts --character ihan --ref <경로|URL> --n 10 [--provider gateway|fal|mock] [--ids p001,p002] [--model <id>] [--label <dir접미>] [--dry-run]
 // 상황은 content/characters/<id>/photos/plan.jsonl의 priority 1 행에서 앞에서부터 고른다. 결과는 .data/photos/consistency/<id>/(gitignore).
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
@@ -34,27 +34,30 @@ async function main() {
     process.env.IMG_PROVIDER = prov;
   }
 
-  const rows: Row[] = readFileSync(join("content/characters", id, "photos/plan.jsonl"), "utf8")
+  const all: Row[] = readFileSync(join("content/characters", id, "photos/plan.jsonl"), "utf8")
     .split("\n")
     .filter(Boolean)
     .map((l) => JSON.parse(l))
-    .filter((r) => r.priority === 1)
-    .slice(0, n);
+    .filter((r) => r.priority === 1);
+  const ids = arg("ids")?.split(",");
+  const rows = ids ? all.filter((r) => ids.includes(r.id)) : all.slice(0, n);
   if (rows.length < n) console.log(`priority 1 행이 ${rows.length}개뿐이라 ${rows.length}장만 만든다`);
 
   const provider = activeImageProvider();
-  const model = defaultModel(provider, true);
+  const model = arg("model") ?? defaultModel(provider, true);
   const est = rows.length * estimateImageCostUsd(provider, model, true);
   console.log(`${id}: ${rows.length}장, 공급자 ${provider}, 모델 ${model}, 예상 비용 $${est.toFixed(3)}`);
+  const age = id === "isol" ? 23 : 21;
+  const wear = id === "isol" ? " Casual top that covers shoulders and waist." : "";
   const promptOf = (r: Row) =>
-    `Photo of the same person as in the reference image, same face, hair and skin tone. ${r.prompt_hint}. Setting: ${r.place}.`;
+    `Photo of the same person as the reference, same face and hair; K-pop idol trainee, ${age}-year-old adult. ${r.prompt_hint}. Setting: ${r.place}.${wear}`;
   if (dry) {
     for (const r of rows) console.log(`[${r.id}] ${promptOf(r)}`);
     return;
   }
 
   const refUrl = refToUrl(ref);
-  const dir = join(".data/photos/consistency", id);
+  const dir = join(".data/photos/consistency", id + (arg("label") ? `-${arg("label")}` : ""));
   mkdirSync(dir, { recursive: true });
   const log = join(dir, "results.jsonl");
   writeFileSync(log, "");
@@ -62,7 +65,7 @@ async function main() {
   let failed = 0;
   for (const r of rows) {
     try {
-      const out = await generateImage({ prompt: promptOf(r), aspect: r.aspect, referenceImages: [refUrl] });
+      const out = await generateImage({ prompt: promptOf(r), aspect: r.aspect, referenceImages: [refUrl], model });
       spent += out.costUsd;
       const path = join(dir, `${r.id}.${out.ext}`);
       writeFileSync(path, out.bytes);
