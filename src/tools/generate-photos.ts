@@ -73,7 +73,13 @@ async function main() {
     for (const r of list) {
       try {
         const out = await generateGateway({ prompt: noFacePrompt(r), aspect: r.aspect ?? "4:5", model: model3 }, false);
-        writeFileSync(join(outDir, `${r.id}.${out.ext}`), out.bytes);
+        const path = join(outDir, `${r.id}.${out.ext}`);
+        writeFileSync(path, out.bytes);
+        if (!done.has(r.id)) {
+          const row = photoRowSchema.parse({ id: r.id, blob_url: path, situation: r.situation, time_of_day: r.time_of_day, place: r.place, face: r.face, audience: r.audience, used: [] });
+          appendFileSync(manifest, JSON.stringify(row) + "\n");
+          done.add(r.id);
+        }
         console.log(`ok ${r.id}.${out.ext}`);
       } catch (e) {
         failed3++;
@@ -131,7 +137,8 @@ async function main() {
   const lora = existsSync(join(".data/photos/lora", `${id}.json`)) ? JSON.parse(readFileSync(join(".data/photos/lora", `${id}.json`), "utf8")) : null;
   if (!lora) console.log(`주의: .data/photos/lora/${id}.json 없음(lora-train 먼저). ${dry ? "dry-run이라 계속" : ""}`);
   const trigger: string = lora?.trigger_phrase ?? `${id}x person`;
-  const promptOf = (r: Plan) => `${trigger}, ${r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, defined jawline, same dark hair, no logos or text. Photorealistic photograph.`;
+  const HINT_OVERRIDE: Record<string, string> = { "ihan-p048": "sitting on the bench after practice, towel on shoulders, waist-up, relaxed posture, warm light" }; // 수위 완화(2026-11-14)
+  const promptOf = (r: Plan) => `${trigger}, ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, 21-year-old adult, defined jawline, mature facial structure, university-age man, no school shirt, same dark hair, no logos or text. Photorealistic photograph.`;
   if (dry) {
     for (const r of todo.slice(0, 3)) console.log(`[${r.id}] ${promptOf(r)}`);
     if (todo.length > 3) console.log(`... 외 ${todo.length - 3}행`);

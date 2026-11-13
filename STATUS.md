@@ -8,7 +8,8 @@
 ## 막힌 것 / 사람 확인 필요
 - **사용자**: ① Vercel 팀 카드 등록(Claude + 이미지 생성 모두 여기서) ② Neon·Clerk 약관 승인 ③ 틱톡·인스타 계정 4개 — 순서는 `docs/ops/account-setup.md`. fal 충전은 불필요(예비)
 - 로컬 실행: `REPLY_DELAY_SCALE=0.01 NODE_USE_ENV_PROXY=1 npx next dev --webpack -p 3100`(실모델; mock은 `LLM_PROVIDER=mock`) → `/dev-login`. **dev 서버가 떠 있는 동안 DB 스크립트(틱·load-content) 실행 금지(PGlite 오염 F1)**. 테스트 169건
-- 기본값 확인: 이솔 23세·HALFTONE / 은찬 탈락 D-90 / D1 = 2026-11-17 / 핸들 가칭 2개
+- 기본값 확인: 이솔 23세·HALFTONE / 은찬 탈락 D-90 / D1 = 2026-11-17 / 핸들 가칭 2개 / **LoRA 얼굴 컷이 참조보다 어려 보임(25% 폐기)** — 공개 전 사람 확인
+- 로컬 Gateway 인증이 OIDC 토큰(약 12시간 만료)이라 `vercel env pull`로 갱신 중 — 장기적으로 `vercel ai-gateway api-keys create`(프로젝트 예산 포함)로 바꿀지 사용자 결정
 
 ## 다음 할 일
 1. 사용자·검수자: 사진 84장 전수 확인(`.data/photos/{ihan,isol}`, 이한 얼굴이 참조보다 어림), 말투 예문 선별(W1c), 틱톡·인스타 계정 개설(`docs/ops/account-setup.md`) → 첫 게시(큐 7일분 준비됨)

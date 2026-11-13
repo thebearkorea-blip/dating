@@ -45,7 +45,7 @@
 {"id":"ihan-p012","blob_url":".data/photos/ihan/ihan-p012.jpg","situation":"expr-focus","time_of_day":"morning","place":"practice room","face":true,"audience":"public","used":[]}
 {"id":"ihan-p013","blob_url":".data/photos/ihan/ihan-p013.jpg","situation":"expr-tired","time_of_day":"late_night","place":"dorm kitchen","face":true,"audience":"public","used":[]}
 {"id":"ihan-p014","blob_url":".data/photos/ihan/ihan-p014.jpg","situation":"expr-playful","time_of_day":"evening","place":"dorm living room","face":true,"audience":"public","used":[]}
-{"id":"ihan-p015","blob_url":".data/photos/ihan/ihan-p015.jpg","situation":"expr-near-tears","time_of_day":"night","place":"rooftop","face":true,"audience":"private","used":[{"where":"rejected","at":"2026-11-14"}]}
+{"id":"ihan-p015","blob_url":".data/photos/ihan/ihan-p015.jpg","situation":"expr-near-tears","time_of_day":"night","place":"rooftop","face":true,"audience":"private","used":[]}
 {"id":"ihan-p016","blob_url":".data/photos/ihan/ihan-p016.jpg","situation":"expr-surprised","time_of_day":"afternoon","place":"practice room","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
 {"id":"ihan-p017","blob_url":".data/photos/ihan/ihan-p017.jpg","situation":"expr-shy-smile","time_of_day":"evening","place":"dorm hallway","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
 {"id":"ihan-p018","blob_url":".data/photos/ihan/ihan-p018.jpg","situation":"expr-eye-crinkle","time_of_day":"morning","place":"dorm window","face":true,"audience":"public","used":[]}
@@ -54,10 +54,10 @@
 {"id":"ihan-p021","blob_url":".data/photos/ihan/ihan-p021.jpg","situation":"expr-spicy-fail","time_of_day":"evening","place":"dorm kitchen table","face":true,"audience":"public","used":[]}
 {"id":"ihan-p022","blob_url":".data/photos/ihan/ihan-p022.jpg","situation":"expr-relief","time_of_day":"night","place":"rooftop","face":true,"audience":"private","used":[]}
 {"id":"ihan-p023","blob_url":".data/photos/ihan/ihan-p023.jpg","situation":"expr-worried","time_of_day":"late_night","place":"dorm room","face":true,"audience":"private","used":[]}
-{"id":"ihan-p024","blob_url":".data/photos/ihan/ihan-p024.jpg","situation":"expr-calm-gaze","time_of_day":"afternoon","place":"dorm window","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
+{"id":"ihan-p024","blob_url":".data/photos/ihan/ihan-p024.jpg","situation":"expr-calm-gaze","time_of_day":"afternoon","place":"dorm window","face":true,"audience":"public","used":[]}
 {"id":"ihan-p025","blob_url":".data/photos/ihan/ihan-p025.jpg","situation":"expr-grin-sweat","time_of_day":"evening","place":"practice room","face":true,"audience":"private","used":[]}
 {"id":"ihan-p047","blob_url":".data/photos/ihan/ihan-p047.jpg","situation":"expr-mid-motion","time_of_day":"afternoon","place":"practice room","face":true,"audience":"public","used":[]}
-{"id":"ihan-p048","blob_url":".data/photos/ihan/ihan-p048.jpg","situation":"practice-rest-floor","time_of_day":"evening","place":"practice room","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
+{"id":"ihan-p048","blob_url":".data/photos/ihan/ihan-p048.jpg","situation":"practice-rest-floor","time_of_day":"evening","place":"practice room","face":true,"audience":"public","used":[]}
 {"id":"ihan-p049","blob_url":".data/photos/ihan/ihan-p049.jpg","situation":"practice-mirror-front","time_of_day":"dawn","place":"practice room","face":true,"audience":"public","used":[]}
 {"id":"ihan-p050","blob_url":".data/photos/ihan/ihan-p050.jpg","situation":"practice-water-break","time_of_day":"afternoon","place":"practice room","face":true,"audience":"public","used":[]}
 {"id":"ihan-p071","blob_url":".data/photos/ihan/ihan-p071.jpg","situation":"expr-store-smile","time_of_day":"late_night","place":"convenience store","face":true,"audience":"public","used":[]}
@@ -65,11 +65,36 @@
 {"id":"ihan-p073","blob_url":".data/photos/ihan/ihan-p073.jpg","situation":"daily-dinner-table","time_of_day":"evening","place":"dorm kitchen table","face":true,"audience":"public","used":[]}
 {"id":"ihan-p074","blob_url":".data/photos/ihan/ihan-p074.jpg","situation":"daily-window-seat","time_of_day":"afternoon","place":"cafe","face":true,"audience":"public","used":[]}
 {"id":"ihan-p075","blob_url":".data/photos/ihan/ihan-p075.jpg","situation":"daily-couch","time_of_day":"night","place":"dorm living room","face":true,"audience":"private","used":[]}
-{"id":"ihan-p076","blob_url":".data/photos/ihan/ihan-p076.jpg","situation":"stage-lights-concert","time_of_day":"night","place":"stage","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
+{"id":"ihan-p076","blob_url":".data/photos/ihan/ihan-p076.jpg","situation":"stage-lights-concert","time_of_day":"night","place":"stage","face":true,"audience":"public","used":[]}
 {"id":"ihan-p077","blob_url":".data/photos/ihan/ihan-p077.jpg","situation":"stage-dance-pose","time_of_day":"night","place":"stage","face":true,"audience":"public","used":[]}
-{"id":"ihan-p078","blob_url":".data/photos/ihan/ihan-p078.jpg","situation":"stage-microphone","time_of_day":"night","place":"stage","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
-{"id":"ihan-p079","blob_url":".data/photos/ihan/ihan-p079.jpg","situation":"concept-studio-black","time_of_day":"afternoon","place":"photo studio","face":true,"audience":"public","used":[{"where":"rejected","at":"2026-11-14"}]}
+{"id":"ihan-p078","blob_url":".data/photos/ihan/ihan-p078.jpg","situation":"stage-microphone","time_of_day":"night","place":"stage","face":true,"audience":"public","used":[]}
+{"id":"ihan-p079","blob_url":".data/photos/ihan/ihan-p079.jpg","situation":"concept-studio-black","time_of_day":"afternoon","place":"photo studio","face":true,"audience":"public","used":[]}
 {"id":"ihan-p080","blob_url":".data/photos/ihan/ihan-p080.jpg","situation":"concept-studio-white","time_of_day":"afternoon","place":"photo studio","face":true,"audience":"public","used":[]}
 {"id":"ihan-p081","blob_url":".data/photos/ihan/ihan-p081.jpg","situation":"concept-backstage-mirror","time_of_day":"evening","place":"backstage","face":true,"audience":"public","used":[]}
 {"id":"ihan-p099","blob_url":".data/photos/ihan/ihan-p099.jpg","situation":"outfit-street-denim","time_of_day":"afternoon","place":"street near dorm","face":true,"audience":"public","used":[]}
 {"id":"ihan-p100","blob_url":".data/photos/ihan/ihan-p100.jpg","situation":"outfit-practice-black","time_of_day":"evening","place":"practice room","face":true,"audience":"private","used":[]}
+{"id":"ihan-p028","blob_url":".data/photos/ihan/ihan-p028.jpg","situation":"practice-room-mirror-dawn","time_of_day":"dawn","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p032","blob_url":".data/photos/ihan/ihan-p032.jpg","situation":"practice-room-night","time_of_day":"night","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p033","blob_url":".data/photos/ihan/ihan-p033.jpg","situation":"practice-room","time_of_day":"evening","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p035","blob_url":".data/photos/ihan/ihan-p035.jpg","situation":"sweat-towel","time_of_day":"evening","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p037","blob_url":".data/photos/ihan/ihan-p037.jpg","situation":"water-bottle-on-bench","time_of_day":"afternoon","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p040","blob_url":".data/photos/ihan/ihan-p040.jpg","situation":"choreo-notes","time_of_day":"afternoon","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p041","blob_url":".data/photos/ihan/ihan-p041.jpg","situation":"mirror-hands","time_of_day":"evening","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p044","blob_url":".data/photos/ihan/ihan-p044.jpg","situation":"clock","time_of_day":"late_night","place":"practice room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p046","blob_url":".data/photos/ihan/ihan-p046.jpg","situation":"lyric-sheet","time_of_day":"afternoon","place":"vocal room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p056","blob_url":".data/photos/ihan/ihan-p056.jpg","situation":"grocery-bag","time_of_day":"afternoon","place":"street near dorm","face":false,"audience":"public","used":[]}
+{"id":"ihan-p057","blob_url":".data/photos/ihan/ihan-p057.jpg","situation":"coffee-mix-sticks","time_of_day":"afternoon","place":"dorm kitchen","face":false,"audience":"public","used":[]}
+{"id":"ihan-p058","blob_url":".data/photos/ihan/ihan-p058.jpg","situation":"lunchbox-hands","time_of_day":"noon","place":"dorm kitchen","face":false,"audience":"public","used":[]}
+{"id":"ihan-p059","blob_url":".data/photos/ihan/ihan-p059.jpg","situation":"kitchen","time_of_day":"noon","place":"dorm kitchen","face":false,"audience":"public","used":[]}
+{"id":"ihan-p061","blob_url":".data/photos/ihan/ihan-p061.jpg","situation":"table-snacks","time_of_day":"night","place":"dorm living room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p064","blob_url":".data/photos/ihan/ihan-p064.jpg","situation":"rain-window","time_of_day":"evening","place":"practice building window","face":false,"audience":"public","used":[]}
+{"id":"ihan-p065","blob_url":".data/photos/ihan/ihan-p065.jpg","situation":"umbrella","time_of_day":"evening","place":"street near practice building","face":false,"audience":"public","used":[]}
+{"id":"ihan-p068","blob_url":".data/photos/ihan/ihan-p068.jpg","situation":"phone-lock-screen","time_of_day":"late_night","place":"dorm room","face":false,"audience":"public","used":[]}
+{"id":"ihan-p082","blob_url":".data/photos/ihan/ihan-p082.jpg","situation":"group-silhouette","time_of_day":"night","place":"stage","face":false,"audience":"public","used":[]}
+{"id":"ihan-p083","blob_url":".data/photos/ihan/ihan-p083.jpg","situation":"headphones","time_of_day":"afternoon","place":"backstage","face":false,"audience":"public","used":[]}
+{"id":"ihan-p084","blob_url":".data/photos/ihan/ihan-p084.jpg","situation":"rooftop-dawn","time_of_day":"dawn","place":"rooftop","face":false,"audience":"public","used":[]}
+{"id":"ihan-p085","blob_url":".data/photos/ihan/ihan-p085.jpg","situation":"stage-backstage-hands","time_of_day":"night","place":"backstage","face":false,"audience":"private","used":[]}
+{"id":"ihan-p092","blob_url":".data/photos/ihan/ihan-p092.jpg","situation":"rooftop-night","time_of_day":"night","place":"rooftop","face":false,"audience":"public","used":[]}
+{"id":"ihan-p095","blob_url":".data/photos/ihan/ihan-p095.jpg","situation":"note-on-door","time_of_day":"night","place":"dorm hallway","face":false,"audience":"public","used":[]}
+{"id":"ihan-p097","blob_url":".data/photos/ihan/ihan-p097.jpg","situation":"outfit-coat-flatlay","time_of_day":"morning","place":"dorm room","face":false,"audience":"private","used":[]}
+{"id":"ihan-p098","blob_url":".data/photos/ihan/ihan-p098.jpg","situation":"outfit-stagewear-hanger","time_of_day":"afternoon","place":"backstage","face":false,"audience":"private","used":[]}
