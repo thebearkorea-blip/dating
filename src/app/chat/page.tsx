@@ -39,7 +39,8 @@ export default async function Chat() {
     .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
     .orderBy(desc(messages.at), desc(sql`case when ${messages.sender} = 'user' then 0 else 1 end`), desc(messages.id))
     .limit(100);
-  const list = rows.reverse();
+  // 빈 텍스트(사진 없음)는 렌더하지 않는다.
+  const list = rows.reverse().filter((m) => m.text.trim() || m.mediaId);
   // 평가 UI는 베타 테스터에게만. 비베타는 평가 데이터도 읽지 않는다.
   const mine = new Map<string, 1 | -1>();
   if (user.isBeta) {

@@ -138,9 +138,21 @@ function delayMinutes(a: Activity, seed: string): number {
   return (min + (hash32(seed) / 0x100000000) * (max - min)) * (Number.isFinite(scale) ? scale : 1);
 }
 
+const EMPTY_REPLY = "empty reply";
+
+/** 빈 텍스트면 1회 재시도하고, 또 비면 던진다(호출부가 unavailable 폴백 처리). */
+async function nonEmptyText(call: () => Promise<LlmResponse>): Promise<string> {
+  for (let i = 0; i < 2; i++) {
+    const t = (await call()).text.trim();
+    if (t) return t;
+  }
+  throw new Error(EMPTY_REPLY);
+}
+
 /** 예외에서 상태 코드만 뽑는다. 없으면 일반 사유. */
 function llmErrorReason(e: unknown): string {
   const m = e instanceof Error ? /^\w+ (\d{3}):/.exec(e.message) : null;
+  if (e instanceof Error && e.message === EMPTY_REPLY) return "llm empty reply";
   return m ? `llm http ${m[1]}` : "llm call failed (network/timeout)";
 }
 
@@ -189,6 +201,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   await recordEvent(db, userId, "first_message", { once: "ever", now });
 
   const saveReply = async (replyText: string, deliverAt: Date) => {
+    if (!replyText.trim()) return null; // 빈 텍스트는 저장하지 않는다(빈 말풍선 방지)
     const [m] = await db
       .insert(messages)
       .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: replyText, origin: "reply" })
@@ -261,8 +274,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     while (turns[0]?.role === "assistant") turns.shift();
     try {
       const reply = await generateGuardedReply(
-        async () =>
-          (await chatLlm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })).text.trim(),
+        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 400, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
         rules,
         `${userMsg.id}:fallback`,
       );

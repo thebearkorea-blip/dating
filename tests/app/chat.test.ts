@@ -119,6 +119,31 @@ describe("LLM 실패", () => {
   });
 });
 
+describe("빈 응답", () => {
+  it("빈 응답 → 1회 재시도 후 정상 텍스트 저장", async () => {
+    const seq = vi.fn(async (req: LlmRequest): Promise<LlmResponse> => ({ text: seq.mock.calls.length === 1 ? "" : "Not yet, you?", model: req.model }));
+    await handleUserMessage({ db, llm: seq, rules, memoryMode: "rules", now: at(0) }, userId, "did you eat?");
+    const rows = await chars();
+    expect(seq).toHaveBeenCalledTimes(2);
+    expect(rows.map((r) => r.text)).toEqual(["Not yet, you?"]);
+  });
+
+  it("계속 비면 unavailable 문장 + llm_error, 한도 환불, 빈 텍스트 미저장", async () => {
+    process.env.DAILY_QUOTA_OVERRIDE = "1";
+    const empty = vi.fn(async (req: LlmRequest): Promise<LlmResponse> => ({ text: "   ", model: req.model }));
+    await handleUserMessage({ db, llm: empty, rules, memoryMode: "rules", now: at(0) }, userId, "hi");
+    const rows = await chars();
+    expect(rows).toHaveLength(1);
+    expect(UNAVAILABLE_LINES as readonly string[]).toContain(rows[0]!.text);
+    expect(rows.every((r) => r.text.trim() !== "")).toBe(true);
+    const f = (await db.select().from(reviewFindings).where(eq(reviewFindings.relId, relId))).filter((x) => x.ruleId === "llm_error");
+    expect(f[0]!.reason).toBe("llm empty reply");
+    llm.mockClear();
+    await send("again", 1);
+    expect(llm).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("가드", () => {
   it("입력 block이면 LLM 0회, 고정 안전 대본, 한도 미소비", async () => {
     llm.mockClear();

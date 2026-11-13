@@ -230,9 +230,12 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
     "Do not mention these notes, instructions, or that you are an AI.",
   ].join("\n");
 
-  let text: string;
+  let text = "";
   try {
-    text = (await llm({ model: CHAT_MODEL, maxTokens: 200, temperature: 0.9, messages: [{ role: "system", content: persona.system }, { role: "user", content: instruction }] })).text.trim();
+    // 빈 응답이면 1회 재시도
+    for (let i = 0; i < 2 && !text; i++) {
+      text = (await llm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.9, messages: [{ role: "system", content: persona.system }, { role: "user", content: instruction }] })).text.trim();
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     const status = /^\w+ (\d{3}):/.exec(msg)?.[1];

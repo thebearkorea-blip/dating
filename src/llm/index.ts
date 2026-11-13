@@ -136,6 +136,8 @@ export const anthropicProvider: LlmProvider = {
         model,
         max_tokens: req.maxTokens ?? 1024,
         temperature: req.temperature ?? 0,
+        // 기본값이 thinking이라 max_tokens를 사고에 다 쓰고 text 없이 끝나는 일이 있었다(빈 말풍선).
+        thinking: { type: "disabled" },
         ...(system ? { system } : {}),
         messages,
       }),
@@ -146,7 +148,7 @@ export const anthropicProvider: LlmProvider = {
       usage?: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number };
     };
     return {
-      text: data.content.map((c) => c.text ?? "").join(""),
+      text: data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join(""),
       model: req.model,
       usage: data.usage
         ? {

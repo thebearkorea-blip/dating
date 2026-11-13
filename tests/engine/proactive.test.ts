@@ -12,7 +12,7 @@ import { decideProactive, runProactiveTick, type ProactiveInput } from "../../sr
 import { generateVapidKeys } from "../../src/jobs/push.js";
 import type { LlmRequest, LlmResponse } from "../../src/llm/index.js";
 
-const { media, messages, relationships, users } = schema;
+const { media, messages, relationships, reviewFindings, users } = schema;
 
 const free: Activity = { kind: "routine", activity: "lunch", busy: 0, mood: "calm", replyDelayRange: { min: 1, max: 5 }, canInitiate: true, tags: [] };
 // 2026-12-01 03:00Z = 12:00 KST
@@ -81,6 +81,7 @@ describe("선톡 틱(DB)", () => {
     push.mockClear();
     delete process.env.PROACTIVE_PHOTO_RATE;
     await db.delete(messages);
+    await db.delete(reviewFindings);
     await db.delete(relationships);
     await db.delete(users);
     const [u] = await db.insert(users).values({ displayName: "t", tz: "Asia/Seoul" }).returning();
@@ -116,6 +117,19 @@ describe("선톡 틱(DB)", () => {
     });
     const r = await runProactiveTick({ db, now: NOW, llm: bad, push });
     expect(r).toMatchObject({ candidates: 1, saved: 0, skipped: 1 });
+    expect(await db.select().from(messages).where(eq(messages.relId, relId))).toHaveLength(0);
+  });
+
+  it("빈 응답 → 1회 재시도 후 저장, 계속 비면 건너뜀(빈 텍스트 미저장)", async () => {
+    const once = vi.fn(async (req: LlmRequest): Promise<LlmResponse> => ({ text: once.mock.calls.length === 1 ? "  " : "Lunch was good.", model: req.model }));
+    const r = await runProactiveTick({ db, now: NOW, llm: once, push });
+    expect(once).toHaveBeenCalledTimes(2);
+    expect(r).toMatchObject({ saved: 1, skipped: 0 });
+    await db.delete(messages);
+    const empty = vi.fn(async (req: LlmRequest): Promise<LlmResponse> => ({ text: "", model: req.model }));
+    const r2 = await runProactiveTick({ db, now: NOW, llm: empty, push });
+    expect(empty).toHaveBeenCalledTimes(2);
+    expect(r2).toMatchObject({ saved: 0, skipped: 1 });
     expect(await db.select().from(messages).where(eq(messages.relId, relId))).toHaveLength(0);
   });
 });
