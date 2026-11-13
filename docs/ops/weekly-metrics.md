@@ -14,3 +14,4 @@
 | 2026-11-13 | lora-train ihan (flux-3 klein base trainer 1000step) | blackforestlabs/flux-3/klein/base/trainer | - | - | 4.30 ($0.0043/step) |
 | 2026-11-13 | generate-photos ihan priority 1 (43장, LoRA 추론) | blackforestlabs/flux-3/klein/base/text-to-image/lora | - | - | 1.516 (도구 추정 $0.035/MP, 18장 폐기 포함) |
 | 2026-11-13 | generate-photos --no-lora (ihan face=false 재생성 17장) | bfl/flux-3-image-klein | - | - | 0.23 |
+| 2026-11-14 | generate-photos ihan priority 2·3 (face=true 32장, LoRA 추론; face=false 25장은 Gateway 401로 미생성) | blackforestlabs/flux-3/klein/base/text-to-image/lora | - | - | 1.124 (도구 추정, 8장 폐기 포함) |

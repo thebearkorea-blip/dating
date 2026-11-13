@@ -131,7 +131,7 @@ async function main() {
   const lora = existsSync(join(".data/photos/lora", `${id}.json`)) ? JSON.parse(readFileSync(join(".data/photos/lora", `${id}.json`), "utf8")) : null;
   if (!lora) console.log(`주의: .data/photos/lora/${id}.json 없음(lora-train 먼저). ${dry ? "dry-run이라 계속" : ""}`);
   const trigger: string = lora?.trigger_phrase ?? `${id}x person`;
-  const promptOf = (r: Plan) => `${trigger}, ${r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, same dark hair, no logos or text. Photorealistic photograph.`;
+  const promptOf = (r: Plan) => `${trigger}, ${r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, defined jawline, same dark hair, no logos or text. Photorealistic photograph.`;
   if (dry) {
     for (const r of todo.slice(0, 3)) console.log(`[${r.id}] ${promptOf(r)}`);
     if (todo.length > 3) console.log(`... 외 ${todo.length - 3}행`);
