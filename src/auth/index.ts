@@ -1,5 +1,6 @@
 // 개발용 인증 스텁. 쿠키 dev_session(= personal.users.id)만 본다. 출시 금지.
 // TODO(Clerk): 이 파일의 getCurrentUser()/signOut()을 Clerk(auth()·currentUser() → personal.users 매핑)로 교체한다.
+// is_beta·is_admin도 Clerk 전환 때 Clerk 메타데이터에서 읽는다(지금은 dev-login 체크박스).
 // 호출자(페이지·Server Action)는 이 인터페이스만 쓴다. devLogin은 Clerk 전환 때 삭제한다.
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
@@ -19,11 +20,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   return u ?? null;
 }
 
-export async function devLogin(displayName: string): Promise<CurrentUser> {
+export async function devLogin(displayName: string, flags: { beta?: boolean; admin?: boolean } = {}): Promise<CurrentUser> {
   "use server";
   assertDevOnly("dev-login");
   const name = displayName.trim().slice(0, 40) || "dev";
-  const [u] = await getDb().insert(users).values({ displayName: name }).returning();
+  const [u] = await getDb().insert(users).values({ displayName: name, isBeta: !!flags.beta, isAdmin: !!flags.admin }).returning();
   if (!u) throw new Error("user insert failed");
   (await cookies()).set(SESSION_COOKIE, u.id, { httpOnly: true, sameSite: "lax", path: "/" });
   return u;

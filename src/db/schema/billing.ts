@@ -1,4 +1,4 @@
-import { boolean, integer, pgSchema, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, integer, pgSchema, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const billing = pgSchema("billing");
 
@@ -17,4 +17,18 @@ export const entitlements = billing.table("entitlements", {
   /** 아침 유료 안내를 마지막으로 보여 준 KST 날짜(YYYY-MM-DD). 하루 1회 상한 */
   paywallShownDay: text("paywall_shown_day"),
   callCredits: integer("call_credits").notNull().default(0),
+});
+
+/** LLM 호출 사용량·비용(원가 실측). FK는 걸지 않는다(스키마 격리). */
+export const llmUsage = billing.table("llm_usage", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  relId: uuid("rel_id"),
+  userId: uuid("user_id"),
+  purpose: text("purpose").notNull(), // chat | judge | proactive | memory | review
+  model: text("model").notNull(),
+  input: integer("input").notNull().default(0),
+  output: integer("output").notNull().default(0),
+  cacheRead: integer("cache_read").notNull().default(0),
+  costUsd: doublePrecision("cost_usd").notNull().default(0),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
 });

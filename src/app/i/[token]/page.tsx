@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
+import { recordEvent } from "@/engine/events";
 import { platformIdentities } from "@/db/schema/index";
 import { INVITE_COOKIE } from "../../onboarding/invite-cookie";
 
@@ -15,6 +16,7 @@ async function claim(token: string): Promise<void> {
     .where(eq(platformIdentities.token, token))
     .limit(1);
   if (!row || row.userId) notFound();
+  await recordEvent(getDb(), (await getCurrentUser())?.id ?? null, "invite_link_open");
   (await cookies()).set(INVITE_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
   redirect((await getCurrentUser()) ? "/onboarding" : "/dev-login");
 }

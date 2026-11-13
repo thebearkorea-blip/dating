@@ -6,11 +6,13 @@ import { takePaywall } from "@/billing/paywall";
 import { getDb } from "@/db/client";
 import { activityLine, currentActivity, nextDeliverAt } from "@/engine/chat";
 import { reconcileStatus } from "@/engine/reconcile";
-import { messages, relationships } from "@/db/schema/index";
+import { maybeDay3Return } from "@/engine/events";
+import { messages, ratings, relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
 import { DevBanner } from "../_components/DevBanner";
 import { Composer } from "./Composer";
 import { DeliveryTimer } from "./DeliveryTimer";
+import { Rate } from "./Rate";
 import { ReconcileForm } from "./ReconcileForm";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,7 @@ export default async function Chat() {
   if (!rel) redirect("/onboarding");
 
   const now = new Date();
+  await maybeDay3Return(db, user, now);
   if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const rows = await db
     .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId })
@@ -36,6 +39,13 @@ export default async function Chat() {
     .orderBy(desc(messages.at), desc(sql`case when ${messages.sender} = 'user' then 0 else 1 end`), desc(messages.id))
     .limit(100);
   const list = rows.reverse();
+  // 평가 UI는 베타 테스터에게만. 비베타는 평가 데이터도 읽지 않는다.
+  const mine = new Map<string, 1 | -1>();
+  if (user.isBeta) {
+    for (const r of await db.select({ msgId: ratings.msgId, score: ratings.score }).from(ratings).where(eq(ratings.userId, user.id))) {
+      mine.set(r.msgId, r.score === 1 ? 1 : -1);
+    }
+  }
   const next = await nextDeliverAt(db, rel.id, now);
   const status = await reconcileStatus(db, rel.id, now);
   const line = activityLine(await currentActivity(db, rel.stage, now));
@@ -66,6 +76,7 @@ export default async function Chat() {
           >
             {m.mediaId ? <img src={`/api/media/${m.mediaId}`} alt="" className="mb-2 w-full rounded-[var(--radius-control)]" /> : null}
             {m.text}
+            {user.isBeta && m.sender === "char" ? <Rate msgId={m.id} initial={mine.get(m.id) ?? null} /> : null}
           </li>
         ))}
       </ul>

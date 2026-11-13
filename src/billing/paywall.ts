@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { entitlements } from "../db/schema/billing";
 import { kstParts } from "../engine/schedule.js";
+import { recordEvent } from "../engine/events.js";
 import { expireIfDue } from "../engine/quota.js";
 
 /** 보여 줘야 하면 true를 돌려주고 오늘 표시로 기록한다(두 번째 호출부터 false).
@@ -21,6 +22,7 @@ export async function takePaywall(db: Db, userId: string, now: Date, env: Record
   }
   if (!row) {
     await db.insert(entitlements).values({ userId, plan: "free", dailyQuota: 5, paywallShownDay: today }).onConflictDoNothing();
+    await recordEvent(db, userId, "paywall_shown", { now });
     return true;
   }
   // 동시 요청이 와도 한 번만 이기도록 조건부 갱신으로 선점한다.
@@ -29,5 +31,6 @@ export async function takePaywall(db: Db, userId: string, now: Date, env: Record
     .set({ paywallShownDay: today })
     .where(and(eq(entitlements.userId, userId), sql`${entitlements.paywallShownDay} is distinct from ${today}`))
     .returning({ userId: entitlements.userId });
+  if (claimed.length > 0) await recordEvent(db, userId, "paywall_shown", { now });
   return claimed.length > 0;
 }

@@ -4,6 +4,7 @@ import type { Db } from "../db/client";
 import { messages, relationships } from "../db/schema/index";
 import { judgeJson, judgeModeOf, type JudgeLlm, type JudgeMode } from "./judge.js";
 import { sendBubbles } from "./breakup.js";
+import { recordEvent } from "./events.js";
 import { CHARACTER_ID, loadCharacter } from "./chat.js";
 import { scenesByTrigger } from "./scenes.js";
 
@@ -61,6 +62,7 @@ export async function handleReconcile(deps: ReconcileDeps, userId: string, rawTe
       .update(relationships)
       .set({ reconciledAt: now, endedAt: null, reconcileAfter: null, pendingBreaker: null, sulkState: "none", sulkSince: null })
       .where(eq(relationships.id, rel.id));
+    await recordEvent(db, userId, "reconcile", { now });
     return "accepted";
   }
   await db.update(relationships).set({ reconcileAfter: new Date(now.getTime() + DECLINE_RETRY_DAYS * DAY_MS) }).where(eq(relationships.id, rel.id));

@@ -15,6 +15,7 @@ import { scenesByTrigger } from "../engine/scenes.js";
 import { isSulking } from "../engine/sulk.js";
 import { activityAt, hash32, kstParts, type Activity } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, type LlmRequest, type LlmResponse } from "../llm/index.js";
+import { trackedLlm } from "../llm/tracked.js";
 import { guardOutput } from "../policy/output-guard.js";
 import { loadGuards, type GuardRule } from "../policy/rules.js";
 import { sendPushToUser, type PushSender } from "./push.js";
@@ -184,7 +185,7 @@ async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: str
 
 async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | null> {
   const { db } = deps;
-  const llm = deps.llm ?? complete;
+  const llm = trackedLlm(db, "proactive", { relId: rel.id, userId: rel.userId, now }, deps.llm ?? complete);
   const rules = deps.rules ?? (guardsCache ??= loadGuards(join(CONTENT_ROOT, "policy/guards.yaml")));
   const { bible, voiceMd } = await loadCharacter(db);
   const canon = (await db.select().from(canonFacts).orderBy(asc(canonFacts.at))).map(

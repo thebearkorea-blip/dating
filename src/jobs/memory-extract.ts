@@ -4,6 +4,7 @@ import { and, asc, eq, gt, lte } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { memories, messages, relationships } from "../db/schema/index";
 import { accumulateSuggestions } from "../engine/profile.js";
+import { trackedLlm } from "../llm/tracked.js";
 import { activeProvider, complete, JUDGE_MODEL, type LlmRequest, type LlmResponse } from "../llm/index.js";
 
 export const SESSION_GAP_MS = 30 * 60 * 1000;
@@ -59,6 +60,7 @@ export async function extractMemories(
   opts: { mode?: "rules" | "llm"; llm?: CompleteFn } = {},
 ): Promise<number> {
   const mode = opts.mode ?? (activeProvider() === "mock" ? "rules" : "llm");
+  const llm = trackedLlm(db, "memory", { relId }, opts.llm ?? complete);
   const [rel] = await db
     .select({ cursor: relationships.memoryCursorAt })
     .from(relationships)
@@ -78,7 +80,7 @@ export async function extractMemories(
     facts =
       mode === "rules"
         ? extractFactsByRules(rows.map((r) => r.text))
-        : await extractFactsByLlm(rows.map((r) => r.text), opts.llm ?? complete);
+        : await extractFactsByLlm(rows.map((r) => r.text), llm);
   }
 
   // 삭제된 기억도 "이미 있음"으로 친다(사용자가 지운 것을 되살리지 않는다).
@@ -98,6 +100,6 @@ export async function extractMemories(
   }
   await db.update(relationships).set({ memoryCursorAt: upTo }).where(eq(relationships.id, relId));
   // 2층 프로필 제안 누적(굳힌 뒤에는 no-op)
-  await accumulateSuggestions(db, relId, rows.map((r) => r.text), { mode, llm: opts.llm });
+  await accumulateSuggestions(db, relId, rows.map((r) => r.text), { mode, llm });
   return added;
 }

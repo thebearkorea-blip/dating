@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { characters, memories, platformIdentities, relationships, users } from "@/db/schema/index";
+import { recordEvent } from "@/engine/events";
 import { ageGate } from "@/policy/age-gate";
 import { CITIES } from "./cities";
 import { INVITE_COOKIE } from "./invite-cookie";
@@ -74,5 +75,6 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
   });
 
   if (token) jar.delete(INVITE_COOKIE);
+  await recordEvent(db, user.id, "signup", { once: "ever", meta: token ? { invite: true } : undefined });
   redirect("/chat");
 }

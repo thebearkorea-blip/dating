@@ -36,6 +36,13 @@
       "when": 1794547957547,
       "tag": "0004_affection_sulk_breakup",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794548716884,
+      "tag": "0005_beta_events_usage",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import type { Db } from "../db/client";
 import { messages, relationships } from "../db/schema/index";
 import type { JudgeLlm, JudgeMode } from "./judge.js";
 import { classifyBreaker, confirmsBreaker } from "../policy/breakers.js";
+import { recordEvent } from "./events.js";
 import { scenesByTrigger } from "./scenes.js";
 
 const BUBBLE_GAP_MS = 1000;
@@ -26,6 +27,8 @@ export async function sendBubbles(db: Db, relId: string, bubbles: string[], user
 /** 관계 종료의 유일한 쓰기 지점. */
 async function endRelationship(db: Db, relId: string, now: Date): Promise<void> {
   await db.update(relationships).set({ endedAt: now, pendingBreaker: null }).where(eq(relationships.id, relId));
+  const [r] = await db.select({ userId: relationships.userId }).from(relationships).where(eq(relationships.id, relId)).limit(1);
+  if (r) await recordEvent(db, r.userId, "breakup", { now });
 }
 
 export type BreakerTurn = "none" | "asked" | "ended" | "released";

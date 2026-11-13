@@ -21,6 +21,10 @@ export const users = personal.table("users", {
   birthYearVerified: boolean("birth_year_verified").notNull().default(false),
   ageBand: text("age_band"), // 14-17 | 18+
   aiNoticeAcceptedAt: timestamp("ai_notice_accepted_at", { withTimezone: true }),
+  /** 베타 테스터: 캐릭터 말풍선에 평가 UI가 보인다. */
+  isBeta: boolean("is_beta").notNull().default(false),
+  /** 운영자: /admin 접근. */
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -135,3 +139,26 @@ export const disclosures = personal.table(
   },
   (t) => [unique("disclosures_rel_secret_uq").on(t.relId, t.secretId)],
 );
+
+/** 베타 테스터의 캐릭터 대사 평가. 메시지당 사용자 1행(다시 누르면 덮어씀). 일반 화면에 싣지 않는다. */
+export const ratings = personal.table(
+  "ratings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    msgId: uuid("msg_id").notNull().references(() => messages.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    score: integer("score").notNull(), // 1 | -1
+    note: text("note"),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("ratings_msg_user_uq").on(t.msgId, t.userId)],
+);
+
+/** 지표 이벤트(퍼널·3개월 판정). 퍼널은 이 테이블로만 계산한다. user_id는 가입 전 이벤트(invite_link_open)에서만 null. */
+export const events = personal.table("events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id),
+  kind: text("kind").notNull(),
+  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  meta: jsonb("meta"),
+});

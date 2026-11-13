@@ -8,12 +8,14 @@ import { bibleSchema, scheduleSchema, timelineSchema, type CanonRow } from "../c
 import type { Db } from "../db/client";
 import { canonFacts, characters, disclosures, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
+import { trackedLlm } from "../llm/tracked.js";
 import { extractMemories, memoryEvery, memoryFirstAfter, SESSION_GAP_MS } from "../jobs/memory-extract.js";
 import { detectBreakers } from "../policy/breakers.js";
 import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
+import { recordEvent } from "./events.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
 import { pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
@@ -135,7 +137,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const text = rawText.trim().slice(0, MAX_TEXT);
   if (!text) return "empty";
   const now = deps.now ?? new Date();
-  const llm = deps.llm ?? complete;
+  const base = deps.llm ?? complete;
   const rules = deps.rules ?? defaultRules();
 
   const [rel] = await db
@@ -154,6 +156,8 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   if (!rel) throw new Error("관계 없음: 온보딩 필요");
   // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
   if (rel.endedAt) return "ended";
+  const chatLlm = trackedLlm(db, "chat", { relId: rel.id, userId, now }, base);
+  const judgeLlm = trackedLlm(db, "judge", { relId: rel.id, userId, now }, base);
 
   const [prev] = await db
     .select({ at: messages.at })
@@ -167,6 +171,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     .values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text })
     .returning({ id: messages.id });
   if (!userMsg) throw new Error("메시지 저장 실패");
+  await recordEvent(db, userId, "first_message", { once: "ever", now });
 
   const saveReply = async (replyText: string, deliverAt: Date) => {
     const [m] = await db
@@ -191,7 +196,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     text,
     silentDays: prev ? silenceDays(now, prev.at, rel.startedAt) : null,
     mode: deps.memoryMode,
-    llm,
+    llm: judgeLlm,
   });
   const stage = (await applyUserMessage(db, rel.id, bible, now, !!lastChar?.text.trimEnd().endsWith("?"))).stage;
 
@@ -201,13 +206,14 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
   // 이별 전이(확인 질문 → 이별 장면). 위기 신호는 안전 대본이 먼저라 분류하지 않는다.
-  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, { mode: deps.memoryMode, llm });
+  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, { mode: deps.memoryMode, llm: judgeLlm });
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
     await saveReply(SAFETY_SCRIPT, nextCharacterAt(now, 0));
   } else if (turn === "asked" || turn === "ended") {
     // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {
+    await recordEvent(db, userId, "quota_exhausted", { once: "day", now });
     await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`), deliverAt);
   } else {
     const [u] = await db.select({ tz: users.tz }).from(users).where(eq(users.id, userId)).limit(1);
@@ -240,7 +246,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     try {
       const reply = await generateGuardedReply(
         async () =>
-          (await llm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })).text.trim(),
+          (await chatLlm({ model: CHAT_MODEL, maxTokens: 300, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })).text.trim(),
         rules,
         `${userMsg.id}:fallback`,
       );
@@ -257,12 +263,12 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   }
 
   // 기억 추출(인라인). 세션이 30분 넘게 끊겼으면 이전 세션 분, 첫 추출은 5건째, 그 뒤 20건마다.
-  if (prev && now.getTime() - prev.at.getTime() > SESSION_GAP_MS) await extractMemories(db, rel.id, prev.at, { mode: deps.memoryMode, llm });
+  if (prev && now.getTime() - prev.at.getTime() > SESSION_GAP_MS) await extractMemories(db, rel.id, prev.at, { mode: deps.memoryMode, llm: deps.llm });
   const [cur] = await db.select({ cursor: relationships.memoryCursorAt }).from(relationships).where(eq(relationships.id, rel.id)).limit(1);
   const sinceConds = [eq(messages.relId, rel.id), eq(messages.sender, "user")];
   if (cur?.cursor) sinceConds.push(gt(messages.at, cur.cursor));
   const [n] = await db.select({ n: count() }).from(messages).where(and(...sinceConds));
-  if (n && n.n >= (cur?.cursor ? memoryEvery() : memoryFirstAfter())) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm });
+  if (n && n.n >= (cur?.cursor ? memoryEvery() : memoryFirstAfter())) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm: deps.llm });
   await maybeFreezeProfile(db, rel.id, now);
   return "ok";
 }

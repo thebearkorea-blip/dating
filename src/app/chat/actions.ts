@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { handleUserMessage } from "@/engine/chat";
+import { rateMessageCore } from "@/engine/ratings";
 import { handleReconcile } from "@/engine/reconcile";
 
 /** 어떤 예외든 삼킨다. 앱은 에러 화면을 보이지 않는다(화면은 그대로). */
@@ -28,5 +29,16 @@ export async function sendApology(text: string): Promise<{ result: "accepted" | 
     return { result: r === "accepted" || r === "declined" || r === "too_early" ? r : "other" };
   } catch {
     return { result: "other" };
+  }
+}
+
+/** 베타 테스터의 대사 평가. 베타가 아니면 아무것도 저장하지 않는다. */
+export async function rateMessage(msgId: string, score: number, note: string): Promise<{ ok: boolean }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ok: false };
+    return { ok: (await rateMessageCore(getDb(), user, String(msgId), Number(score), String(note ?? ""))) === "ok" };
+  } catch {
+    return { ok: false };
   }
 }
