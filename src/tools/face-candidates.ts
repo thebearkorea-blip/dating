@@ -25,6 +25,18 @@ const COMMON2 =
 const S2_IHAN = "a Korean man in his early-to-mid twenties, clearly an adult, slim and toned dancer's physique, mature defined facial structure, no baby fat";
 const S2_ISOL = "a Korean woman in her mid twenties, clearly an adult, slim toned physique, mature defined facial structure, no baby fat, polished and sophisticated rather than cute";
 
+// 모델 비교(--model, 정면 1컷): 후보 문구 대신 아이돌 화보 문구를 통째로 쓴다. {place}는 캐릭터별 장소.
+const IDOL_PROMPT: Record<string, { text: string; place: string }> = {
+  ihan: {
+    text: "professional K-pop idol photoshoot portrait, beauty lighting with soft key and rim light, 85mm. A 21-year-old adult Korean male idol trainee: small face, smooth even glass skin, bright clear double-lidded eyes, soft defined jawline, high nose bridge, light natural idol makeup, stylish two-block haircut with soft fringe, slim frame, fashionable black-and-white casual outfit, gentle confident smile. Setting: {place}.",
+    place: "dance practice room with soft window light",
+  },
+  isol: {
+    text: "professional K-pop female idol group photoshoot portrait, beauty lighting, 85mm. A 23-year-old adult Korean female idol trainee: small face, dewy luminous skin, bright double-lidded eyes, refined nose, natural idol makeup with soft coral lip, glossy long layered dark hair, slim frame, chic casual outfit, playful knowing smile. Setting: {place}.",
+    place: "quiet cafe with soft daylight",
+  },
+};
+
 type Cand = { cand: string; face: string; v2?: boolean; subject?: string; place?: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
@@ -75,13 +87,18 @@ async function main() {
   const ch = id ? CHARACTERS[id] : undefined;
   if (!id || !ch) throw new Error("--character ihan|isol 필요");
   const pick = arg("cands");
-  const cands = pick ? ch.cands.filter((c) => pick.split(",").includes(c.cand)) : ch.cands.slice(0, n);
+  const model = arg("model");
+  const label = arg("label", "M");
+  const cands: Cand[] = model ? [{ cand: label!, face: "" }] : pick ? ch.cands.filter((c) => pick.split(",").includes(c.cand)) : ch.cands.slice(0, n);
   if (!cands.length) throw new Error("--cands에 해당하는 후보 없음");
   const shots = SHOTS.slice(0, shotCount);
 
   const prompts: { cand: string; shot: Shot; prompt: string; seed: number }[] = [];
   cands.forEach((c, ci) => {
-    const base = c.v2
+    const idol = IDOL_PROMPT[id]!;
+    const base = model
+      ? idol.text.replace("{place}", idol.place)
+      : c.v2
       ? `${COMMON2}. ${c.subject}. Face: ${c.face}. Setting: ${c.place}.`
       : `${COMMON}. ${ch.subject}. Face: ${c.face}. Setting: ${ch.places[ci]}.`;
     shots.forEach((s, si) => {
@@ -89,7 +106,7 @@ async function main() {
         si === 0
           ? `${base} ${s.text}.`
           : `Photo of the same person as in the reference image, same face, hair, skin tone and clothes, same setting. ${s.text}.`;
-      prompts.push({ cand: c.cand, shot: s, prompt, seed: 5000 + ch.cands.indexOf(c) * 111 });
+      prompts.push({ cand: c.cand, shot: s, prompt, seed: model ? 7000 : 5000 + ch.cands.indexOf(c) * 111 });
     });
   });
 
@@ -126,7 +143,7 @@ async function main() {
       const front = p.shot.name === "front";
       const ref = frontRef[p.cand];
       if (!front && !ref) throw new Error("정면 참조 없음");
-      const out = await generateImage({ prompt: p.prompt, aspect: "3:4", seed: p.seed, ...(front ? {} : { referenceImages: [ref!] }) });
+      const out = await generateImage({ prompt: p.prompt, ...(model ? { model } : {}), ...(model?.includes("seedream") ? { size: "1664x2216" } : { aspect: "3:4" }), seed: p.seed, ...(front ? {} : { referenceImages: [ref!] }) });
       spent += out.costUsd;
       if (front) frontRef[p.cand] = toDataUrl(out);
       const path = join(dir, `${tag}.${out.ext}`);
