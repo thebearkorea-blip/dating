@@ -1,6 +1,7 @@
 // 채팅 한 턴의 핵심 로직. DB·LLM·시각을 주입받아 단위 테스트가 가능하다(Server Action은 얇은 껍데기).
 // 숨김 컬럼은 읽지도 싣지도 않는다(선택 컬럼만).
 import { readFileSync } from "node:fs";
+import { now as clockNow } from "../clock";
 import { join } from "node:path";
 import { and, asc, count, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
@@ -136,7 +137,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const { db } = deps;
   const text = rawText.trim().slice(0, MAX_TEXT);
   if (!text) return "empty";
-  const now = deps.now ?? new Date();
+  const now = deps.now ?? clockNow();
   const base = deps.llm ?? complete;
   const rules = deps.rules ?? defaultRules();
 

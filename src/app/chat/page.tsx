@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
+import { now as clockNow } from "@/clock";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -29,7 +30,7 @@ export default async function Chat() {
     .limit(1);
   if (!rel) redirect("/onboarding");
 
-  const now = new Date();
+  const now = clockNow();
   await maybeDay3Return(db, user, now);
   if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const rows = await db
@@ -54,7 +55,9 @@ export default async function Chat() {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col">
       <DevBanner />
       <header className="flex items-center justify-between gap-3 border-b border-[var(--color-line)] px-4 py-3">
-        <p className="text-sm text-[var(--color-ink-soft)]">{line}</p>
+        <Link href="/him" className="text-sm text-[var(--color-ink-soft)] underline">
+          {line}
+        </Link>
         <span className="flex gap-3">
           <Link href="/me" className="text-sm underline">
             Memories

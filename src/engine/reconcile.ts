@@ -1,5 +1,6 @@
 // 이별 뒤 재시작: ended_at + 쿨다운(30일) 뒤에만 사과를 받는다. 진정성 평가 → 수락(기억 유지) / 거절(+14일).
 import { eq, and } from "drizzle-orm";
+import { now as clockNow } from "../clock";
 import type { Db } from "../db/client";
 import { messages, relationships } from "../db/schema/index";
 import { judgeJson, judgeModeOf, type JudgeLlm, type JudgeMode } from "./judge.js";
@@ -41,7 +42,7 @@ export interface ReconcileDeps {
 
 export async function handleReconcile(deps: ReconcileDeps, userId: string, rawText: string): Promise<ReconcileResult> {
   const { db } = deps;
-  const now = deps.now ?? new Date();
+  const now = deps.now ?? clockNow();
   const text = rawText.trim().slice(0, 1000);
   const [rel] = await db
     .select({ id: relationships.id })

@@ -16,6 +16,7 @@ export const EVENT_KINDS = [
   "invite_link_open",
   "breakup",
   "reconcile",
+  "account_deleted",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { AppVoice } from "../_components/AppVoice";
@@ -44,6 +45,9 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
           <input type="checkbox" name="aiNotice" required />
           <span>He is an AI character.</span>
         </label>
+        <Link href="/privacy" className="text-sm underline">
+          Privacy notice
+        </Link>
         <button type="submit" className="btn">
           Continue
         </button>

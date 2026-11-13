@@ -6,7 +6,8 @@ import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
-import { cancelSubscription, saveSettings, startCheckout } from "./actions";
+import { cancelSubscription, deleteAccount, deleteAllConversations, saveSettings, startCheckout } from "./actions";
+import { ConfirmDelete } from "./ConfirmDelete";
 import { PushToggle } from "./PushToggle";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,16 @@ export default async function Settings() {
           Save
         </button>
       </form>
+      <AppVoice screen="settings">
+        <p>Your data is yours. Deleting conversations keeps your relationship but starts it over.</p>
+        <ConfirmDelete action={deleteAllConversations} label="Delete all conversations" confirmLabel="Really delete conversations" />
+        <ConfirmDelete action={deleteAccount} label="Delete account" confirmLabel="Really delete account" />
+        <p>
+          <Link href="/privacy" className="underline">
+            Privacy notice
+          </Link>
+        </p>
+      </AppVoice>
       <section id="ai-notice" className="flex flex-col gap-1">
         <AppVoice screen="ai_notice">
           <p>He is an AI character.</p>

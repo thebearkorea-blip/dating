@@ -2,9 +2,10 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/auth/index";
+import { getCurrentUser, signOut } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { getBillingProvider } from "@/billing/index";
+import { deleteAccount as wipeAccount, deleteAllConversations as wipeConversations } from "@/engine/data-deletion";
 import { pushSubscriptions, relationships, users } from "@/db/schema/index";
 
 function validTz(tz: string): boolean {
@@ -65,4 +66,21 @@ export async function cancelSubscription(): Promise<void> {
   if (!user) return;
   await getBillingProvider(getDb()).cancel(user.id);
   revalidatePath("/settings");
+}
+
+export async function deleteAllConversations(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await wipeConversations(getDb(), user.id);
+  revalidatePath("/chat");
+  revalidatePath("/me");
+  revalidatePath("/settings");
+}
+
+export async function deleteAccount(): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await wipeAccount(getDb(), user.id);
+  await signOut();
+  redirect("/");
 }
