@@ -1,8 +1,8 @@
 # STATUS — 지금 어디까지 했나 (빈 줄 제외 15줄, 항목당 한 줄. 배포 이력은 `docs/deploy-log.md`)
 
 ## 진행 중 (상태: 설계·구현·배포·확인대기 — 3줄이면 새 작업은 백로그 기록만)
-- 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 구현(이름 2차 가칭 교체·bible.yaml 변환 중, implementer). 남은 것: 검수자 선별 W1c
-- W2 검수 CLI `docs/work-plans/2026-11-13-W2-검수-CLI.md` — 구현(implementer). 남은 것: 2단 LLM 검증(API 키 필요)
+- 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 확인대기. 남은 것: 검수자 선별 W1c, "데뷔 직전 출발" 채택 시 timeline·일기 주제 재배치
+- W2 검수 CLI `docs/work-plans/2026-11-13-W2-검수-CLI.md` — 확인대기(1단·골든 검증 완료, 2단 LLM은 API 키 대기). W4 일기 도구는 구현 중(implementer)
 - W5 얼굴 고정 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 설계 확정(klein 4B). 남은 것: fal.ai 계정·키 → W5a 기준 얼굴 후보
 
 ## 막힌 것 / 사람 확인 필요 (사용자 지시: 질문은 나중에 — 기본값으로 진행 중)

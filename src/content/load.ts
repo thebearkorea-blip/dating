@@ -5,11 +5,13 @@ import type { ZodType } from "zod";
 import {
   bibleSchema,
   canonRowSchema,
+  diaryFrontmatterSchema,
   groupSchema,
   guardsSchema,
   photoRowSchema,
   postRowSchema,
   scheduleSchema,
+  splitFrontmatter,
   timelineSchema,
 } from "./schemas/index.js";
 
@@ -70,6 +72,20 @@ function checkFile(
   for (const message of msgs) report.issues.push({ file: rel, message });
 }
 
+/** diary/YYYY-MM-DD.md 한 파일의 frontmatter를 검증한다(_drafts는 대상 아님). */
+export function validateDiaryText(text: string, fileDate: string): string[] {
+  let fm: ReturnType<typeof splitFrontmatter>;
+  try {
+    fm = splitFrontmatter(text);
+  } catch (e) {
+    return [`YAML parse error: ${(e as Error).message}`];
+  }
+  if (!fm) return ["frontmatter 없음"];
+  const r = diaryFrontmatterSchema.safeParse(fm.data);
+  if (!r.success) return formatZod(r.error);
+  return r.data.date === fileDate ? [] : [`date(${r.data.date})가 파일명(${fileDate})과 다름`];
+}
+
 /** content 폴더(world/·characters/<id>/·policy/)의 존재하는 파일을 전부 검증한다. */
 export function validateContentDir(root: string): ContentReport {
   const report: ContentReport = { checked: [], issues: [] };
@@ -91,6 +107,18 @@ export function validateContentDir(root: string): ContentReport {
       checkFile(root, join(dir, "schedule.yaml"), "yaml", scheduleSchema, report);
       checkFile(root, join(dir, "photos/manifest.jsonl"), "jsonl", photoRowSchema, report);
       checkFile(root, join(dir, "sns/posts.jsonl"), "jsonl", postRowSchema, report);
+      const diaryDir = join(dir, "diary");
+      if (existsSync(diaryDir)) {
+        for (const f of readdirSync(diaryDir)) {
+          const m = /^(\d{4}-\d{2}-\d{2})\.md$/.exec(f);
+          if (!m) continue;
+          const path = join(diaryDir, f);
+          report.checked.push(relative(root, path));
+          for (const message of validateDiaryText(readFileSync(path, "utf8"), m[1] as string)) {
+            report.issues.push({ file: relative(root, path), message });
+          }
+        }
+      }
     }
   }
   if (report.checked.length === 0 && report.issues.length === 0) {
