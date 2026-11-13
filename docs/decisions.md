@@ -88,7 +88,7 @@
 | Neon Postgres | DB | 스키마 4개 GRANT 분리가 Postgres로 바로 됨 | 📝 |
 | Clerk | 인증 | 1인 개발 세션·보안 비용 절약 | 📝 |
 | Stripe | 결제 | 웹 결제, 스토어 수수료 회피. 데이팅 제한 업종이므로 등록 명칭 주의 | ❓ 심사 전 |
-| TTS | 음성 메시지 | 미정. ElevenLabs·OpenAI·Typecast 같은 문장 5개 샘플 비교 후 하나만 | ❓ |
+| TTS·음성(Gateway 경유) | 음성 메시지(M2), 통화(1.5단계+) | 전부 API·Vercel AI Gateway(2026-11-13 확인): TTS 후보 `elevenlabs/eleven-v3`·`eleven-multilingual-v2`·`google/gemini-3.8-flash-tts`·`fish-audio/s2-pro` — 같은 문장 5개(영어+한국어 끼어듦) 샘플 비교 후 **하나만**. 통화는 **A안 파이프라인**(전사 `elevenlabs/scribe-v2-realtime`/`google/gemini-3.5-transcribe-live` → Claude 텍스트 → TTS)으로 시작해 1층 고정 핵·기억 유지, 지연이 전환을 막으면 B안 음성-음성 실시간(`google/gemini-3.8-live`·`eleven-realtime-v1`) 시험. 통화는 충전식(분당 $0.04~0.10) | ❓ 샘플 비교 전 |
 
 ## 알려진 결함·불일치
 
