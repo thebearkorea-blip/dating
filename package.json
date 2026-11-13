@@ -8,6 +8,7 @@
   "scripts": {
     "test": "vitest run",
     "validate": "tsx src/tools/validate-content.ts content",
+    "review": "tsx src/tools/review.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
