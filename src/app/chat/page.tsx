@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -33,7 +33,7 @@ export default async function Chat() {
     .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId })
     .from(messages)
     .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
-    .orderBy(desc(messages.at))
+    .orderBy(desc(messages.at), desc(sql`case when ${messages.sender} = 'user' then 0 else 1 end`), desc(messages.id))
     .limit(100);
   const list = rows.reverse();
   const next = await nextDeliverAt(db, rel.id, now);

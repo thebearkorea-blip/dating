@@ -176,6 +176,25 @@ describe("이별", () => {
     // 이별 뒤에는 대화를 받지 않는다.
     expect(await send("hello?", at(10))).toBe("ended");
   });
+  it("표시 순서: breaker 고백 → 확인 질문 → 긍정 → 이별 장면의 at이 단조 증가하고 각 사용자 메시지보다 뒤", async () => {
+    await send("I cheated on you with someone.", at(0));
+    await send("yes I did", at(5));
+    const all = await db.select().from(messages).where(eq(messages.relId, relId)).orderBy(asc(messages.at));
+    const times = all.map((m) => m.at.getTime());
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+    expect(new Set(times).size).toBe(times.length);
+    expect(all.map((m) => m.sender)).toEqual(["user", "char", "user", ...BREAKUP.bubbles.map(() => "char")]);
+    const users = all.filter((m) => m.sender === "user");
+    const confirm = all[1]!;
+    expect(confirm.at.getTime()).toBeGreaterThanOrEqual(users[0]!.at.getTime() + 1000);
+    for (const c of all.slice(3)) expect(c.at.getTime()).toBeGreaterThanOrEqual(users[1]!.at.getTime() + 1000);
+  });
+  it("표시 순서: 일반 답장도 사용자 메시지보다 1초 이상 뒤", async () => {
+    await send("hello there", at(0));
+    const all = await db.select().from(messages).where(eq(messages.relId, relId)).orderBy(asc(messages.at));
+    expect(all.map((m) => m.sender)).toEqual(["user", "char"]);
+    expect(all[1]!.at.getTime()).toBeGreaterThanOrEqual(all[0]!.at.getTime() + 1000);
+  });
   it("부정이면 해제되고 일반 답장으로 이어진다", async () => {
     await send("I cheated on you with someone.", at(0));
     await send("no, I was kidding", at(5));

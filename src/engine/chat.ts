@@ -14,7 +14,7 @@ import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
-import { breakerTurn } from "./breakup.js";
+import { breakerTurn, nextCharacterAt } from "./breakup.js";
 import { pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
@@ -196,7 +196,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const stage = (await applyUserMessage(db, rel.id, bible, now, !!lastChar?.text.trimEnd().endsWith("?"))).stage;
 
   const activity = await currentActivity(db, stage, now);
-  const deliverAt = new Date(now.getTime() + delayMinutes(activity, `${userMsg.id}:delay`) * 60000);
+  const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`) * 60000);
 
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
@@ -204,7 +204,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, { mode: deps.memoryMode, llm });
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
-    await saveReply(SAFETY_SCRIPT, now);
+    await saveReply(SAFETY_SCRIPT, nextCharacterAt(now, 0));
   } else if (turn === "asked" || turn === "ended") {
     // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {

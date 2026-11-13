@@ -55,7 +55,7 @@ export async function handleReconcile(deps: ReconcileDeps, userId: string, rawTe
   await db.insert(messages).values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text });
   const ok = await isSincere(text, { mode: deps.memoryMode, llm: deps.llm });
   const scene = scenesByTrigger(CHARACTER_ID, ok ? "apology_accepted" : "apology_declined")[0];
-  if (scene) await sendBubbles(db, rel.id, scene.bubbles, new Date(now.getTime() + 1000));
+  if (scene) await sendBubbles(db, rel.id, scene.bubbles, now);
   if (ok) {
     await db
       .update(relationships)

@@ -8,12 +8,17 @@ import type { JudgeLlm, JudgeMode } from "./judge.js";
 import { classifyBreaker, confirmsBreaker } from "../policy/breakers.js";
 import { scenesByTrigger } from "./scenes.js";
 
-const BUBBLE_GAP_MS = 4000;
+const BUBBLE_GAP_MS = 1000;
 
-/** 장면 말풍선을 `at`부터 몇 초 간격으로 저장한다. 첫 말풍선의 id는 쓰지 않는다. */
-export async function sendBubbles(db: Db, relId: string, bubbles: string[], at: Date, tags: { origin?: string } = {}): Promise<void> {
+/** 캐릭터 메시지의 at/deliver_at. 사용자 메시지 at보다 최소 1초 뒤(표시 순서 역전 방지)라 모든 캐릭터 메시지 저장이 이 함수를 거친다. */
+export function nextCharacterAt(userAt: Date, delayMs: number): Date {
+  return new Date(userAt.getTime() + Math.max(delayMs, 1000));
+}
+
+/** 장면 말풍선을 사용자 메시지 at 다음 1초부터 1초 간격으로 저장한다. */
+export async function sendBubbles(db: Db, relId: string, bubbles: string[], userAt: Date, tags: { origin?: string } = {}): Promise<void> {
   for (const [i, text] of bubbles.entries()) {
-    const when = new Date(at.getTime() + i * BUBBLE_GAP_MS);
+    const when = nextCharacterAt(userAt, 1000 + i * BUBBLE_GAP_MS);
     await db.insert(messages).values({ relId, at: when, deliverAt: when, sender: "char", text, origin: tags.origin ?? "reply" });
   }
 }
