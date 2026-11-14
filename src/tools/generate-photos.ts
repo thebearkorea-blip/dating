@@ -1,5 +1,5 @@
 // W5c 사진 생성: plan.jsonl 행마다 LoRA 추론으로 1장씩 만들고 photos/manifest.jsonl에 행을 더한다.
-// 사용: node --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl [--priority 1] [--model <endpoint>] [--scale 1] [--ids ihan-p001,ihan-p002] [--dry-run]
+// 사용: node --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl [--priority 1] [--model <endpoint>] [--scale 1] [--ids ihan-p001,ihan-p002] [--style candid|editorial (기본 candid, 얼굴 컷 LoRA 경로)] [--dry-run]
 // 얼굴 없는 컷(LoRA 없이): ... --provider gateway --no-lora --force --ids ihan-p027,... [--model bfl/flux-2-pro(기본)]
 // Gateway 참조 편집(LoRA 없이): ... --character isol --plan <plan> --provider gateway --ref .data/photos/candidates/isol/N-front.jpg --model bfl/flux-2-pro [--limit n]
 // 추론 엔드포인트 기본: blackforestlabs/flux-3/klein/base/text-to-image/lora (학습 트레이너와 같은 FLUX 3 klein base. loras[].path = .data/photos/lora/<id>.json의 lora_url).
@@ -157,11 +157,11 @@ async function main() {
   const lora = existsSync(join(".data/photos/lora", `${id}.json`)) ? JSON.parse(readFileSync(join(".data/photos/lora", `${id}.json`), "utf8")) : null;
   if (!lora) console.log(`주의: .data/photos/lora/${id}.json 없음(lora-train 먼저). ${dry ? "dry-run이라 계속" : ""}`);
   const trigger: string = lora?.trigger_phrase ?? `${id}x person`;
-  const HINT_OVERRIDE: Record<string, string> = { "ihan-p048": "sitting on the bench after practice, towel on shoulders, waist-up, relaxed posture, warm light" }; // 수위 완화(2026-11-14)
-  const style = arg("style", "editorial");
+  const HINT_OVERRIDE: Record<string, string> = { "ihan-p049": "mirror selfie in the practice room, selfie holding phone toward the mirror, only one reflection, gray tee, cool dawn window light", "ihan-p048": "sitting on the bench after practice, towel on shoulders, waist-up, relaxed posture, warm light" }; // 수위 완화(2026-11-14)
+  const style = arg("style", "candid");
   if (style !== "editorial" && style !== "candid") throw new Error("--style은 editorial|candid");
   const seed = arg("seed") !== undefined ? Number(arg("seed")) : undefined;
-  const candidPrompt = (r: Plan) => `A natural candid smartphone photo, shot on iPhone, of ${trigger}, a 21-year-old adult Korean man (K-pop trainee), identical face and hair as trained, no identity drift. ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}. 21-year-old adult, defined jawline, mature facial structure, university-age man, no school shirt, no logos or text. Soft natural light, realistic skin with visible pores, no makeup look, no retouching, no beauty filter, not a studio shot, slightly off-center casual framing, vertical.`;
+  const candidPrompt = (r: Plan) => `A natural candid smartphone photo, shot on iPhone, of ${trigger}, a 21-year-old adult Korean man (K-pop trainee), identical face and hair as trained, no identity drift. ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}. Youthful K-pop idol visual, youthful fresh face, clear smooth glowing skin, slim V-line face, soft styled hair (curtain bangs or soft fringe) in dark brown/black, light idol grooming (neat brows, naturally tinted lips), trendy streetwear or oversized casual idol fashion, phone-camera soft look. No logos or text. Soft natural light, no heavy retouching, not a studio shot, slightly off-center casual framing, vertical.`;
   const promptOf = (r: Plan) => style === "candid" && r.face ? candidPrompt(r) : `${trigger}, ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, 21-year-old adult, defined jawline, mature facial structure, university-age man, no school shirt, same dark hair, no logos or text. Photorealistic photograph.`;
   if (dry) {
     for (const r of todo.slice(0, 3)) console.log(`[${r.id}] ${promptOf(r)}`);
