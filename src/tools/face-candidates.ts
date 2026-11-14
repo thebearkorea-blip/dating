@@ -49,6 +49,12 @@ const IDOL4: Record<string, string> = {
   isol: "professional K-pop female idol group photoshoot portrait, soft beauty lighting, 85mm. A 23-year-old adult Korean female idol trainee who looks 21-22: fresh youthful face, clear dewy skin, bright eyes, natural idol makeup, dance practice outfit or casual sleeveless top or cropped tee, no sexualized pose, no chest or waist close-up, waist-up or three-quarter framing.",
 };
 
+// 5차(은찬, 정면만): 이한(또렷한 투블럭·황혼 역광)과 다른 얼굴형·분위기. 외모 20~21 성인.
+const IDOL5: Record<string, string> = {
+  eunchan:
+    "professional K-pop idol trainee portrait, soft diffused natural light from a window, 85mm. A 21-year-old adult Korean male trainee who looks 20-21, a dreamy sensitive vocalist type: thin pale build, soft gentle impression, slightly long soft hair with long bangs, gentle slightly tired eyes, delicate narrow face, smooth skin, light natural makeup, oversized plain knit sweater, no logos, no text.",
+};
+
 type Cand = { cand: string; face: string; v2?: boolean; v3?: boolean; v4?: boolean; subject?: string; place?: string };
 const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Cand[] }> = {
   ihan: {
@@ -71,6 +77,16 @@ const CHARACTERS: Record<string, { subject: string; places: string[]; cands: Can
       { cand: "N", v4: true, place: "city rooftop at golden hour", face: "playful mood, soft wavy perm" },
       { cand: "O", v4: true, place: "convenience store entrance at night with soft shop lights", face: "chic cool mood, wolf cut" },
       { cand: "P", v4: true, place: "city street in daylight", face: "warm kind mood, light two-block cut with natural bangs" },
+    ],
+  },
+  eunchan: {
+    subject: "",
+    places: [],
+    cands: [
+      { cand: "A", v4: true, place: "bedroom by a window with soft overcast daylight", face: "long soft bangs over gentle drooping eyes, narrow oval face, slightly long layered hair, dreamy quiet mood" },
+      { cand: "B", v4: true, place: "dormitory desk by a window in morning light", face: "monolid eyes with a tired soft gaze, heart-shaped face, soft medium-length wavy hair, melancholic gentle mood" },
+      { cand: "C", v4: true, place: "quiet practice room corner with window light", face: "double-lidded gentle eyes, soft rounded jaw, center-parted long bangs tucked behind ears, warm shy mood" },
+      { cand: "D", v4: true, place: "rooftop stairwell with soft daylight through a window", face: "inner-double eyelids, slim soft face, slightly messy soft curtain bangs, sleepy poetic mood" },
     ],
   },
   isol: {
@@ -113,7 +129,7 @@ async function main() {
     process.env.IMG_PROVIDER = prov;
   }
   const ch = id ? CHARACTERS[id] : undefined;
-  if (!id || !ch) throw new Error("--character ihan|isol 필요");
+  if (!id || !ch) throw new Error("--character ihan|isol|eunchan 필요");
   const pick = arg("cands");
   const model = arg("model");
   const label = arg("label", "M");
@@ -125,7 +141,7 @@ async function main() {
   cands.forEach((c, ci) => {
     const idol = IDOL_PROMPT[id]!;
     const base = c.v4
-      ? `${IDOL4[id]} Face and hair: ${c.face}. Setting: ${c.place}.`
+      ? `${IDOL5[id] ?? IDOL4[id]} Face and hair: ${c.face}. Setting: ${c.place}.`
       : c.v3
       ? `${IDOL3[id]} Face: ${c.face}. Setting: ${c.place}.`
       : model

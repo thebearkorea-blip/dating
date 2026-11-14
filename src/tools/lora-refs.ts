@@ -1,5 +1,5 @@
 // W5b~c LoRA 학습용 참조 생성: 정면 참조 1장으로 n장(기본 30)을 Gateway 참조 편집으로 만든다.
-// 사용: node --import tsx src/tools/lora-refs.ts --character ihan --ref <경로|URL> --n 30 [--model bfl/flux-2-pro] [--dry-run]
+// 사용: node --import tsx src/tools/lora-refs.ts --character ihan --ref <경로|URL> --n 30 [--model bfl/flux-2-pro] [--out-suffix v2] [--lead "<도입문>"] [--extra "<덧붙임>"] [--dry-run]
 //       node --import tsx src/tools/lora-refs.ts --character ihan --keep 01,03,05 [--dry-run]   (검수 통과분만 zip: <id>-refs.zip)
 // 결과 .data/photos/lora-refs/<id>/NN.jpg + refs.jsonl (gitignore). 이어하기: 이미 있는 NN은 건너뛴다.
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -34,7 +34,9 @@ const LIGHTS = ["soft even studio light", "warm window light from the side", "co
 const OUTFITS = ["plain white t-shirt", "plain black crewneck sweatshirt", "gray hoodie with no print", "navy button-up shirt"];
 
 const EXTRA = arg("extra");
+const LEAD = arg("lead"); // 지정하면 기본 도입문 대신 쓴다(성인 단서 강화 등)
 function promptOf(i: number): string {
+  if (LEAD) return `${LEAD}. ${VIEWS[i % 6]}, ${EXPRS[i % 7]}, ${LIGHTS[i % 5]}, wearing a ${OUTFITS[i % 4]}.${EXTRA ? " " + EXTRA : ""}`;
   return `Photo of the same person as the reference: same person, same hair color/style, no logos or text on clothing. ${VIEWS[i % 6]}, ${EXPRS[i % 7]}, ${LIGHTS[i % 5]}, wearing a ${OUTFITS[i % 4]}. Plain simple background, face large in frame, head and shoulders, sharp focus, photorealistic.${EXTRA ? " " + EXTRA : ""}`;
 }
 
@@ -61,10 +63,13 @@ async function main() {
   const id = arg("character");
   if (!id || !/^[a-z]+$/.test(id)) throw new Error("--character <id> 필요");
   const dry = process.argv.includes("--dry-run");
-  const dir = join(".data/photos/lora-refs", id);
+  const suffix = arg("out-suffix");
+  if (suffix && !/^[a-z0-9]+$/.test(suffix)) throw new Error("--out-suffix는 영소문자·숫자만");
+  const outId = suffix ? `${id}-${suffix}` : id;
+  const dir = join(".data/photos/lora-refs", outId);
 
   const keep = arg("keep");
-  if (keep) return makeZip(id, dir, keep.split(",").map((s) => s.trim().padStart(2, "0")), dry);
+  if (keep) return makeZip(outId, dir, keep.split(",").map((s) => s.trim().padStart(2, "0")), dry);
 
   const ref = arg("ref");
   if (!ref) throw new Error("--ref <경로|URL> 필요(또는 --keep)");
@@ -100,7 +105,7 @@ async function main() {
       console.log(`FAIL ${nn}: ${(e as Error).message}`);
     }
   }
-  console.log(`완료. 실패 ${failed}, 추정 비용 $${spent.toFixed(3)}. 검수 뒤: --character ${id} --keep 01,03,... 로 zip`);
+  console.log(`완료. 실패 ${failed}, 추정 비용 $${spent.toFixed(3)}. 검수 뒤: --character ${id}${suffix ? ` --out-suffix ${suffix}` : ""} --keep 01,03,... 로 zip`);
 }
 
 main().catch((e) => { console.error(e.message); process.exit(1); });
