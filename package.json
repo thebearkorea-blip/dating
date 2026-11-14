@@ -6,6 +6,9 @@
     "node": ">=24"
   },
   "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
     "test": "vitest run",
     "validate": "tsx src/tools/validate-content.ts content",
     "review": "tsx src/tools/review.ts",

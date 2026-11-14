@@ -446,3 +446,6 @@ zip: `.data/photos/lora-refs/isol-v1-refs.zip` 23장. 학습: `lora-train --char
 ## 강아지 컷: Pixabay + 이한 합성 시험 (2026-11-14, 사용자 "강아지는 pixabay에서 올려줘")
 스크립트 `.data/photos/consistency/dog-test/run.mts`: Pixabay 검색(세로, safesearch, 아동 태그 제외) 4장 → Gateway `bfl/flux-2-pro` 편집(참조 = 원본 + 이한 N-front), 사람 있으면 교체·없으면 추가. 약 $0.16. 시트 `dog-test/sheet.jpg`(원본/결과 쌍), 출처 json `dog-test/src/*.json`.
 결과: 하네스 고쳐 주기(교체) 좋음 → p106 / 눈길 산책(추가) 양호 → p105 / 보호소견과 옥상(추가, 배경이 바뀜) 양호 → p108 / 공원 산책(교체)은 원본이 머리 잘린 컷이라 맨발·몸통만 나와 폐기. 교훈: 원본은 사람 전신 또는 사람 없는 컷을 고를 것. 등록은 `register-photo`(source stock, Pixabay 크레딧).
+
+## 이솔 눈동자 13장 재생성 (2026-11-14, 사용자 "특히 이솔 눈동자 처리가 어색하다")
+폐기 13장(p002 p006 p008 p009 p011 p012 p023 p025 p034 p035 p036 p042 p050)을 이솔 캔디드 문구에 눈 문구("natural clear eyes with symmetric round dark-brown pupils, both eyes looking in the same direction, small natural catchlights, no glassy or doll-like eyes") 추가 + 비셀카 구절 "looking slightly off-camera is fine, eyes relaxed"로 바꾸고 `--force --scale 0.85 --seed 5505`로 재생성. 13/13 성공, $0.457. 시트 `consistency/candid-test/sheet-isol-eyes-13.jpg`, 검수 링크 `review/isol-face/`에 다시 넣음(삭제 = 폐기). 결함 F3(LoRA 경로 `--force`가 rejected를 안 지움) 발견·수정.
