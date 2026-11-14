@@ -419,3 +419,8 @@ zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 
 ## 아이돌 셀카 문구 (2026-11-14)
 사용자 "아직도 아이돌스러워 보이지 않아, 좀 더 영하게" → `generate-photos` 캔디드 문구에서 성인 단서를 "21-year-old adult Korean man (K-pop trainee)" 한 구절만 남기고 "defined jawline·mature facial structure·university-age·visible pores·no makeup"을 뺀 뒤 "youthful K-pop idol visual, clear smooth glowing skin, slim V-line face, soft styled hair (curtain bangs), light idol grooming, oversized casual idol fashion, phone-camera soft look" 추가(기본값). 이한 LoRA v1, seed 2202, p049 거울·p071 편의점·p020 침대·p017 복도 4장(사용자가 직접 실행, 약 $0.14; seed 1101은 중단). 결과 `.data/photos/consistency/candid-test/ihan-v1-idol/s2202/`, 시트 `sheet-idol.jpg`.
 메인 소견: ① 아이돌 느낌 — 앞 시험보다 확실히 좋아짐(앞머리·피부·갸름한 얼굴, 오버사이즈 후디). ② 나이 — 19~21로 보이고 18 미만으로 보이는 컷 없음. ③ 얼굴 일치 — 4장이 같은 인물로 보이고 거울 셀카도 반사 1개로 정상. 사용자 판정 대기.
+
+**2차(2026-11-14, seed 3303, 사용자 실행 약 $0.11)**: 편의점 힌트 교체 + 표정 분포 반영 뒤 p071(편의점)·p072(강변 노을)·p073(저녁 식탁) 3장. `ihan-v1-idol/s3303/`, 시트 `sheet-laugh.jpg`.
+- p071: 창가 카운터에서 컵라면 먹다 터진 웃음, 형광등·유리 반사 — 1차의 광고 포즈가 사라지고 자연스러움. 입 가린 손 모양이 약간 어색.
+- p072·p073: 활짝 웃음(이 보임·눈 찡긋) 정상 출력. p072는 입술이 립스틱처럼 붉음 → 문구 "naturally tinted lips"를 "natural lip color"로 교체. p073 전경에 흐린 타인 어깨(허용 범위).
+- 얼굴 일치: 3장 모두 같은 인물로 보임. 나이 19~21.
