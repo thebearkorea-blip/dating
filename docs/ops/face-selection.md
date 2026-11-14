@@ -431,4 +431,10 @@ LoRA v1 + 아이돌 셀카 문구(기본) + 표정 분포, `--force --ids <face=
 
 ## 이솔 얼굴 컷 24장 재생성 (2026-11-14, 참조 편집)
 LoRA 없이 Gateway `bfl/flux-2-pro` 참조 편집(참조 `candidates/isol/N-front.jpg`), `gatewayPrompt` 캔디드·아이돌 문구(기본 candid), `--force --ids <face=true 24행>`. 실패 0, 약 $0.96. 시트 `consistency/candid-test/sheet-isol-face-24.jpg`(6×4), 검수 폴더 `.data/photos/review/isol-face/`. Neon 56행(ihan 32·isol 24).
-메인 소견: 얼굴 일치는 좋으나 **캔디드 문구가 거의 안 먹음** — 참조 편집은 참조(스튜디오 헤드샷)의 화보 질감·진한 메이크업·붉은 입술을 그대로 끌고 옴. 복장 제약 위반 의심 4장(크롭탑·민소매·무대 크롭: 2행1열, 2행6열, 3행1열, 4행4열), 글자 티셔츠 2장(2행6열, 3행5열). 근본 해법은 이한처럼 **이솔 LoRA 학습**(참조 30장 약 $1.2 + 학습 약 $1.3) 뒤 캔디드 문구로 재생성. 그 전까지는 통과 컷만 사용.
+메인 소견: 얼굴 일치는 좋으나 **캔디드 문구가 거의 안 먹음** — 참조 편집은 참조(스튜디오 헤드샷)의 화보 질감·진한 메이크업·붉은 입술을 그대로 끌고 옴. 글자 티셔츠 2장(2행6열, 3행5열). 크롭탑·민소매·무대 크롭은 사용자 결정(2026-11-14)으로 허용. 근본 해법은 이한처럼 **이솔 LoRA 학습**(참조 30장 약 $1.2 + 학습 약 $1.3) 뒤 캔디드 문구로 재생성. 그 전까지는 통과 컷만 사용.
+
+## 이솔 LoRA v1 참조 (2026-11-14)
+명령: `lora-refs.ts --character isol --ref .data/photos/candidates/isol/N-front.jpg --n 30 --model bfl/flux-2-pro --out-suffix v1 --lead "Photo of the same person as the reference, 23-year-old adult Korean woman who looks 21-22, ... plain top that covers shoulders, ..."` (이한 v2 절차와 동일, 호출 30회 실패 0, 약 $1.2). 출력 `.data/photos/lora-refs/isol-v1/01~30.jpg`, 대조 시트 `sheet.jpg`(6x5).
+통과 23: 01 03 04 05 06 07 09 10 11 14 15 16 17 20 21 22 23 25 26 27 28 29 30. 탈락 7: 나이 들어 보임 02 12 18 19 24(5), 서구형·다른 사람 08(1), 표정 일그러짐·인상 다름 13(1). 노출·글자·손 탈락 0(전부 어깨 가린 상의, 헤드숄더).
+lead는 수정 지시 전 "어깨 가림" 문구로 생성했다(얼굴 참조용이라 영향 없음, 재생성 안 함).
+zip: `.data/photos/lora-refs/isol-v1-refs.zip` 23장. 학습: `lora-train --character isol --zip .data/photos/lora-refs/isol-v1-refs.zip` (기본 트리거 "isolx person", steps 1000).
