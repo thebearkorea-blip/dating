@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // PGlite는 번들하지 않고 Node에서 그대로 로드한다.
   serverExternalPackages: ["@electric-sql/pglite", "web-push"],
+  // content/는 process.cwd() 기준으로 서버에서 읽는다. Vercel 함수 번들에 포함시킨다.
+  outputFileTracingIncludes: { "/**": ["./content/**"] },
   // src/engine·policy는 ESM 관례대로 "./x.js"로 import한다. webpack이 .ts로 풀도록 알려 준다.
   webpack: (config) => {
     config.resolve.extensionAlias = { ".js": [".ts", ".tsx", ".js"] };

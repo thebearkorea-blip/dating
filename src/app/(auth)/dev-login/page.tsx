@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { devLogin } from "@/auth/index";
 import { devOnlyEnabled } from "@/dev-only";
 import { AppVoice } from "../../_components/AppVoice";
@@ -11,7 +11,7 @@ async function login(formData: FormData) {
 }
 
 export default function DevLogin() {
-  if (!devOnlyEnabled()) notFound();
+  if (!devOnlyEnabled()) redirect("/sign-in");
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 px-6">
       <AppVoice screen="dev_banner">개발 전용 로그인입니다. 출시 빌드에서는 Clerk로 교체됩니다.</AppVoice>

@@ -43,6 +43,13 @@
       "when": 1794548716884,
       "tag": "0005_beta_events_usage",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794615941427,
+      "tag": "0006_gifted_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,8 @@ export const personal = pgSchema("personal");
 
 export const users = personal.table("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** Clerk 사용자 id. dev-login 사용자는 null. */
+  clerkUserId: text("clerk_user_id").unique(),
   displayName: text("display_name").notNull(),
   city: text("city"),
   tz: text("tz"),

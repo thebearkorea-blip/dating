@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -87,6 +88,11 @@ export default async function Settings() {
         <p>Your data is yours. Deleting conversations keeps your relationship but starts it over.</p>
         <ConfirmDelete action={deleteAllConversations} label="Delete all conversations" confirmLabel="Really delete conversations" />
         <ConfirmDelete action={deleteAccount} label="Delete account" confirmLabel="Really delete account" />
+        <SignOutButton redirectUrl="/">
+          <button type="button" className="btn">
+            Sign out
+          </button>
+        </SignOutButton>
         <p>
           <Link href="/privacy" className="underline">
             Privacy notice
