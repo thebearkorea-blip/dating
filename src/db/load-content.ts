@@ -68,7 +68,7 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
         tags: { situation: p.situation, time_of_day: p.time_of_day, place: p.place, face: p.face },
         audience: p.audience,
         face: p.face,
-        blobUrl: p.blob_url,
+        blobUrl: p.public_url ?? p.blob_url,
       };
       await db
         .insert(media)

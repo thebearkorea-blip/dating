@@ -34,9 +34,12 @@ export function registerPhoto(o: RegisterOpts): RegisterResult {
   if (!existsSync(src)) throw new Error(`파일 없음: ${src}`);
 
   const path = `.data/photos/${o.character}/${o.id}.jpg`;
+  const prevLine = existsSync(manifest) ? readFileSync(manifest, "utf8").split("\n").find((l) => l.trim() && JSON.parse(l).id === o.id) : undefined;
+  const prevPublicUrl: string | undefined = prevLine ? JSON.parse(prevLine).public_url : undefined;
   const row = photoRowSchema.parse({
     id: o.id,
     blob_url: path,
+    ...(prevPublicUrl ? { public_url: prevPublicUrl } : {}),
     situation: plan.situation,
     time_of_day: plan.time_of_day,
     place: plan.place,

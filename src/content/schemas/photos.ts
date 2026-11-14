@@ -5,6 +5,7 @@ export const photoRowSchema = z
   .object({
     id: z.string().min(1),
     blob_url: z.string().min(1),
+    public_url: z.string().url().optional(), // Vercel Blob 공개 URL. 있으면 DB 적재가 blob_url 대신 쓴다
     situation: z.string().min(1),
     time_of_day: z.string().min(1),
     place: z.string().min(1),
