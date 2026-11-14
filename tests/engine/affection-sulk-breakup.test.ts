@@ -195,6 +195,21 @@ describe("이별", () => {
     expect(all.map((m) => m.sender)).toEqual(["user", "char"]);
     expect(all[1]!.at.getTime()).toBeGreaterThanOrEqual(all[0]!.at.getTime() + 1000);
   });
+  it("첫 3개 사용자 메시지의 답장은 0~2분 안에 도착한다", async () => {
+    for (let i = 0; i < 3; i++) {
+      const now = at(i * 60);
+      await send(`hello ${i}`, now);
+      const cs = await chars();
+      expect(cs.at(-1)!.deliverAt.getTime() - now.getTime()).toBeLessThanOrEqual(2 * MIN);
+    }
+  });
+  it("4번째 메시지부터 단계별 지연(stage 1: 5~30분 x 배수)을 적용한다", async () => {
+    for (let i = 0; i < 3; i++) await send(`hello ${i}`, at(i * 60));
+    const now = at(180);
+    await send("hello 3", now);
+    const d = (await chars()).at(-1)!.deliverAt.getTime() - now.getTime();
+    expect(d).toBeGreaterThanOrEqual(5 * MIN);
+  });
   it("부정이면 해제되고 일반 답장으로 이어진다", async () => {
     await send("I cheated on you with someone.", at(0));
     await send("no, I was kidding", at(5));

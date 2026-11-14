@@ -132,9 +132,13 @@ async function logFindings(db: Db, relId: string, messageId: string | null, find
     .values(findings.map((f) => ({ relId, messageId, ruleId: f.rule_id, severity: f.severity, quote: f.quote, reason: f.reason })));
 }
 
-function delayMinutes(a: Activity, seed: string): number {
+/** 관계의 첫 3개 사용자 메시지는 0~2분 안에 답한다(2026-11-14 결정). */
+const FIRST_REPLY_RANGE = { min: 0, max: 2 };
+const FIRST_REPLY_COUNT = 3;
+
+function delayMinutes(a: Activity, seed: string, range = a.replyDelayRange): number {
   const scale = Number(process.env.REPLY_DELAY_SCALE ?? "1");
-  const { min, max } = a.replyDelayRange;
+  const { min, max } = range;
   return (min + (hash32(seed) / 0x100000000) * (max - min)) * (Number.isFinite(scale) ? scale : 1);
 }
 
@@ -229,7 +233,9 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const stage = (await applyUserMessage(db, rel.id, bible, now, !!lastChar?.text.trimEnd().endsWith("?"))).stage;
 
   const activity = await currentActivity(db, stage, now);
-  const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`) * 60000);
+  const [sent] = await db.select({ n: count() }).from(messages).where(and(eq(messages.relId, rel.id), eq(messages.sender, "user")));
+  const range = (sent?.n ?? 0) <= FIRST_REPLY_COUNT ? FIRST_REPLY_RANGE : undefined;
+  const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`, range) * 60000);
 
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
