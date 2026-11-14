@@ -2,7 +2,7 @@
 // content/ → world.* upsert. 멱등(재실행해도 행 수가 늘지 않는다).
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { count } from "drizzle-orm";
+import { and, count, eq, notInArray } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import {
   bibleSchema,
@@ -22,12 +22,13 @@ function jsonl(path: string): unknown[] {
     .map((l) => JSON.parse(l));
 }
 
-export async function loadContent(db: Db, root: string): Promise<{ characters: number; canon: number; media: number }> {
+export async function loadContent(db: Db, root: string): Promise<{ characters: number; canon: number; media: number; perCharacter: Record<string, number> }> {
   // world/group.yaml, world/group-*.yaml(예: group-halftone.yaml)를 모두 읽는다. 캐릭터는 bible.group_id로 짝짓는다.
   const groups = readdirSync(join(root, "world"))
     .filter((f) => /^group(-.+)?\.yaml$/.test(f))
     .map((f) => groupSchema.parse(parseYaml(readFileSync(join(root, "world", f), "utf8"))));
 
+  const perCharacter: Record<string, number> = {};
   const charsDir = join(root, "characters");
   for (const id of readdirSync(charsDir)) {
     const dir = join(charsDir, id);
@@ -56,9 +57,11 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
       .values({ id: bible.id, ...rest })
       .onConflictDoUpdate({ target: characters.id, set: rest });
 
+    const loadedIds: string[] = [];
     for (const raw of jsonl(join(dir, "photos/manifest.jsonl"))) {
       const p = photoRowSchema.parse(raw);
       if (p.used.some((u) => u.where === "rejected")) continue; // 검수에서 탈락한 사진은 적재하지 않는다
+      if (!p.face && p.source === "ai") continue; // 얼굴 없는 AI 일상 컷은 사용 제외(결정 2026-11-14, 실사진·스톡만)
       const mRest = {
         characterId: bible.id,
         kind: "photo",
@@ -71,7 +74,17 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
         .insert(media)
         .values({ id: p.id, ...mRest })
         .onConflictDoUpdate({ target: media.id, set: mRest });
+      loadedIds.push(p.id);
     }
+    // 이번에 적재하지 않은 이 캐릭터의 media 행(탈락·제외된 사진)은 지운다. 다른 캐릭터는 건드리지 않는다.
+    await db
+      .delete(media)
+      .where(
+        loadedIds.length > 0
+          ? and(eq(media.characterId, bible.id), notInArray(media.id, loadedIds))
+          : eq(media.characterId, bible.id),
+      );
+    perCharacter[bible.id] = loadedIds.length;
   }
 
   for (const raw of jsonl(join(root, "world/canon.jsonl"))) {
@@ -85,7 +98,7 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
   const [ch] = await db.select({ n: count() }).from(characters);
   const [cf] = await db.select({ n: count() }).from(canonFacts);
   const [md] = await db.select({ n: count() }).from(media);
-  return { characters: ch?.n ?? 0, canon: cf?.n ?? 0, media: md?.n ?? 0 };
+  return { characters: ch?.n ?? 0, canon: cf?.n ?? 0, media: md?.n ?? 0, perCharacter };
 }
 
 // 직접 실행했을 때만 돈다(import 시에는 실행하지 않음).

@@ -92,7 +92,7 @@ if (import.meta.url === `file://${resolve(process.argv[1] ?? "")}`) {
     const { loadContent } = await import("../db/load-content");
     const { closeDb, getDb } = await import("../db/client");
     const m = await loadContent(getDb(), resolve("content"));
-    console.log(`media 재적재: media ${m.media}행`);
+    console.log(`media 재적재: media ${m.media}행 (${Object.entries(m.perCharacter).map(([k, v]) => `${k} ${v}`).join(", ")})`);
     await closeDb();
   }
 }

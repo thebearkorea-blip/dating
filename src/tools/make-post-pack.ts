@@ -116,6 +116,7 @@ export interface PackOptions {
   character: string;
   outRoot?: string; // 기본 <root>/.data/sns
   dryRun?: boolean;
+  blocked?: Map<string, string>; // 얼굴 없는 AI 컷(사용 제외): photo_id -> situation
 }
 
 export function makePack(row: QueueRow, photos: Map<string, string>, opt: PackOptions): PackResult {
@@ -126,6 +127,8 @@ export function makePack(row: QueueRow, photos: Map<string, string>, opt: PackOp
     const tag = `${row.date}/${row.platform} 슬라이드 ${i + 1}`;
     if (!s.photo_id) return void warnings.push(`${tag}: photo_id 없음 — 건너뜀`);
     const rel = photos.get(s.photo_id);
+    const need = opt.blocked?.get(s.photo_id);
+    if (need !== undefined) return void warnings.push(`${tag}: ⚠ 실사진 필요: ${need}`);
     const src = rel ? resolve(opt.root, rel) : "";
     if (!rel || !existsSync(src)) return void warnings.push(`${tag}: ${s.photo_id} 파일 없음 — 건너뜀`);
     todo.push({ src, overlay: s.text_overlay, id: s.photo_id });
@@ -172,7 +175,10 @@ function main() {
   }
   const root = process.cwd();
   const rows = readJsonl<QueueRow & { _schema?: string }>(join(root, "content/characters", c, "sns/queue.jsonl")).filter((r) => !r._schema && r.date);
-  const photos = new Map(readJsonl<{ id: string; blob_url: string }>(join(root, "content/characters", c, "photos/manifest.jsonl")).map((p) => [p.id, p.blob_url]));
+  const manifest = readJsonl<{ id: string; blob_url: string; situation: string; face: boolean; source?: string }>(join(root, "content/characters", c, "photos/manifest.jsonl"));
+  const isFacelessAi = (p: { face: boolean; source?: string }) => !p.face && (p.source ?? "ai") === "ai"; // 결정 2026-11-14
+  const photos = new Map(manifest.filter((p) => !isFacelessAi(p)).map((p) => [p.id, p.blob_url]));
+  const blocked = new Map(manifest.filter(isFacelessAi).map((p) => [p.id, p.situation]));
   const sel = rows.filter((r) => (values["all-dates"] || r.date === values.date) && (values.platform === "all" || r.platform === values.platform));
   if (sel.length === 0) {
     console.error("해당 조건의 큐 행이 없음");
@@ -180,7 +186,7 @@ function main() {
   }
   const warnings: string[] = [];
   for (const row of sel) {
-    const r = makePack(row, photos, { root, character: c, dryRun: values["dry-run"] });
+    const r = makePack(row, photos, { root, character: c, dryRun: values["dry-run"], blocked });
     warnings.push(...r.warnings);
     console.log(`${values["dry-run"] ? "[dry-run] " : ""}${r.date} ${r.platform}: ${r.slides}장 -> ${r.dir}`);
   }

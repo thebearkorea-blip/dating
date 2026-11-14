@@ -1,6 +1,7 @@
 // W5c 사진 생성: plan.jsonl 행마다 LoRA 추론으로 1장씩 만들고 photos/manifest.jsonl에 행을 더한다.
 // 사용: node --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl [--priority 1] [--model <endpoint>] [--scale 1] [--ids ihan-p001,ihan-p002] [--style candid|editorial (기본 candid, 얼굴 컷 LoRA 경로)] [--dry-run]
-// 얼굴 없는 컷(LoRA 없이): ... --provider gateway --no-lora --force --ids ihan-p027,... [--model bfl/flux-2-pro(기본)]
+// 얼굴 없는 컷(LoRA 없이)은 기본 차단(결정 2026-11-14: 실사진 ingest-photos, 스톡 stock-fetch). 강제: --allow-ai-faceless
+// 얼굴 없는 컷(LoRA 없이): ... --allow-ai-faceless --provider gateway --no-lora --force --ids ihan-p027,... [--model bfl/flux-2-pro(기본)]
 // Gateway 참조 편집(LoRA 없이): ... --character isol --plan <plan> --provider gateway --ref .data/photos/candidates/isol/N-front.jpg --model bfl/flux-2-pro [--limit n]
 // 추론 엔드포인트 기본: blackforestlabs/flux-3/klein/base/text-to-image/lora (학습 트레이너와 같은 FLUX 3 klein base. loras[].path = .data/photos/lora/<id>.json의 lora_url).
 // 이어하기: .data/photos/<id>/<plan id>.jpg가 있고 manifest에 행이 있으면 건너뛴다. 이미지는 .data/photos/<id>/(gitignore).
@@ -71,6 +72,10 @@ async function main() {
   const force = process.argv.includes("--force") || !!customOut;
   const todo = rows.filter((r) => force || !(done.has(r.id) && (existsSync(join(outDir, `${r.id}.jpg`)) || existsSync(join(outDir, `${r.id}.png`)))));
 
+  if (process.argv.includes("--no-lora") && !process.argv.includes("--allow-ai-faceless")) {
+    console.error("얼굴 없는 일상 컷은 AI 생성 안 함(결정 2026-11-14). 실사진은 ingest-photos, 스톡은 stock-fetch. 강제: --allow-ai-faceless");
+    process.exit(1);
+  }
   const prov = arg("provider");
   if (prov === "gateway" && process.argv.includes("--no-lora")) {
     // 얼굴이 안 나오는 컷(face=false): LoRA·트리거·참조 없이 텍스트 -> 이미지

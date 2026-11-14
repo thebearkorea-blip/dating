@@ -178,7 +178,8 @@ describe("photo-pick", () => {
     const rows = await db.select().from(media).where(eq(media.characterId, "ihan"));
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.some((r) => r.id === "ihan-p016")).toBe(false);
-    const qq = { ...q(), situation: "practice-room-mirror" };
+    expect(rows.some((r) => r.id === "ihan-p026")).toBe(false); // face=false·source=ai 행은 적재되지 않는다
+    const qq = { ...q(), situation: "practice-mirror-front" };
     const first = await pickPhoto(db, qq);
     expect(first).not.toBeNull();
     await db.insert(messages).values({ relId, sender: "char", text: "hi", mediaId: first, origin: "proactive" });
