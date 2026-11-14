@@ -12,3 +12,5 @@
 | 2026-11-14 | 77b34c5+cron | — | Neon 0006 + roles.sql | 첫 프리뷰/프로덕션 배포(Hobby, 커스텀 도메인 없음): https://onday-f0divzlj7-easyonechon.vercel.app — Clerk·Neon·AI Gateway(OIDC). 선톡 cron 제외(Hobby) | Next 16 |
 | 2026-11-14 | 46c3cd5 | — | 변경 없음 | F4 복구 재배포(build 스크립트·framework nextjs). Deployment Protection 해제. 프로덕션 별칭 https://onday-blush.vercel.app (`/`·`/sign-in` 200) | Next 16 |
 | 2026-11-14 | 204945b | — | 변경 없음 | u1: 비로그인 리다이렉트 프로덕션 `/sign-in` 분기 (`/chat` → 307 `/sign-in` 확인) | Next 16 |
+| 2026-11-14 | c1fed2e | — | 변경 없음(media 58행 재적재) | 사진 호스팅: Blob 스토어 `onday-photos`(public) + 매니페스트 `public_url` 58장. env 추가: `AI_GATEWAY_API_KEY`(F5), `VAPID_*`, `CRON_SECRET`. 답장 지연 첫 3개 0~2분(u2) | Next 16 |
+| 2026-11-14 | e58f0bf | — | 변경 없음 | F6 완화: LLM text 없는 응답 로그 + max_tokens 재시도. 배포본에서 실답장 1건 확인("네, 아까 삼각김밥 하나 먹었어요…") | Next 16 |
