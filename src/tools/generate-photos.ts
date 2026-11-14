@@ -21,8 +21,11 @@ export const GATEWAY_REF_USD_PER_IMAGE = 0.04; // bfl/flux-2-pro 단가 미공�
 const MIME: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 
 // 이솔 참조 편집 프롬프트(복장 수위: K-팝 음악방송 심의 수준, docs/decisions.md "노출 수위")
-function gatewayPrompt(r: { prompt_hint: string; face: boolean; place: string }): string {
-  return `same person as the reference, same dark hair color and wavy bob, female, 23-year-old adult who looks 21-22, K-pop idol trainee. ${r.prompt_hint}. Setting: ${r.place}. no logos or text. Outfit at K-pop music-show broadcast standard: practice wear, sleeveless or cropped tops allowed; no sexualized composition, no chest or waist close-up.${r.face ? "" : " Keep the face out of frame, as described."}`;
+function gatewayPrompt(r: { prompt_hint: string; face: boolean; place: string; situation?: string }, style: string = "candid"): string {
+  const tail = `Outfit at K-pop music-show broadcast standard: practice wear, sleeveless or cropped tops allowed; no sexualized composition, no chest or waist close-up.${r.face ? "" : " Keep the face out of frame, as described."}`;
+  if (style === "editorial") return `same person as the reference, same dark hair color and wavy bob, female, 23-year-old adult who looks 21-22, K-pop idol trainee. ${r.prompt_hint}. Setting: ${r.place}. no logos or text. ${tail}`;
+  const notSelfie = /selfie/i.test(`${r.prompt_hint} ${r.situation ?? ""}`) ? "" : " The subject is not posing for the camera; mid-action or looking away is fine.";
+  return `A natural candid smartphone photo, shot on iPhone, of the same person as the reference, identical face and hair as the reference, no identity drift, same dark hair color and wavy bob, female, 23-year-old adult who looks 21-22, K-pop idol trainee. ${r.prompt_hint}. Setting: ${r.place}.${notSelfie} Youthful K-pop idol visual, clear smooth glowing skin, soft styled hair, light idol grooming (neat brows, natural lip color, no lipstick look), trendy casual idol fashion covering shoulders and waist, phone-camera soft look. no logos or text. ${tail} Soft natural light, not a studio shot, slightly off-center casual framing, vertical, no heavy retouching.`;
 }
 
 // 얼굴 없는 컷: 다인 컷 단순화(사용자 검수 2026-11-14: 8명 실루엣·회식 컵 개수 오류). LoRA 쪽 HINT_OVERRIDE와 별개.
@@ -76,6 +79,8 @@ async function main() {
     console.error("얼굴 없는 일상 컷은 AI 생성 안 함(결정 2026-11-14). 실사진은 ingest-photos, 스톡은 stock-fetch. 강제: --allow-ai-faceless");
     process.exit(1);
   }
+  const style = arg("style", "candid")!;
+  if (style !== "editorial" && style !== "candid") throw new Error("--style은 editorial|candid");
   const prov = arg("provider");
   if (prov === "gateway" && process.argv.includes("--no-lora")) {
     // 얼굴이 안 나오는 컷(face=false): LoRA·트리거·참조 없이 텍스트 -> 이미지
@@ -126,7 +131,7 @@ async function main() {
     const model2 = arg("model", "bfl/flux-2-pro")!;
     console.log(`${id}: gateway 참조 편집 ${list.length}행, 모델 ${model2}, 예상 비용 $${(list.length * GATEWAY_REF_USD_PER_IMAGE).toFixed(2)} (가정 $${GATEWAY_REF_USD_PER_IMAGE}/장)`);
     if (dry) {
-      for (const r of list.slice(0, 3)) console.log(`[${r.id}] ${gatewayPrompt(r)}`);
+      for (const r of list.slice(0, 3)) console.log(`[${r.id}] ${gatewayPrompt(r, style)}`);
       return;
     }
     const refUrl = `data:${mime};base64,${readFileSync(ref).toString("base64")}`;
@@ -135,13 +140,18 @@ async function main() {
     let failed2 = 0;
     for (const r of list) {
       try {
-        const out = await generateGateway({ prompt: gatewayPrompt(r), aspect: r.aspect ?? "4:5", referenceImages: [refUrl], model: model2 }, true);
+        const out = await generateGateway({ prompt: gatewayPrompt(r, style), aspect: r.aspect ?? "4:5", referenceImages: [refUrl], model: model2 }, true);
         const path = join(outDir, `${r.id}.${out.ext}`);
         writeFileSync(path, out.bytes);
-        if (!done.has(r.id)) {
+        if (!customOut) {
           const row = photoRowSchema.parse({ id: r.id, blob_url: path, situation: r.situation, time_of_day: r.time_of_day, place: r.place, face: r.face, audience: r.audience, used: [] });
-          appendFileSync(manifest, JSON.stringify(row) + "\n");
-          done.add(r.id);
+          if (!done.has(r.id)) {
+            appendFileSync(manifest, JSON.stringify(row) + "\n");
+            done.add(r.id);
+          } else {
+            const lines = readFileSync(manifest, "utf8").split("\n").map((l) => (l && JSON.parse(l).id === r.id ? JSON.stringify(row) : l));
+            writeFileSync(manifest, lines.join("\n"));
+          }
         }
         console.log(`ok ${r.id}`);
       } catch (e) {
@@ -163,8 +173,6 @@ async function main() {
   if (!lora) console.log(`주의: .data/photos/lora/${id}.json 없음(lora-train 먼저). ${dry ? "dry-run이라 계속" : ""}`);
   const trigger: string = lora?.trigger_phrase ?? `${id}x person`;
   const HINT_OVERRIDE: Record<string, string> = { "ihan-p049": "mirror selfie in the practice room, selfie holding phone toward the mirror, only one reflection, gray tee, cool dawn window light, big bright grin", "ihan-p071": "hood down, plain gray sweatshirt; sitting at the window counter of a Korean convenience store late at night, eating cup ramen with chopsticks, looking down at the food or out the window, not posing for the camera; phone propped on the table so the shot is slightly low and tilted; harsh white fluorescent ceiling light with slight green cast, window reflections, only a blurred shelf edge in the background, no readable text, wide open smile mid-bite, slightly embarrassed, hand half covering mouth", "ihan-p048": "sitting on the bench after practice, towel on shoulders, waist-up, relaxed posture, warm light, laughing out loud with teeth showing, eyes crinkled" }; // 수위 완화(2026-11-14)
-  const style = arg("style", "candid");
-  if (style !== "editorial" && style !== "candid") throw new Error("--style은 editorial|candid");
   const seed = arg("seed") !== undefined ? Number(arg("seed")) : undefined;
   const candidPrompt = (r: Plan) => `A natural candid smartphone photo, shot on iPhone, of ${trigger}, a 21-year-old adult Korean man (K-pop trainee), identical face and hair as trained, no identity drift. ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}.${/selfie/i.test(`${HINT_OVERRIDE[r.id] ?? r.prompt_hint} ${r.situation}`) ? "" : " The subject is not posing for the camera; mid-action or looking away is fine."} Youthful K-pop idol visual, youthful fresh face, clear smooth glowing skin, slim V-line face, soft styled hair (curtain bangs or soft fringe) in dark brown/black, light idol grooming (neat brows, natural lip color, no lipstick look), trendy streetwear or oversized casual idol fashion, phone-camera soft look. No logos or text. Soft natural light, no heavy retouching, not a studio shot, slightly off-center casual framing, vertical.`;
   const promptOf = (r: Plan) => style === "candid" && r.face ? candidPrompt(r) : `${trigger}, ${HINT_OVERRIDE[r.id] ?? r.prompt_hint}. Setting: ${r.place}. 21-year-old adult Korean male idol trainee, 21-year-old adult, defined jawline, mature facial structure, university-age man, no school shirt, same dark hair, no logos or text. Photorealistic photograph.`;

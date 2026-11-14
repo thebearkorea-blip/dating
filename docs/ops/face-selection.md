@@ -428,3 +428,7 @@ zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 
 ## 이한 얼굴 컷 42장 전체 재생성 (2026-11-14, 사용자 "ㅇㅇ")
 LoRA v1 + 아이돌 셀카 문구(기본) + 표정 분포, `--force --ids <face=true 42행>`, seed 기본. 실패 0, 약 $1.48. 시트 `.data/photos/consistency/candid-test/sheet-ihan-face-42.jpg`(6×7, plan 순서). 매니페스트 42행 교체(이전 rejected 6행 복구), Neon 재적재 54행(ihan 40·isol 14).
 메인 소견: 42장이 같은 인물로 보이고 나이 인상 19~21. 활짝 웃음·눈웃음·놀람·피곤·눈물 분포가 생겨 단조로움 해소. 확인 필요 2장: 거울 앞 뒷모습+옆모습이 함께 나온 컷(2행 6열), 무대 춤 컷 모션 블러 과함(6행 6열). 사용자 삭제 = 폐기.
+
+## 이솔 얼굴 컷 24장 재생성 (2026-11-14, 참조 편집)
+LoRA 없이 Gateway `bfl/flux-2-pro` 참조 편집(참조 `candidates/isol/N-front.jpg`), `gatewayPrompt` 캔디드·아이돌 문구(기본 candid), `--force --ids <face=true 24행>`. 실패 0, 약 $0.96. 시트 `consistency/candid-test/sheet-isol-face-24.jpg`(6×4), 검수 폴더 `.data/photos/review/isol-face/`. Neon 56행(ihan 32·isol 24).
+메인 소견: 얼굴 일치는 좋으나 **캔디드 문구가 거의 안 먹음** — 참조 편집은 참조(스튜디오 헤드샷)의 화보 질감·진한 메이크업·붉은 입술을 그대로 끌고 옴. 복장 제약 위반 의심 4장(크롭탑·민소매·무대 크롭: 2행1열, 2행6열, 3행1열, 4행4열), 글자 티셔츠 2장(2행6열, 3행5열). 근본 해법은 이한처럼 **이솔 LoRA 학습**(참조 30장 약 $1.2 + 학습 약 $1.3) 뒤 캔디드 문구로 재생성. 그 전까지는 통과 컷만 사용.

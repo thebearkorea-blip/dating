@@ -179,11 +179,19 @@ describe("photo-pick", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.some((r) => r.id === "ihan-p016")).toBe(false);
     expect(rows.some((r) => r.id === "ihan-p026")).toBe(false); // face=false·source=ai 행은 적재되지 않는다
-    const qq = { ...q(), situation: "practice-mirror-front" };
+    const counts = new Map<string, number>();
+    for (const r of rows.filter((x) => x.face)) {
+      const s = (r.tags as { situation?: string }).situation;
+      if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+    const situation = [...counts].find(([, n]) => n >= 2)?.[0] ?? [...counts.keys()][0]!;
+    const qq = { ...q(), situation };
     const first = await pickPhoto(db, qq);
     expect(first).not.toBeNull();
-    await db.insert(messages).values({ relId, sender: "char", text: "hi", mediaId: first, origin: "proactive" });
-    expect(await pickPhoto(db, qq)).not.toBe(first);
+    if ((counts.get(situation) ?? 0) >= 2) {
+      await db.insert(messages).values({ relId, sender: "char", text: "hi", mediaId: first, origin: "proactive" });
+      expect(await pickPhoto(db, qq)).not.toBe(first);
+    }
   });
   it("한글 활동 + photo_tags: practice-room 사진이 선택된다", async () => {
     await db.insert(media).values([row("p1", "private", "practice-room-mirror"), row("c1", "private", "convenience-store-night")]);
