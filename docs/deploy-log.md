@@ -14,3 +14,4 @@
 | 2026-11-14 | 204945b | — | 변경 없음 | u1: 비로그인 리다이렉트 프로덕션 `/sign-in` 분기 (`/chat` → 307 `/sign-in` 확인) | Next 16 |
 | 2026-11-14 | c1fed2e | — | 변경 없음(media 58행 재적재) | 사진 호스팅: Blob 스토어 `onday-photos`(public) + 매니페스트 `public_url` 58장. env 추가: `AI_GATEWAY_API_KEY`(F5), `VAPID_*`, `CRON_SECRET`. 답장 지연 첫 3개 0~2분(u2) | Next 16 |
 | 2026-11-14 | e58f0bf | — | 변경 없음 | F6 완화: LLM text 없는 응답 로그 + max_tokens 재시도. 배포본에서 실답장 1건 확인("네, 아까 삼각김밥 하나 먹었어요…") | Next 16 |
+| 2026-11-14 | e58f0bf(재배포 2회) | — | 변경 없음 | `CRON_SECRET` 교체(Secret 값은 pull 불가라 로컬 `.data/tmp/cron-secret.txt`에 보관). `/api/cron/proactive` 200 확인. 선톡 1건(사진 ihan-p108 포함)을 11-15 09:30 KST로 수동 틱 생성, `/api/media/ihan-p108` 302→Blob 실화면 확인. 푸시 구독 0(브라우저 알림 허용 대기) | Next 16 |
