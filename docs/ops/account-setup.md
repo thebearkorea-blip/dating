@@ -24,7 +24,7 @@
 ## 4. 서비스 계정·키 (앱·제작용)
 | 서비스 | 용도 | 상태 | 할 일 |
 |---|---|---|---|
-| fal.ai | (예비) LoRA 학습만 | 키 있음, 잔액 0 | **충전 불필요** — 이미지는 Vercel AI Gateway로. 참조 편집 일관성이 8/10 미만일 때만 충전 |
+| fal.ai | LoRA 학습·LoRA 추론(얼굴 컷) | 키 있음, 충전됨(2026-11-14) | 이한 v1·v2, 은찬 LoRA 학습 완료(`.data/photos/lora/`). 얼굴 없는 컷·참조 편집은 Gateway. 잔액은 fal 대시보드에서 확인 |
 | Vercel 팀 `easyonechon` | 앱 배포·**AI Gateway(Claude + 이미지 생성)**·Neon·Clerk | 로그인됨, 프로젝트 `onday` | **1순위: 카드 등록**(Settings → Billing; AI Gateway 403 해제, 무료 크레딧 개방) · Neon·Clerk 약관 승인(링크는 STATUS) |
 | Stripe | 결제(M3) | 미신청 | 등록 명칭 "AI 컴패니언·인터랙티브 엔터테인먼트 구독", 데이팅 아님 — `legal-checklist.md` 12 |
 | AWS | 유사도 검사(Rekognition) | 미생성 | W5d 전 IAM 키 1개(권한 Rekognition만) |

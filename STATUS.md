@@ -1,17 +1,17 @@
 # STATUS — 지금 어디까지 했나 (빈 줄 제외 15줄, 항목당 한 줄. 배포 이력은 `docs/deploy-log.md`)
 
 ## 진행 중 (상태: 설계·구현·배포·확인대기 — 3줄이면 새 작업은 백로그 기록만)
-- 앱 ④⑤ 확인대기 `docs/work-plans/2026-11-13-앱④-선톡-사진-푸시.md`·`앱⑤-애정도-토라짐-이별.md` — 로컬 M1 앱 범위 ①~⑦ 구현 완료(①②③⑥⑦ 실화면 완료). 남은 것: 선톡 말풍선·푸시 수신 실시간 1회, 토라짐·재회 30일·보상(시각 조작) 실화면
-- W5 사진 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 구현. 기준 얼굴 이한 N·이솔 N 확정, 이한 LoRA 학습 완료, 사진 이한 42·이솔 42장 확정(폐기 이한 1·이솔 8, 보류 11). 남은 것: 검수자 전수 확인(이한 얼굴이 참조보다 어려 보임), priority 2·3 57장, W5d 유사도 검사(AWS 키 또는 수동 Lens)
-- 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 확인대기. 남은 것: 검수자 선별 W1c, 계정 개설(`docs/ops/account-setup.md`)
+- 앱 ④⑤ 확인대기 `docs/work-plans/2026-11-13-앱④-선톡-사진-푸시.md`·`앱⑤-애정도-토라짐-이별.md` — 로컬 ①~⑦ 구현 완료, Neon·Clerk 연결, 첫 배포됨(`deploy-log.md`). 남은 것: Deployment Protection 해제 뒤 Clerk 로그인·푸시 실검증, 선톡 외부 스케줄러, 사진 호스팅(Blob)
+- W5 사진 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 확인대기. LoRA 이한 v1·v2·은찬 학습 완료, 얼굴 없는 컷 84장 flux-2-pro 재생성(83 통과), 실사진·스톡 도구(`ingest-photos`·`stock-fetch`) 완료. 남은 것: 사용자 육안 확인(아래 1), 캔디드 문구·LoRA 버전 결정
+- 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 확인대기. 남은 것: 검수자 선별 W1c, SNS 계정 개설(`docs/ops/account-setup.md`), 고정 코너 2개를 큐 `series` 필드로 반영
 
 ## 막힌 것 / 사람 확인 필요
-- **사용자**: ① Vercel 팀 카드 등록(Claude + 이미지 생성 모두 여기서) ② Neon·Clerk 약관 승인 ③ 틱톡·인스타 계정 4개 — 순서는 `docs/ops/account-setup.md`. fal 충전은 불필요(예비)
-- 로컬 실행: `REPLY_DELAY_SCALE=0.01 NODE_USE_ENV_PROXY=1 npx next dev --webpack -p 3100`(실모델; mock은 `LLM_PROVIDER=mock`) → `/dev-login`. **dev 서버가 떠 있는 동안 DB 스크립트(틱·load-content) 실행 금지(PGlite 오염 F1)**. 테스트 169건
-- 기본값 확인: 이솔 23세·HALFTONE / 은찬 탈락 D-90 / D1 = 2026-11-17 / 핸들 가칭 2개 / **LoRA 얼굴 컷이 참조보다 어려 보임(25% 폐기)** — 공개 전 사람 확인
-- 로컬 Gateway 인증이 OIDC 토큰(약 12시간 만료)이라 `vercel env pull`로 갱신 중 — 장기적으로 `vercel ai-gateway api-keys create`(프로젝트 예산 포함)로 바꿀지 사용자 결정
+- **사용자**: ① Vercel 프로젝트 `onday` Settings → Deployment Protection → Vercel Authentication **Disabled**(안 끄면 모든 경로가 vercel.com 로그인으로 302) ② `PEXELS_API_KEY` 무료 발급 → `.env.local` ③ 틱톡·인스타 계정 4개 ④ 실사진은 `.data/photos/own/<ihan|isol>/`에 넣기(`sns-rules.md` §8)
+- 레퍼런스 조사는 **"레퍼런스" 세션**이 담당(영상 모션 전이·조코딩 댓글 → `docs/research/2026-11-14-영상-모션전이-조사.md`). 이 세션은 결과를 결정·규칙에 반영만
+- 로컬 실행: `REPLY_DELAY_SCALE=0.01 NODE_USE_ENV_PROXY=1 npx next dev --webpack -p 3100` → `/dev-login`. DB 스크립트는 dev 서버 끄고(Neon은 샌드박스 밖에서만 WebSocket 연결됨). 테스트 통과
+- 로컬 Gateway 인증 OIDC(12시간 만료) `vercel env pull`로 갱신 — API 키 전환 여부 사용자 결정. 푸시 대기: 로컬 main이 origin/main보다 앞섬(사용자 OK 시 `git branch -f main HEAD && git push origin main`)
 
 ## 다음 할 일
-1. 사용자·검수자: 사진 84장 전수 확인(`.data/photos/{ihan,isol}`, 이한 얼굴이 참조보다 어림), 말투 예문 선별(W1c), 틱톡·인스타 계정 개설(`docs/ops/account-setup.md`) → 첫 게시(큐 7일분 준비됨)
-2. Neon·Clerk 약관 승인 → 연결 → Vercel 프리뷰 배포(`deploy-log.md`) → 지역 차단·푸시 실검증
-3. W5 priority 2·3 사진 57장(이한 LoRA) · W5d 유사도 검사(AWS 키 또는 수동) · 선톡 실시간 1회 확인
+1. 사용자: `.data/photos/{ihan,isol}` 재생성분 육안 확인(삭제 = 폐기) · `consistency/candid-test/sheet.jpg`로 캔디드 채택 여부 · `consistency/lora-compare/`로 이한 v1/v2 선택 · Deployment Protection 해제 · Pexels 키
+2. 메인: Deployment Protection 해제 뒤 Clerk·푸시 실검증 → Vercel env(`VAPID_*`·`CRON_SECRET`) → 선톡 스케줄러 → 사진 Blob 호스팅
+3. 메인: 레퍼런스 세션 결과(영상 파이프라인) 반영 → 쇼츠 1차 실험 설계 · 큐 `series` 필드 · 실사진·스톡 1차 수집(키 받은 뒤)

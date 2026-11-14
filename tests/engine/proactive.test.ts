@@ -177,7 +177,7 @@ describe("photo-pick", () => {
     await loadContent(db, "content");
     const rows = await db.select().from(media).where(eq(media.characterId, "ihan"));
     expect(rows.length).toBeGreaterThan(0);
-    expect(rows.some((r) => r.id === "ihan-p060")).toBe(false);
+    expect(rows.some((r) => r.id === "ihan-p016")).toBe(false);
     const qq = { ...q(), situation: "practice-room-mirror" };
     const first = await pickPhoto(db, qq);
     expect(first).not.toBeNull();

@@ -340,3 +340,70 @@ zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 
 | | 12, 14, 21 | 머리 길이·톤 이탈 또는 표정 과장·얼굴 변형 |
 
 산출: `.data/photos/lora-refs/eunchan-refs.zip`(21장, 5.5MB). 비용: 30호출 x $0.04 가정 = $1.20(도구 추정, 실단가 Gateway 로그 확인 필요). 학습은 미실행.
+
+## 얼굴 없는 컷 재생성 (flux-2-pro, 2026-11-14)
+
+사용자 검수: klein으로 만든 face=false 컷이 사물 개수·크기 오류로 조잡함(바지 하나에 신발 3개, 쇼핑봉투 야채 크기, 회식 콜라잔 2개). `--no-lora` 경로 기본 모델을 `bfl/flux-2-pro`로 바꾸고 프롬프트에 사물 정합성 지시(개수·상대 크기·원근·중복 금지)를 넣었다. 단체·다인 컷(ihan-p034·p082, isol-p040)은 2~3명으로, 테이블 컷(ihan-p061, isol-p032)은 컵·소스 개수를 줄이는 힌트 덮어쓰기(`NOFACE_HINT_OVERRIDE`)로 단순화. 매니페스트 행은 `source:"ai"`·`model` 기록, 재생성 행의 이전 rejected 표시는 지움.
+
+- 대상: ihan 58행 + isol 26행 = 84행(`--force`, 이전 rejected 5행 포함). 1차 84장 전수 확인(4장씩 묶음 시트).
+- 1차 결과: 통과 77, 오류 7(재생성). 재생성 7장 중 6장 통과, 1장 폐기. **최종 통과 83, 폐기 1**(isol-p043 `rejected`, reason `artifact`).
+- 대표 오류 유형: ① 양말 "짝" 요청인데 한 짝씩 3개만 나옴(isol-p043, 재생성도 동일 -> 폐기) ② 성별 불일치 몸(ihan-p041 여성 상체) ③ 휴대폰 화면의 판독 가능한 채팅 글자(ihan-p069) ④ 눈에 띄는 로고(isol-p044 후디, ihan-p094 바지·ihan-p033 신발 스우시) ⑤ 장터 가격표 글자(isol-p033, 숫자·한자 수준이라 통과).
+- 통과 경계(허용): ihan-p034 거울 속 멀리 흐릿한 사람 1명, p060·isol-p032 하단에 얼굴 없는 사람 몸 일부, p082·isol-p040 실루엣이 남성 밴드처럼 보임(얼굴 식별 불가), 작은 로고(ihan-p090 가방, p094 신발, isol-p047 모자).
+- 사물 개수 오류(신발 한 켤레 초과, 컵 수 불일치)는 1차 84장에서 재현되지 않음. 문제가 컸던 klein 대비 개선 확인.
+- 비용: 84장 $3.36 + 재생성 7장 $0.28 = $3.64 (flux-2-pro $0.04/장 가정, 예산 $4 이내).
+
+
+## LoRA v1/v2 비교·은찬 검증 (2026-11-14)
+
+설정: 추론 `blackforestlabs/flux-3/klein/base/text-to-image/lora`, scale 1, 1024x1280, 상황 5종(mirror 연습실 거울 셀카·conv 편의점 야식·bed 숙소 침대·hall 회사 복도·walk 밤 산책) x seed 1101·2202 = 그룹당 10장. 이한 v1/v2는 프롬프트·seed 동일(트리거 "ihanx person" + 상황 + generate-photos와 같은 성인 단서 "21-year-old adult ... defined jawline, mature facial structure, university-age man"). 은찬은 트리거 "eunchanx person" + group.yaml look(thin pale build, long soft bangs, gentle tired eyes, oversized plain knit sweater). 일회성 스크립트로 실행(저장소 도구 수정 없음). 이미지 `.data/photos/consistency/lora-compare/{ihan-v1,ihan-v2,eunchan}/<상황>-<seed>.jpg`, 점수 `lora-compare/scores.json`.
+채점: Gateway `anthropic/claude-haiku-5.5` 비전(참조: ihan `candidates/ihan/N-front.jpg`, eunchan `candidates/eunchan/B-front.jpg`). 모델 추정이라 사람 검수 대체 불가. "닮음 -"는 모델이 판정 거부/불가(null).
+
+| 그룹 | 평균 나이 | 최소~최대 | 평균 닮음(유효 n) |
+|---|---|---|---|
+| ihan-v1 | 20.1 | 19~21 | 3.00 (10) |
+| ihan-v2 | 20.2 | 19~21 | 2.75 (8) |
+| eunchan | 20.4 | 19~22 | 3.50 (8) |
+
+| 그룹 | 파일 | seed | 추정 나이 | 닮음(1~5) |
+|---|---|---|---|---|
+| ihan-v1 | `ihan-v1/bed-1101.jpg` | 1101 | 19 | 3 |
+| ihan-v1 | `ihan-v1/bed-2202.jpg` | 2202 | 20 | 3 |
+| ihan-v1 | `ihan-v1/conv-1101.jpg` | 1101 | 20 | 3 |
+| ihan-v1 | `ihan-v1/conv-2202.jpg` | 2202 | 21 | 4 |
+| ihan-v1 | `ihan-v1/hall-1101.jpg` | 1101 | 19 | 3 |
+| ihan-v1 | `ihan-v1/hall-2202.jpg` | 2202 | 20 | 3 |
+| ihan-v1 | `ihan-v1/mirror-1101.jpg` | 1101 | 20 | 3 |
+| ihan-v1 | `ihan-v1/mirror-2202.jpg` | 2202 | 21 | 2 |
+| ihan-v1 | `ihan-v1/walk-1101.jpg` | 1101 | 21 | 3 |
+| ihan-v1 | `ihan-v1/walk-2202.jpg` | 2202 | 20 | 3 |
+| ihan-v2 | `ihan-v2/bed-1101.jpg` | 1101 | 20 | 3 |
+| ihan-v2 | `ihan-v2/bed-2202.jpg` | 2202 | 19 | 2 |
+| ihan-v2 | `ihan-v2/conv-1101.jpg` | 1101 | 20 | 3 |
+| ihan-v2 | `ihan-v2/conv-2202.jpg` | 2202 | 19 | - |
+| ihan-v2 | `ihan-v2/hall-1101.jpg` | 1101 | 20 | 3 |
+| ihan-v2 | `ihan-v2/hall-2202.jpg` | 2202 | 20 | 2 |
+| ihan-v2 | `ihan-v2/mirror-1101.jpg` | 1101 | 21 | - |
+| ihan-v2 | `ihan-v2/mirror-2202.jpg` | 2202 | 21 | 3 |
+| ihan-v2 | `ihan-v2/walk-1101.jpg` | 1101 | 21 | 3 |
+| ihan-v2 | `ihan-v2/walk-2202.jpg` | 2202 | 21 | 3 |
+| eunchan | `eunchan/bed-1101.jpg` | 1101 | 20 | 3 |
+| eunchan | `eunchan/bed-2202.jpg` | 2202 | 20 | 4 |
+| eunchan | `eunchan/conv-1101.jpg` | 1101 | 20 | 3 |
+| eunchan | `eunchan/conv-2202.jpg` | 2202 | 20 | 4 |
+| eunchan | `eunchan/hall-1101.jpg` | 1101 | 21 | - |
+| eunchan | `eunchan/hall-2202.jpg` | 2202 | 19 | 3 |
+| eunchan | `eunchan/mirror-1101.jpg` | 1101 | 22 | - |
+| eunchan | `eunchan/mirror-2202.jpg` | 2202 | 20 | 4 |
+| eunchan | `eunchan/walk-1101.jpg` | 1101 | 21 | 4 |
+| eunchan | `eunchan/walk-2202.jpg` | 2202 | 21 | 3 |
+
+비용(fal, 1.31MP x $0.035 = $0.0459/장 x 30장): **$1.38**(Gateway haiku 채점 별도, 소액·미집계). 일시 fetch 실패 4건은 재호출로 채움(실패분 과금 여부 미확인).
+판독: 이한 v1 vs v2 평균 추정 나이 차이는 모델 오차 안(0.1세)이라 모델 기준으로는 드리프트 개선이 확인되지 않는다. 사람 눈 검수 필요(저연령 컷 여부). 은찬은 닮음이 상대적으로 높고 나이 19~22로 성인 범위.
+
+## 캔디드 스마트폰 문구 A/B(2026-11-14)
+- 명령: `NODE_USE_ENV_PROXY=1 node --env-file=.env.local --import tsx src/tools/generate-photos.ts --character ihan --plan content/characters/ihan/photos/plan.jsonl --ids ihan-p049,ihan-p071,ihan-p020,ihan-p017 --style candid --out-dir .data/photos/consistency/candid-test/ihan-v2-candid --seed 1101` (ihan-v2 LoRA, 4장). 옵션 `--style candid|editorial`(기본 editorial), `--out-dir`(매니페스트 기록 생략), `--seed` 추가.
+- 상황은 plan face=true 행에 mirror selfie·bed가 없어 근접 행으로 대체(p049 거울 앞, p071 편의점, p020 침대 방, p017 복도). 비교군 lora-compare/ihan-v2 *-1101은 임시 프롬프트라 상황·의상이 다름(엄밀한 동일 조건 비교 아님).
+- 대조 시트: `.data/photos/consistency/candid-test/sheet.jpg` (위 candid, 아래 editorial 비교군). 비용 약 $0.28(첫 실행에 trigger 중복 "person person"이 있어 4장 재생성, 최종 문구는 수정본).
+- 소견 ① 셀카 느낌: candid는 조명·배경이 평범해 일상 스냅에 가깝고(편의점·침대·복도) 화보 느낌이 줄었으나, p049는 거울 속 뒷모습/정면이 함께 나와 어색함. 비교군은 선명·연출감이 강함.
+- 소견 ② 얼굴 일치: candid 4장은 서로 같은 인물로 보이나 비교군보다 얼굴이 더 둥글고 순한 인상. 판단 보류, 추가 seed 필요.
+- 소견 ③ 나이 인상: candid는 십대 후반~20대 초로 약간 어려 보임(p071, p017). 비교군은 20대 초중반. 성인 단서는 유지했으나 어린 쪽 리스크 있음.

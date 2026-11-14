@@ -9,6 +9,10 @@ export const photoRowSchema = z
     time_of_day: z.string().min(1),
     place: z.string().min(1),
     face: z.boolean(),
+    source: z.enum(["ai", "own", "stock"]).default("ai"),
+    license: z.string().optional(),
+    credit: z.string().optional(),
+    model: z.string().optional(),
     audience: z.enum(["public", "private"]),
     used: z.array(z.object({ where: z.string().min(1), at: z.string().min(1), reason: z.string().optional() }).strict()),
   })
