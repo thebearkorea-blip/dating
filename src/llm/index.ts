@@ -128,27 +128,49 @@ export const anthropicProvider: LlmProvider = {
       .map((m) => m.content)
       .join("\n\n");
     const messages = req.messages.filter((m) => m.role !== "system");
-    const res = await fetch(ENDPOINT[kind], {
-      method: "POST",
-      headers,
-      signal: AbortSignal.timeout(30_000),
-      body: JSON.stringify({
-        model,
-        max_tokens: req.maxTokens ?? 1024,
-        temperature: req.temperature ?? 0,
-        // 기본값이 thinking이라 max_tokens를 사고에 다 쓰고 text 없이 끝나는 일이 있었다(빈 말풍선).
-        thinking: { type: "disabled" },
-        ...(system ? { system } : {}),
-        messages,
-      }),
-    });
-    if (!res.ok) throw new Error(`${kind} ${res.status}: ${await res.text()}`);
-    const data = (await res.json()) as {
+    type AnthropicData = {
       content: { type: string; text?: string }[];
+      stop_reason?: string;
       usage?: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number };
     };
+    let maxTokens = req.maxTokens ?? 1024;
+    let data!: AnthropicData;
+    let text = "";
+    // thinking이 무시되어 max_tokens를 다 쓰고 text가 없으면 한도를 올려 1회만 재시도한다.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(ENDPOINT[kind], {
+        method: "POST",
+        headers,
+        signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({
+          model,
+          max_tokens: maxTokens,
+          temperature: req.temperature ?? 0,
+          // 기본값이 thinking이라 max_tokens를 사고에 다 쓰고 text 없이 끝나는 일이 있었다(빈 말풍선).
+          thinking: { type: "disabled" },
+          ...(system ? { system } : {}),
+          messages,
+        }),
+      });
+      if (!res.ok) throw new Error(`${kind} ${res.status}: ${await res.text()}`);
+      data = (await res.json()) as AnthropicData;
+      text = data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join("");
+      if (text) break;
+      console.error(
+        "[llm] no-text response",
+        JSON.stringify({
+          kind,
+          model,
+          stop_reason: data.stop_reason,
+          types: data.content?.map((c) => c.type),
+          usage: data.usage,
+        }),
+      );
+      if (attempt === 1 || data.stop_reason !== "max_tokens") break;
+      maxTokens = Math.max(1024, 4 * (req.maxTokens ?? 1024));
+    }
     return {
-      text: data.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join(""),
+      text,
       model: req.model,
       usage: data.usage
         ? {
