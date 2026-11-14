@@ -374,3 +374,12 @@ node --import tsx src/tools/stock-fetch.ts --character ihan --query "convenience
 | `umbrella` | umbrella rainy street evening seoul | | `sneakers-flatlay` | white sneakers entrance floor flat lay |
 
 (표의 왼쪽 열은 이한, 오른쪽 열은 이솔. 각 10개, 우선순위 순. 연습실·무대 안쪽 컷, 손·거울·땀수건 등 인물 접촉 컷은 스톡으로 대체하지 않고 실사진 또는 AI로 둔다.)
+
+### 8-4. 합성 등록(`register-photo`)
+
+```
+node --import tsx src/tools/register-photo.ts --character ihan --id ihan-p106 --file <합성.jpg> --source stock --credit "<user> / Pixabay" --license "Pixabay Content License" --source-url <pageURL> --model bfl/flux-2-pro [--dry-run]
+```
+
+- 실사진·스톡에 이한을 합성한 결과를 plan 행(id)에 붙인다. situation/time_of_day/place/face/audience는 plan 값, 파일은 EXIF 제거·긴 변 1600px로 `.data/photos/<c>/<id>.jpg`에 저장한다.
+- 같은 id 행이 manifest에 있으면 교체, 없으면 추가(`used: []`). 원본 스톡의 credit·license·source_url을 그대로 남긴다.
