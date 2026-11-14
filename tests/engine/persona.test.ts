@@ -52,4 +52,12 @@ describe("buildPersona", () => {
     const sulky = buildPersona({ bible, voiceMd, canon, activity: act(1), stage: 1, sulk: "a bit hurt" });
     expect(sulky.dynamic_suffix).toContain("one short sentence");
   });
+
+  it("adds the 24h schedule section only when upcoming is given", () => {
+    const upcoming = [{ startKst: "09:00", dayLabel: "내일", activity: "보호소 산책(콩)" }];
+    const p = buildPersona({ bible, voiceMd, canon, activity: act(2), stage: 2, upcoming });
+    expect(p.dynamic_suffix).toContain("# 앞으로 24시간 일정");
+    expect(p.dynamic_suffix).toContain("- 내일 09:00 보호소 산책(콩)");
+    expect(build(2).dynamic_suffix).not.toContain("앞으로 24시간");
+  });
 });

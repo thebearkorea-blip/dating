@@ -23,7 +23,7 @@ import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
-import { activityAt, hash32, type Activity, type EngineCharacter } from "./schedule.js";
+import { activityAt, hash32, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
 import { peekSecret, recordDisclosure } from "./secrets.js";
 import { onUserMessageSulk, sulkDirective } from "./sulk.js";
 
@@ -216,7 +216,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   await logFindings(db, rel.id, userMsg.id, detectBreakers(text));
 
   // 애정(숨김)·토라짐 반영. 그의 직전 말이 질문이었으면 "답함".
-  const { bible, voiceMd, group } = await loadCharacter(db);
+  const { bible, voiceMd, group, engine } = await loadCharacter(db);
   const [lastChar] = await db
     .select({ text: messages.text })
     .from(messages)
@@ -261,6 +261,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       voiceMd,
       canon,
       activity,
+      upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage }),
       stage,
       memories: await selectMemories(db, rel.id, text),
       profile: profileText(rel.profile),

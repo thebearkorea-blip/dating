@@ -23,6 +23,8 @@ export interface PersonaInput {
   canonLimit?: number;
   /** 그룹 세계관(선택). 있으면 멤버 줄에 archetype·vibe를 붙인다 */
   group?: Group;
+  /** 앞으로 24시간 일정(선택). 내일 계획을 말할 때 어긋나지 않게 하는 참고용 */
+  upcoming?: { startKst: string; dayLabel: string; activity: string }[];
 }
 
 export interface PersonaPrompt {
@@ -111,6 +113,12 @@ function suffix(i: PersonaInput): string {
     lines.push(
       "# 이번에 한 번만 털어놓기",
       `Somewhere natural in this reply, quietly open up about this (once, in your own words, no announcement): ${i.secretNow.text}`,
+    );
+  }
+  if (i.upcoming?.length) {
+    lines.push(
+      "# 앞으로 24시간 일정(참고 — 내일 계획을 말할 때 이와 어긋나지 않게, 먼저 늘어놓지는 말 것)",
+      ...i.upcoming.map((u) => `- ${u.dayLabel} ${u.startKst} ${u.activity}`),
     );
   }
   if (i.sulk) lines.push("# 지금의 서운함", i.sulk);

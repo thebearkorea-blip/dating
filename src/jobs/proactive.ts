@@ -13,7 +13,7 @@ import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
 import { scenesByTrigger } from "../engine/scenes.js";
 import { isSulking } from "../engine/sulk.js";
-import { activityAt, hash32, kstParts, type Activity } from "../engine/schedule.js";
+import { activityAt, hash32, kstParts, upcomingBlocks, type Activity } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { trackedLlm } from "../llm/tracked.js";
 import { guardOutput } from "../policy/output-guard.js";
@@ -204,7 +204,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   const { db } = deps;
   const llm = trackedLlm(db, "proactive", { relId: rel.id, userId: rel.userId, now }, deps.llm ?? complete);
   const rules = deps.rules ?? (guardsCache ??= loadGuards(join(CONTENT_ROOT, "policy/guards.yaml")));
-  const { bible, voiceMd, group } = await loadCharacter(db);
+  const { bible, voiceMd, group, engine } = await loadCharacter(db);
   const canon = (await db.select().from(canonFacts).orderBy(asc(canonFacts.at))).map(
     (r): CanonRow => ({ at: r.at, character: r.character, fact: r.fact, source: r.source as CanonRow["source"], ...(r.eventId ? { event_id: r.eventId } : {}) }),
   );
@@ -217,7 +217,16 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   const memory = mems.length ? (mems[hash32(`${rel.id}:${today}:mem`) % mems.length] as { fact: string }).fact : null;
   const diary = recentDiary(now);
 
-  const persona = buildPersona({ bible, group, voiceMd, canon, activity, stage: rel.stage, memories: memory ? [memory] : [] });
+  const persona = buildPersona({
+    bible,
+    group,
+    voiceMd,
+    canon,
+    activity,
+    upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage: rel.stage }),
+    stage: rel.stage,
+    memories: memory ? [memory] : [],
+  });
   const material = [
     `- What you are doing today: ${activity.activity}`,
     diary ? `- A line from your recent diary: ${diary}` : null,

@@ -189,3 +189,34 @@ export function activityAt(
     tags,
   };
 }
+
+export interface UpcomingBlock {
+  /** 시작 시각 "HH:MM" (KST) */
+  startKst: string;
+  dayLabel: "오늘" | "내일";
+  activity: string;
+  busy: number;
+}
+
+/** from 이후 hours시간 동안 활동이 바뀌는 지점. 1시간 간격 샘플링, 연속 동일 활동은 합친다. relDay는 KST 날짜가 넘어가면 하루씩 더한다. */
+export function upcomingBlocks(
+  character: EngineCharacter,
+  from: Date,
+  growth: GrowthState,
+  hours = 24,
+  seed?: string,
+): UpcomingBlock[] {
+  const day0 = kstParts(from).dayIndex;
+  let prev = activityAt(character, from, growth, seed).activity;
+  const out: UpcomingBlock[] = [];
+  for (let h = 1; h <= hours; h++) {
+    const t = new Date(from.getTime() + h * 3600000);
+    const k = kstParts(t);
+    const a = activityAt(character, t, { ...growth, relDay: growth.relDay + (k.dayIndex - day0) }, seed);
+    if (a.activity === prev) continue;
+    prev = a.activity;
+    const hh = String(Math.floor(k.minutes / 60)).padStart(2, "0");
+    out.push({ startKst: `${hh}:00`, dayLabel: k.dayIndex === day0 ? "오늘" : "내일", activity: a.activity, busy: a.busy });
+  }
+  return out;
+}

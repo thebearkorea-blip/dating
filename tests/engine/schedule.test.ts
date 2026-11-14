@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activityAt, dailySeed, kstParts } from "../../src/engine/schedule.js";
+import { activityAt, dailySeed, kstParts, upcomingBlocks } from "../../src/engine/schedule.js";
 import { character, timeline } from "./helpers.js";
 
 const g = { relDay: -150, stage: 2 };
@@ -70,5 +70,20 @@ describe("activityAt", () => {
       // 1일짜리 이벤트는 연속 날에 나타날 수 없다(지속 1일 + 쿨다운 3일)
       if (id !== "cold") for (let i = 1; i < idx.length; i++) expect(idx[i]! - idx[i - 1]!).toBeGreaterThanOrEqual(4);
     }
+  });
+});
+
+describe("upcomingBlocks", () => {
+  it("returns only activity change points within 24h, merged, with day labels", () => {
+    const from = new Date("2026-12-05T13:00:00Z"); // 토 22:00 KST
+    const blocks = upcomingBlocks(character, from, g);
+    expect(blocks.length).toBeGreaterThan(0);
+    let prev = activityAt(character, from, g).activity;
+    for (const b of blocks) {
+      expect(b.activity).not.toBe(prev);
+      prev = b.activity;
+      expect(b.startKst).toMatch(/^\d{2}:00$/);
+    }
+    expect(blocks.some((b) => b.dayLabel === "내일")).toBe(true);
   });
 });

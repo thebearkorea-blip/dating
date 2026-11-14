@@ -10,7 +10,7 @@ import {
   timelineSchema,
   type CanonRow,
 } from "../content/schemas/index.js";
-import { activityAt } from "../engine/schedule.js";
+import { activityAt, upcomingBlocks } from "../engine/schedule.js";
 import { buildPersona } from "../engine/persona.js";
 
 const [date, hm = "12:00", rel = "-150", st = "2"] = process.argv.slice(2);
@@ -37,16 +37,15 @@ const canon: CanonRow[] = existsSync(canonPath)
 // KST → UTC
 const worldTime = new Date(`${date}T${hm}:00+09:00`);
 const stage = Number(st);
-const activity = activityAt(
-  { id: bible.id, schedule, timeline, affectionStages: bible.affection_stages },
-  worldTime,
-  { relDay: Number(rel), stage },
-);
-const persona = buildPersona({ bible, voiceMd, canon, activity, stage, group });
+const engine = { id: bible.id, schedule, timeline, affectionStages: bible.affection_stages };
+const activity = activityAt(engine, worldTime, { relDay: Number(rel), stage });
+const upcoming = upcomingBlocks(engine, worldTime, { relDay: Number(rel), stage });
+const persona = buildPersona({ bible, voiceMd, canon, activity, stage, group, upcoming });
 
 console.log(`시각(KST): ${date} ${hm} / 애정 단계 ${stage} / relDay ${rel}`);
 console.log(`활동: ${activity.activity} (${activity.kind}${activity.tags.length ? `: ${activity.tags.join(",")}` : ""})`);
 console.log(`busy: ${activity.busy} / 기분: ${activity.mood} / 선톡 가능: ${activity.canInitiate}`);
+console.log(`앞으로 24시간: ${upcoming.map((u) => `${u.dayLabel} ${u.startKst} ${u.activity}`).join(" | ")}`);
 console.log(`답장 지연(분): ${activity.replyDelayRange.min}~${activity.replyDelayRange.max}`);
 console.log(
   `토큰 추정: 전체 ${persona.tokens_estimate} (prefix ${Math.ceil(persona.cacheable_prefix.length / 4)}, suffix ${Math.ceil(persona.dynamic_suffix.length / 4)})`,
