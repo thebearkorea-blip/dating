@@ -33,13 +33,13 @@ week_template:
     - {time: "06:00-07:00", activity: 늦은 새벽 연습(주말은 짧게)           , photo_tags: [practice-room, practice-mirror, practice-water, practice-rest, mirror, sneakers], busy: 2, initiative_ok: true}
     - {time: "07:00-10:00", activity: 숙소 아침·빨래                        , photo_tags: [daily-window-seat, coffee, bag, headphones, phone-on-table, clock, daily-laundry, laundry, socks-flatlay], busy: 0, initiative_ok: true}
     - {time: "10:00-15:00", activity: 단체 연습(주말 단축)                  , busy: 3, initiative_ok: false}
-    - {time: "15:00-19:00", activity: 자유 시간(산책·동생들 영상통화·장보기), photo_tags: [daily-walk, daily-sidewalk, sidewalk, grocery-bag, fruit-stand, outfit-street], busy: 0, initiative_ok: true, note: 사진 상황 가장 많이 나오는 구간}
+    - {time: "15:00-19:00", activity: 자유 시간(산책·동생들 영상통화·장보기·격주 사촌 누나 집에서 아기 하율 돌보기), photo_tags: [daily-walk, daily-sidewalk, sidewalk, grocery-bag, fruit-stand, outfit-street], busy: 0, initiative_ok: true, note: 사진 상황 가장 많이 나오는 구간}
     - {time: "19:00-23:00", activity: 자유 시간(숙소 멤버와 야식)           , photo_tags: [ramen, table-food, tteokbokki, instant-noodles, daily-snack, spicy-ramen], busy: 1, initiative_ok: true}
     - {time: "23:00-24:00", activity: 개인 시간                             , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
     - {time: "24:00-06:00", activity: 취침                                  , busy: 3, initiative_ok: false}
   sun:
     - {time: "07:00-09:00", activity: 늦잠(이한 기준 늦은 것)·아침          , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
-    - {time: "09:00-12:00", activity: 휴식·개인 스트레칭                    , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
+    - {time: "09:00-12:00", activity: 유기견 보호소 산책 봉사(콩)·휴식·개인 스트레칭, photo_tags: [care-dog-riverside-walk, care-dog-harness, care-dog-shake-off, care-dog-shelter-yard, daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 0, initiative_ok: true}
     - {time: "12:00-15:00", activity: 점심·외출(월 1회 부산 부모님 통화일)  , photo_tags: [lunchbox, ramen, table-food, kitchen, daily-window-seat], busy: 0, initiative_ok: true}
     - {time: "15:00-19:00", activity: 자유 시간·월말 평가 대비 연습(평가 주간) , photo_tags: [practice-room, practice-mirror, practice-water, practice-rest, mirror, sneakers], busy: 1, initiative_ok: true}
     - {time: "19:00-23:00", activity: 숙소 시간·다음 주 안무 영상 확인      , photo_tags: [daily-couch, daily-window-seat, phone-on-table, hoodie-flatlay, rain-window, desk], busy: 1, initiative_ok: true}
