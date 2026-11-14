@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import { now as clockNow } from "@/clock";
 import Link from "next/link";
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Chat() {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const db = getDb();
   // 숨김 컬럼은 선택하지 않는다(화면·DTO에 싣지 않음).
   const [rel] = await db

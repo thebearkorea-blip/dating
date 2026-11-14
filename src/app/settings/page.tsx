@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import { and, eq } from "drizzle-orm";
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Settings() {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const [rel] = await getDb()
     .select({ pushWindow: relationships.pushWindow, pushMax: relationships.pushMax })
     .from(relationships)

@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Paywall() {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 p-4">
       <AppVoice screen="paywall_morning">

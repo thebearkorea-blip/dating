@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -14,7 +15,7 @@ const ERRORS: Record<string, string> = {
 
 export default async function Onboarding({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const { error } = await searchParams;
   const year = new Date().getFullYear();
 

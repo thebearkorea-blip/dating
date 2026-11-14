@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import { eq } from "drizzle-orm";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -24,7 +25,7 @@ function tagline(): string {
 // 프로필 화면. 앱 목소리 박스를 쓰지 않는다. "AI character"는 프로필 메타 정보로 상시 표시한다.
 export default async function Him() {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const [c] = await getDb().select().from(characters).where(eq(characters.id, "ihan")).limit(1);
   if (!c) redirect("/chat");
   const position = ((c.bible as { position?: string[] }).position ?? []).join(" · ");

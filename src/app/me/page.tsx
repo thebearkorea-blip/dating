@@ -1,3 +1,4 @@
+import { devOnlyEnabled } from "@/dev-only";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 // 캐릭터 톤 제목. 앱 목소리 박스를 쓰지 않는다.
 export default async function Me() {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const db = getDb();
   const [rel] = await db
     .select({ id: relationships.id })

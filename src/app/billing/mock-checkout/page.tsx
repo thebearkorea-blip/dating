@@ -21,7 +21,7 @@ async function subscribe() {
 export default async function MockCheckout() {
   if (!devOnlyEnabled()) notFound();
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-4 px-6">
       <DevBanner />

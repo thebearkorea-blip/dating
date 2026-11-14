@@ -1,4 +1,5 @@
 "use server";
+import { devOnlyEnabled } from "@/dev-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -21,7 +22,7 @@ function validTz(tz: string): boolean {
 
 export async function completeOnboarding(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
-  if (!user) redirect("/dev-login");
+  if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
 
   const name = String(formData.get("displayName") ?? "").trim().slice(0, 40);
   const city = CITIES.find((c) => c.id === formData.get("city"));
