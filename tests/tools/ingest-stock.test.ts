@@ -71,3 +71,22 @@ it("stock-fetch: 사람 사진 제외, 4:5에 가까운 1장 -> manifest 1행", 
   expect(m[0]).toMatchObject({ id: "c1-stock-3", source: "stock", license: "Pexels License", credit: "Kim / Pexels", face: false, blob_url: ".data/photos/c1/stock-3.jpg" });
   expect(readFileSync(join(root, ".data/photos/c1/stock-3.jpg"))).toHaveLength(3);
 });
+
+it("stock-fetch(pixabay): 사람 태그 제외, px 접두 파일·source_url 기록", async () => {
+  const root = setup();
+  const hit = (id: number, tags: string) => ({ id, largeImageURL: `https://pixabay.com/${id}_1280.jpg`, imageWidth: 800, imageHeight: 1000, user: "Lee", tags, pageURL: `https://pixabay.com/photos/x-${id}/` });
+  const calls: string[] = [];
+  const fetchFn = (async (url: string) => {
+    calls.push(url);
+    if (url.startsWith("https://pixabay.com/api/")) return new Response(JSON.stringify({ hits: [hit(1, "street, woman, night"), hit(2, "shelf, store, night")] }));
+    return new Response(new Uint8Array([1, 2, 3]));
+  }) as unknown as typeof fetch;
+  const r = await stockFetch({ root, character: "c1", query: "store shelf", situation: "convenience-store-night", n: 2, apiKey: "k", provider: "pixabay", fetchFn });
+  expect(r.added).toHaveLength(1);
+  expect(calls[0]).toContain("key=k");
+  expect(calls[1]).toContain("2_1280.jpg");
+  const m = rows(root);
+  expect(m).toHaveLength(1);
+  expect(m[0]).toMatchObject({ id: "c1-stock-px2", source: "stock", license: "Pixabay Content License", credit: "Lee / Pixabay", source_url: "https://pixabay.com/photos/x-2/", blob_url: ".data/photos/c1/stock-px2.jpg" });
+  expect(readFileSync(join(root, ".data/photos/c1/stock-px2.jpg"))).toHaveLength(3);
+});

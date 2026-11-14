@@ -344,6 +344,8 @@ node --import tsx src/tools/ingest-photos.ts --character ihan --dir .data/photos
 
 ### 8-2. 스톡(`stock-fetch`)
 
+Pexels 키 발급 중단(2026-11-14) → 기본 Pixabay(`PIXABAY_API_KEY`), 검색어 표는 공통.
+
 ```
 node --import tsx src/tools/stock-fetch.ts --character ihan --query "convenience store shelf night korea" --situation convenience-store-night --n 3 [--dry-run]
 ```

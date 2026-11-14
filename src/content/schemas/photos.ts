@@ -12,6 +12,7 @@ export const photoRowSchema = z
     source: z.enum(["ai", "own", "stock"]).default("ai"),
     license: z.string().optional(),
     credit: z.string().optional(),
+    source_url: z.string().optional(),
     model: z.string().optional(),
     audience: z.enum(["public", "private"]),
     used: z.array(z.object({ where: z.string().min(1), at: z.string().min(1), reason: z.string().optional() }).strict()),
