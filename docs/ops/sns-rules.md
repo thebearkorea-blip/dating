@@ -80,6 +80,7 @@ Virtual character (AI-generated) · Seo Ihan, 21 · ONDAY trainee @ Lumen Harbor
 - 1인 운영 부담이 넘치면 줄이는 순서: 페이스북 → 유튜브 → 인스타 → 틱톡(결정 "SNS 플랫폼": 부담이 허용하는 만큼 채널을 늘림).
 - 틱톡 게시 한도(하루 보통 약 15건)는 수동 게시에서 문제 없음(광고조사 §3).
 - 콘텐츠 내용은 프리데뷔 서사를 따른다: 연습생 공개(연습실 직캠·거울 셀카·일기) → 커버 댄스·브이로그 → 데뷔 티저(결정 "콘텐츠·마케팅 서사"). 앱·연애 모드를 게시물에서 홍보하지 않는다.
+- **고정 코너 2개(2026-11-14, 레퍼런스 조사 채택 — `docs/research/2026-11-14-해외-가상인플루언서-상위채널.md` §4)**: ① "오늘의 한 줄 일기" 슬라이드 — 매일 1건 중 주 3건 이상은 이 포맷으로 고정(Granny Spills: 포맷 고정 + 캐릭터성 → 몇 주 100만). ② "NG 모먼트" — 연습 중 실수·허둥대는 순간을 주 1건 반복 코너로(PLAVE: 모션 오류를 팬이 웃음 소재로 소비, 매일 업로드). 두 코너는 큐 `sns/queue.jsonl`의 `series` 필드로 표시한다(필드 추가는 다음 큐 생성 때).
 
 ### 2-3. 캡션 톤
 
@@ -321,3 +322,49 @@ node --import tsx src/tools/make-post-pack.ts --character ihan --all-dates   # �
 ### 사진 삭제 동기화
 
 Finder에서 `.data/photos/<character>/<id>.jpg`를 직접 지웠으면 `node --import tsx src/tools/sync-photos.ts [--dry-run] [--reload] [--character <c>]`로 반영한다. 파일이 없는 manifest 행은 `used`에 `{"where":"rejected","at":<오늘>,"reason":"deleted_by_reviewer"}`가 붙고(이미 rejected면 유지), 그 `photo_id`를 쓰던 큐 슬라이드는 `photo_id:null, _missing:true`로 되돌아간다. 파일을 되돌려 놓으면 `deleted_by_reviewer`로만 폐기된 행은 복구된다(큐 슬라이드는 자동 복구하지 않는다). `--reload`는 `load-content`로 media를 다시 적재하므로 dev 서버를 끈 상태에서만 쓴다.
+
+## 8. 실사진·스톡 사용법
+
+근거: `docs/decisions.md` "일상 사진 = 실사진·스톡 (확정)"·"얼굴 없는 사진의 출처". 얼굴 없는 일상 컷의 출처 우선순위는 ① 사용자 실사진 ② 무료 상업 스톡(Pexels) ③ AI(단순 사물만). 남이 찍은 음식·가게 사진 전재는 금지(스톡 라이선스 사진만).
+
+### 8-1. 실사진(`ingest-photos`)
+
+```
+node --import tsx src/tools/ingest-photos.ts --character ihan --dir .data/photos/own/ihan [--situation <slug>] [--place <장소>] [--dry-run]
+```
+
+- 폴더의 jpg/png/heic를 읽어 EXIF(위치·기기 정보 포함)를 제거하고 긴 변 1600px로 줄여 `.data/photos/<c>/own-<n>.jpg`로 저장한다. heic는 `sips`로 변환하고 실패하면 건너뛴다.
+- manifest에 `id: <c>-own-<n>`, `source:"own"`, `face:false`, `audience:"public"` 행이 붙는다. 얼굴이 나온 사진은 이 도구로 넣지 않는다.
+- situation: `--situation`이 없으면 파일명 `convenience-store-night__01.jpg`의 `__` 앞부분이 slug다(아래 8-3 표의 slug를 쓰면 plan과 맞는다).
+- time_of_day는 EXIF 촬영 시각으로 추정(dawn/morning/noon/afternoon/evening/night/late_night), 못 읽으면 `unknown`. place는 `--place`, 없으면 `unknown`.
+- 같은 파일(sha1)은 `.data/photos/<c>/own-index.json`으로 기억해 다시 넣어도 중복 행이 생기지 않는다.
+- 원본은 `.data/photos/own/<c>/`에 그대로 둔다(gitignore). 게시 전에 사진 안에 간판·번호판·사람 얼굴이 없는지 직접 본다.
+
+### 8-2. 스톡(`stock-fetch`)
+
+```
+node --import tsx src/tools/stock-fetch.ts --character ihan --query "convenience store shelf night korea" --situation convenience-store-night --n 3 [--dry-run]
+```
+
+- 키: `.env.local`의 `PEXELS_API_KEY`(무료 발급 https://www.pexels.com/api/). 없으면 안내만 하고 종료한다.
+- Pexels 검색(세로) 결과를 4:5에 가까운 순으로 정렬해 `src.large2x`를 `.data/photos/<c>/stock-<pexels id>.jpg`로 저장하고 manifest에 `source:"stock"`, `license:"Pexels License"`, `credit:"<촬영자> / Pexels"` 행을 붙인다. time_of_day·place는 plan.jsonl의 같은 situation 행 값을 쓴다.
+- alt 텍스트에 person/people/man/woman/girl/boy/child/couple/portrait/face/model이 있는 사진은 제외한다. alt가 비어 있으면 통과하므로 **저장 후 사람이 한 번 훑어 얼굴·로고가 있으면 지운다**(지우면 `sync-photos`가 반영).
+- Pexels License는 상업 사용 가능·출처 표기 불필요지만, 사진 속 식별 가능한 상표·사람의 사용은 제한된다. credit은 기록용으로 남긴다.
+- 쿼리는 영어로, 한국 느낌은 `korea`·`seoul`을 붙인다. 결과가 없거나 한국 느낌이 약하면 사용자 실사진을 우선한다.
+
+### 8-3. 스톡 대체 후보 상황 (plan.jsonl face=false 중, 음식·거리·편의점·야경·소품)
+
+| 이한 situation | 쿼리 제안 | | 이솔 situation | 쿼리 제안 |
+|---|---|---|---|---|
+| `convenience-store-night` | convenience store shelf night korea | | `instant-noodles-floor` | instant noodles cup on floor night |
+| `triangle-kimbap` | triangle kimbap rice ball convenience | | `mint-ice-cream` | mint chocolate ice cream cup spoon |
+| `ramen-mild` | ramen bowl chopsticks kitchen table night | | `milk-cream-bread` | milk carton cream bread pastry table |
+| `spicy-ramen-fail` | spicy red ramen bowl milk glass | | `tteokbokki-pan` | tteokbokki pan korean street food |
+| `grocery-bag` | grocery bag street korea afternoon | | `fruit-stand` | fruit stand street market korea |
+| `coffee-mix-sticks` | instant coffee sticks mug kitchen | | `grocery-bag` | paper grocery bag sidewalk afternoon |
+| `night-street` | seoul street night neon alley empty | | `sidewalk-pov` | sidewalk walking pov evening city |
+| `rain-window` | rain on window evening city lights | | `stage-lights-empty` | empty concert stage lights haze |
+| `rooftop-night` | rooftop city night skyline empty | | `socks-flatlay` | folded socks flat lay bedroom morning |
+| `umbrella` | umbrella rainy street evening seoul | | `sneakers-flatlay` | white sneakers entrance floor flat lay |
+
+(표의 왼쪽 열은 이한, 오른쪽 열은 이솔. 각 10개, 우선순위 순. 연습실·무대 안쪽 컷, 손·거울·땀수건 등 인물 접촉 컷은 스톡으로 대체하지 않고 실사진 또는 AI로 둔다.)
