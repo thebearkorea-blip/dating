@@ -438,3 +438,11 @@ LoRA 없이 Gateway `bfl/flux-2-pro` 참조 편집(참조 `candidates/isol/N-fro
 통과 23: 01 03 04 05 06 07 09 10 11 14 15 16 17 20 21 22 23 25 26 27 28 29 30. 탈락 7: 나이 들어 보임 02 12 18 19 24(5), 서구형·다른 사람 08(1), 표정 일그러짐·인상 다름 13(1). 노출·글자·손 탈락 0(전부 어깨 가린 상의, 헤드숄더).
 lead는 수정 지시 전 "어깨 가림" 문구로 생성했다(얼굴 참조용이라 영향 없음, 재생성 안 함).
 zip: `.data/photos/lora-refs/isol-v1-refs.zip` 23장. 학습: `lora-train --character isol --zip .data/photos/lora-refs/isol-v1-refs.zip` (기본 트리거 "isolx person", steps 1000).
+
+## 이솔 LoRA v1 학습 + 24장 재생성 (2026-11-14)
+학습: `lora-train --character isol --zip .data/photos/lora-refs/isol-v1-refs.zip`(23장, 1000스텝, 트리거 `isolx person`, 약 $4.3) → `.data/photos/lora/isol.json`. 재생성: LoRA 경로 캔디드 문구(이솔 분기, 크롭탑·민소매 허용) `--force --ids <face=true 24행>`; 1차는 fal 잔액 소진으로 1장만, 충전 뒤 23장(p002 재시도, p004 검은 프레임 → seed 4404 재생성). 약 $0.9. 시트 `consistency/candid-test/sheet-isol-face-24-lora.jpg`.
+메인 소견: 참조 편집 때의 화보 질감·진한 메이크업이 사라지고 폰 스냅처럼 자연스러움. 24장 동일인, 나이 21~23. 표정 분포(활짝 웃음·놀람·눈웃음) 정상. 참조 편집 경로는 이제 쓰지 않는다.
+
+## 강아지 컷: Pixabay + 이한 합성 시험 (2026-11-14, 사용자 "강아지는 pixabay에서 올려줘")
+스크립트 `.data/photos/consistency/dog-test/run.mts`: Pixabay 검색(세로, safesearch, 아동 태그 제외) 4장 → Gateway `bfl/flux-2-pro` 편집(참조 = 원본 + 이한 N-front), 사람 있으면 교체·없으면 추가. 약 $0.16. 시트 `dog-test/sheet.jpg`(원본/결과 쌍), 출처 json `dog-test/src/*.json`.
+결과: 하네스 고쳐 주기(교체) 좋음 → p106 / 눈길 산책(추가) 양호 → p105 / 보호소견과 옥상(추가, 배경이 바뀜) 양호 → p108 / 공원 산책(교체)은 원본이 머리 잘린 컷이라 맨발·몸통만 나와 폐기. 교훈: 원본은 사람 전신 또는 사람 없는 컷을 고를 것. 등록은 `register-photo`(source stock, Pixabay 크레딧).

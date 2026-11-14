@@ -2,7 +2,7 @@
 
 ## 진행 중 (상태: 설계·구현·배포·확인대기 — 3줄이면 새 작업은 백로그 기록만)
 - 앱 ④⑤ 확인대기 `docs/work-plans/2026-11-13-앱④-선톡-사진-푸시.md`·`앱⑤-애정도-토라짐-이별.md` — 로컬 ①~⑦ 구현 완료, Neon·Clerk 연결, 첫 배포됨(`deploy-log.md`). 남은 것: Deployment Protection 해제 뒤 Clerk 로그인·푸시 실검증, 선톡 외부 스케줄러, 사진 호스팅(Blob)
-- W5 사진 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 확인대기. LoRA 이한 v1·v2·은찬 학습 완료, 얼굴 없는 컷 84장 flux-2-pro 재생성(83 통과), 실사진·스톡 도구(`ingest-photos`·`stock-fetch`) 완료. 이한 LoRA v1·아이돌 셀카 문구 확정, 얼굴 컷 42장 재생성 완료(Neon 54행). 남은 것: 사용자 육안 확인(아래 1), 이솔 얼굴 컷 같은 문구로 재생성(약 $0.9)
+- W5 사진 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 확인대기. LoRA 이한 v1·v2·은찬 학습 완료, 얼굴 없는 컷 84장 flux-2-pro 재생성(83 통과), 실사진·스톡 도구(`ingest-photos`·`stock-fetch`) 완료. 이한 LoRA v1·아이돌 셀카 문구 확정, 얼굴 컷 42장 재생성 완료(Neon 54행). 이솔 LoRA v1 학습·24장 재생성 완료. 남은 것: 사용자 육안 확인(아래 1), 강아지 Pixabay 합성 검수, 아기 컷은 사용자가 직접 편집해 업로드
 - 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 확인대기. 남은 것: 검수자 선별 W1c, SNS 계정 개설(`docs/ops/account-setup.md`), 고정 코너 2개를 큐 `series` 필드로 반영
 
 ## 막힌 것 / 사람 확인 필요
@@ -12,6 +12,6 @@
 - 로컬 Gateway 인증 OIDC(12시간 만료) `vercel env pull`로 갱신 — API 키 전환 여부 사용자 결정. 푸시 대기: 로컬 main이 origin/main보다 앞섬(사용자 OK 시 `git branch -f main HEAD && git push origin main`)
 
 ## 다음 할 일
-1. 사용자: `.data/photos/ihan` 새 얼굴 컷 42장 육안 확인(시트 `consistency/candid-test/sheet-ihan-face-42.jpg`, 삭제 = 폐기) · Deployment Protection 해제 · Pexels 키
+1. 사용자: 검수 폴더 `.data/photos/review/{ihan-face,isol-face}` 확인(삭제 = 폐기) · 강아지 합성 시트 `consistency/dog-test/sheet.jpg` 판정 · 아기 사진 직접 편집 후 `.data/photos/own/ihan/`에 업로드 · Deployment Protection 해제 · Pexels 키
 2. 메인: Deployment Protection 해제 뒤 Clerk·푸시 실검증 → Vercel env(`VAPID_*`·`CRON_SECRET`) → 선톡 스케줄러 → 사진 Blob 호스팅
 3. 메인: 쇼츠 1차 실험(사용자 OK + 촬영 영상 받은 뒤) · 큐 `series` 필드 · 실사진·스톡 1차 수집(Pixabay 키 받은 뒤) · 인물 교체 도구화
