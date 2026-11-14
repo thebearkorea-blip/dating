@@ -10,7 +10,7 @@ export const photoRowSchema = z
     place: z.string().min(1),
     face: z.boolean(),
     audience: z.enum(["public", "private"]),
-    used: z.array(z.object({ where: z.string().min(1), at: z.string().min(1) }).strict()),
+    used: z.array(z.object({ where: z.string().min(1), at: z.string().min(1), reason: z.string().optional() }).strict()),
   })
   .strict();
 

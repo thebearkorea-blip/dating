@@ -103,6 +103,7 @@ export function validateContentDir(root: string): ContentReport {
     for (const id of readdirSync(charsDir)) {
       const dir = join(charsDir, id);
       if (!statSync(dir).isDirectory()) continue;
+      if (!existsSync(join(dir, "bible.yaml"))) continue; // 후보 사진만 있는 캐릭터 폴더는 건너뛴다
       checkFile(root, join(dir, "bible.yaml"), "yaml", bibleSchema, report);
       checkFile(root, join(dir, "schedule.yaml"), "yaml", scheduleSchema, report);
       checkFile(root, join(dir, "photos/manifest.jsonl"), "jsonl", photoRowSchema, report);

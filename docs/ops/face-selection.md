@@ -327,3 +327,16 @@ face=true 32장(LoRA, scale 1): 생성 32/32, 실패 0. 전수 확인 결과 **�
 zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 12 14 15 16 23 24 26 28 30) + 1차 5(31~35) = **20장**. 학습 대기: fal 충전 뒤 `lora-train --character ihan --zip .data/photos/lora-refs/ihan-v2-refs.zip` (검수자 최종 확인 권장: 15·16·04의 나이, 33의 같은 사람 여부).
 
 비용: Gateway `bfl/flux-2-pro` 30장 도구 추정 $1.20(단가 미확인 $0.04/장 가정, 실제 청구는 Gateway 대시보드 확인).
+
+## 은찬 참조 선별 (2026-11-14, LoRA 학습용)
+
+참조 `.data/photos/candidates/eunchan/B-front.jpg`(메인 기본값: 중단발 웨이브·하트형). `lora-refs.ts --character eunchan --n 30 --lead "same person as the reference, 21-year-old adult Korean man, university-age, soft dreamy look but adult facial proportions, same wavy medium-length dark hair, no logos, plain background, face large in frame"`, `bfl/flux-2-pro`, 4:5, 각도 6·표정 7·조명 5·옷 4 변주. 출력 `.data/photos/lora-refs/eunchan/01~30.jpg`(실패·재호출 없음). 판정은 메인 지시에 따라 에이전트 1차(10장 시트 3장, 저해상도 대조, 검수자 확인 대기).
+
+| 구분 | 번호 | 사유 |
+|---|---|---|
+| 통과 21장 | 01 02 03 04 05 09 10 11 15 16 17 18 19 20 22 23 25 26 27 28 29 | 같은 사람 인상, 성인 20~22, 큰 아티팩트 없음. 경계: 18(앳된 편), 28(극단 측면) |
+| 제외 9장 | 06, 07 | 외모 18~19로 앳됨 |
+| | 08, 13, 24, 30 | 다른 사람 인상(서구적 코·각진 얼굴·넓은 얼굴·곱슬 머리) |
+| | 12, 14, 21 | 머리 길이·톤 이탈 또는 표정 과장·얼굴 변형 |
+
+산출: `.data/photos/lora-refs/eunchan-refs.zip`(21장, 5.5MB). 비용: 30호출 x $0.04 가정 = $1.20(도구 추정, 실단가 Gateway 로그 확인 필요). 학습은 미실행.

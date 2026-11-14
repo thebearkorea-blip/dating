@@ -1,1 +1,2 @@
 {"id":"p1","blob_url":"local://example/p1","situation":"practice","time_of_day":"day","place":"studio","face":false,"audience":"public","used":[]}
+{"id":"p2","blob_url":"local://example/p2","situation":"practice","time_of_day":"day","place":"studio","face":false,"audience":"public","used":[{"where":"rejected","at":"2026-11-14","reason":"deleted_by_reviewer"}]}

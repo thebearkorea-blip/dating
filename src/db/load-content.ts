@@ -32,6 +32,7 @@ export async function loadContent(db: Db, root: string): Promise<{ characters: n
   for (const id of readdirSync(charsDir)) {
     const dir = join(charsDir, id);
     if (!statSync(dir).isDirectory()) continue;
+    if (!existsSync(join(dir, "bible.yaml"))) continue; // 후보 사진만 있는 캐릭터 폴더는 건너뛴다
     const bible = bibleSchema.parse(parseYaml(readFileSync(join(dir, "bible.yaml"), "utf8")));
     const schedule = scheduleSchema.parse(parseYaml(readFileSync(join(dir, "schedule.yaml"), "utf8")));
     const voiceMd = readFileSync(join(dir, "voice.md"), "utf8");
