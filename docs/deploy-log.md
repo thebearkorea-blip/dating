@@ -10,3 +10,5 @@
 - (환경변수 추가, 타이머 설치, 정리 후보 등 한 줄씩)
 
 | 2026-11-14 | 77b34c5+cron | — | Neon 0006 + roles.sql | 첫 프리뷰/프로덕션 배포(Hobby, 커스텀 도메인 없음): https://onday-f0divzlj7-easyonechon.vercel.app — Clerk·Neon·AI Gateway(OIDC). 선톡 cron 제외(Hobby) | Next 16 |
+| 2026-11-14 | 46c3cd5 | — | 변경 없음 | F4 복구 재배포(build 스크립트·framework nextjs). Deployment Protection 해제. 프로덕션 별칭 https://onday-blush.vercel.app (`/`·`/sign-in` 200) | Next 16 |
+| 2026-11-14 | 204945b | — | 변경 없음 | u1: 비로그인 리다이렉트 프로덕션 `/sign-in` 분기 (`/chat` → 307 `/sign-in` 확인) | Next 16 |
