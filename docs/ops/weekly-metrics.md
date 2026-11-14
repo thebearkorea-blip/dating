@@ -17,3 +17,4 @@
 | 2026-11-14 | generate-photos ihan priority 2·3 (face=true 32장, LoRA 추론; face=false 25장은 Gateway 401로 미생성) | blackforestlabs/flux-3/klein/base/text-to-image/lora | - | - | 1.124 (도구 추정, 8장 폐기 포함) |
 | 2026-11-14 | generate-photos ihan p2·3 face=false 25장(klein) + LoRA 재생성 8장 | klein / flux-3-klein-lora | - | - | 0.51 |
 | 2026-11-14 | face-candidates eunchan (정면 4장, t2i) | bfl/flux-2-pro | - | - | 0.16 ($0.04/장 가정, 도구 추정 0.000) |
+| 2026-11-14 | lora-refs ihan v2 (성인 단서 강화 참조 30장, 통과 15 + 1차 5 = zip 20장; 학습 대기) | bfl/flux-2-pro | - | - | 1.20 (도구 추정 $0.04/장 가정) |

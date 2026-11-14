@@ -305,3 +305,25 @@ face=true 32장(LoRA, scale 1): 생성 32/32, 실패 0. 전수 확인 결과 **�
 | 캐릭터 | 선택 후보 | 메모 |
 |---|---|---|
 | eunchan | | |
+
+## LoRA 2차 참조 (ihan, 2026-11-14)
+
+1차 LoRA 결과 얼굴이 기준(`N-front`, 19~20)보다 어려 보여(17~19 컷 다수 폐기) 성인 단서를 강화한 참조 세트를 다시 만든다. **학습은 fal 잔액 부족으로 대기**(lora-train 미실행).
+
+생성: `NODE_USE_ENV_PROXY=1 node --env-file=.env.local --import tsx src/tools/lora-refs.ts --character ihan --ref .data/photos/candidates/ihan/N-front.jpg --n 30 --model bfl/flux-2-pro --out-suffix v2 --lead "Photo of the same person as the reference, 21-year-old adult Korean man, university-age, defined jawline and adult facial proportions, same dark hair and style, no logos or text on clothing, plain background, face large in frame, head and shoulders, sharp focus, photorealistic"` (도구에 `--out-suffix`·`--lead` 추가. 시점·표정·조명·옷 변주는 1차와 같은 주기). 출력 `.data/photos/lora-refs/ihan-v2/01~30.jpg`, 호출 30회 실패 0.
+
+선별(메인 1차, 같은 사람 Y/N · 외모 나이 19~22만 통과 · 아티팩트): **통과 15 / 폐기 15**.
+
+| 구분 | 번호 | 사유 |
+|---|---|---|
+| 통과 | 02 03 04 05 08 11 12 14 23 24 26 28 30 | 같은 사람, 19~22 |
+| 통과(경계) | 15 16 | 18~19로 보이나 허용 |
+| 폐기: 다른 사람(서구형 얼굴) | 01 09 10 17 22 27 29 | 한국인 외모 아님, 01은 17 안팎, 29는 수염 |
+| 폐기: 앳됨(17~18) | 06 18 20 21 25 | 매끈하고 어려 보임 |
+| 폐기: 기타 | 07 13 19 | 07 둥글고 18, 13 피부 트러블 강조·얼굴 다름, 19 30대로 보임 |
+
+성인 단서 강화만으로는 서구형 얼굴로 흐르는 컷이 7장 나왔다(참조 이미지 영향이 약해짐). 통과 15장이라 20장에 5장 부족 -> 추가 생성은 예산($1.5, 30장 추정 $1.2) 때문에 하지 않고 **1차 zip의 성인 외모 통과 컷 5장을 섞었다**: 1차 03 05 19 23 24 -> v2 `31~35.jpg`로 복사(`refs.jsonl`에 source 기록). 1차 zip 24장 중 나머지는 어려 보이거나 앳된 컷이라 제외.
+
+zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 12 14 15 16 23 24 26 28 30) + 1차 5(31~35) = **20장**. 학습 대기: fal 충전 뒤 `lora-train --character ihan --zip .data/photos/lora-refs/ihan-v2-refs.zip` (검수자 최종 확인 권장: 15·16·04의 나이, 33의 같은 사람 여부).
+
+비용: Gateway `bfl/flux-2-pro` 30장 도구 추정 $1.20(단가 미확인 $0.04/장 가정, 실제 청구는 Gateway 대시보드 확인).

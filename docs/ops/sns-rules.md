@@ -317,3 +317,7 @@ node --import tsx src/tools/make-post-pack.ts --character ihan --all-dates   # �
 - `photo_id`가 null이거나 파일이 없는 슬라이드는 건너뛰고 경고한다. 슬라이드 0장이면 팩을 만들지 않는다.
 - 게시 순서: 슬라이드를 순서대로 업로드 → 캡션 붙여넣기 → **AI 라벨 켜기**(§1-3) → `post_time_kst`에 게시.
 - 요구: `/opt/homebrew/bin/ffmpeg`, macOS 시스템 폰트(Arial Unicode), python3 + Pillow(이 머신의 ffmpeg에는 drawtext가 없어 텍스트 띠는 Pillow로 그려 overlay 합성).
+
+### 사진 삭제 동기화
+
+Finder에서 `.data/photos/<character>/<id>.jpg`를 직접 지웠으면 `node --import tsx src/tools/sync-photos.ts [--dry-run] [--reload] [--character <c>]`로 반영한다. 파일이 없는 manifest 행은 `used`에 `{"where":"rejected","at":<오늘>,"reason":"deleted_by_reviewer"}`가 붙고(이미 rejected면 유지), 그 `photo_id`를 쓰던 큐 슬라이드는 `photo_id:null, _missing:true`로 되돌아간다. 파일을 되돌려 놓으면 `deleted_by_reviewer`로만 폐기된 행은 복구된다(큐 슬라이드는 자동 복구하지 않는다). `--reload`는 `load-content`로 media를 다시 적재하므로 dev 서버를 끈 상태에서만 쓴다.
