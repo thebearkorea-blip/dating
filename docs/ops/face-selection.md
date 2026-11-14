@@ -415,3 +415,7 @@ zip: `.data/photos/lora-refs/ihan-v2-refs.zip` = v2 통과 15(02 03 04 05 08 11 
 - 들판(인물 작음): 두 장 모두 배경·포즈·햇빛 그대로, 남성 캐주얼로 교체. 바로 쓸 수 있는 수준.
 - 셀카(얼굴 큼): a는 모자를 벗겨 버림(지시 무시), b는 모자·옷·안개 유지하고 얼굴만 교체 — 자연스럽지만 조끼 로고("AONI")는 남음, 귀걸이 추가됨. 얼굴은 이한 계열이나 LoRA 컷과의 동일인 여부는 사용자 판정 필요.
 - 결론: "사용자 촬영 → 인물 교체" 경로 성립. 로고는 촬영 때 피하거나 별도 지시 1회 더. 도구화는 백로그.
+
+## 아이돌 셀카 문구 (2026-11-14)
+사용자 "아직도 아이돌스러워 보이지 않아, 좀 더 영하게" → `generate-photos` 캔디드 문구에서 성인 단서를 "21-year-old adult Korean man (K-pop trainee)" 한 구절만 남기고 "defined jawline·mature facial structure·university-age·visible pores·no makeup"을 뺀 뒤 "youthful K-pop idol visual, clear smooth glowing skin, slim V-line face, soft styled hair (curtain bangs), light idol grooming, oversized casual idol fashion, phone-camera soft look" 추가(기본값). 이한 LoRA v1, seed 2202, p049 거울·p071 편의점·p020 침대·p017 복도 4장(사용자가 직접 실행, 약 $0.14; seed 1101은 중단). 결과 `.data/photos/consistency/candid-test/ihan-v1-idol/s2202/`, 시트 `sheet-idol.jpg`.
+메인 소견: ① 아이돌 느낌 — 앞 시험보다 확실히 좋아짐(앞머리·피부·갸름한 얼굴, 오버사이즈 후디). ② 나이 — 19~21로 보이고 18 미만으로 보이는 컷 없음. ③ 얼굴 일치 — 4장이 같은 인물로 보이고 거울 셀카도 반사 1개로 정상. 사용자 판정 대기.
