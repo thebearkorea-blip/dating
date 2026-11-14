@@ -1,0 +1,23 @@
+# 시크릿은 Vercel env CRON_SECRET과 같은 값이어야 하며 `gh secret set CRON_SECRET --repo thebearkorea-blip/dating`로 넣는다.
+# Actions 스케줄은 수 분 지연될 수 있다.
+name: proactive-tick
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check secret
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then echo "CRON_SECRET missing"; exit 1; fi
+      - name: Call proactive tick
+        run: |
+          curl -fsS -m 60 -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" https://onday-blush.vercel.app/api/cron/proactive
+          echo

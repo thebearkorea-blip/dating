@@ -6,7 +6,7 @@
 - 첫 캐릭터 설계서 `docs/work-plans/2026-11-13-첫캐릭터-설계서.md` — 확인대기. 이한 `@seeihan_onday` 개설 + 첫 게시 2건(11-14, 결정 "첫 게시(이한)"). 남은 것: 7일 큐 재생성(새 얼굴 컷·고정 코너 4개, 11-15부터) + 게시 팩, 검수자 W1c, 이솔 계정, 큐 `series` 필드
 
 ## 막힌 것 / 사람 확인 필요
-- **사용자**: ① 이솔 계정(인스타·틱톡, 새로 만들어야 함 — 인증 코드 필요) ② 배포본 Clerk 가입 시 이메일 인증 코드 입력 ③ **얼굴 없는 일상 컷(음식·일상·신발·옷)은 AI 포기 → 직접 찍은 사진을 `.data/photos/own/<ihan|isol>/`에 `상황__01.jpg`로 넣기**(상황 목록 `sns-rules.md` §8-3)
+- **사용자**: ① GitHub Actions 시크릿 등록 `! gh secret set CRON_SECRET --repo thebearkorea-blip/dating < .data/tmp/cron-secret.txt`(에이전트는 권한 거부됨) ② Chrome 알림 허용(푸시 구독) ③ 이솔 계정(인스타·틱톡, 인증 코드 필요) ④ **얼굴 없는 일상 컷(음식·일상·신발·옷)은 AI 포기 → 직접 찍은 사진을 `.data/photos/own/<ihan|isol>/`에 `상황__01.jpg`로 넣기**(상황 목록 `sns-rules.md` §8-3)
 - 레퍼런스 조사는 **"레퍼런스" 세션**이 담당(이 세션은 결정·규칙 반영만). **사용자 확인 대기**: 쇼츠 1차 실험(Kling motion-control·i2v 12클립 약 $10, 사용자 촬영 영상 1~2개 필요) 실행 여부 — 결정 "쇼츠 영상 제작 경로"
 - 로컬 실행: `REPLY_DELAY_SCALE=0.01 NODE_USE_ENV_PROXY=1 npx next dev --webpack -p 3100` → `/dev-login`. DB 스크립트는 dev 서버 끄고(Neon은 샌드박스 밖에서만 WebSocket 연결됨). 테스트 통과
 - 로컬 Gateway 인증 OIDC(12시간 만료) `vercel env pull`로 갱신 — API 키 전환 여부 사용자 결정. 푸시 대기: 로컬 main이 origin/main보다 앞섬(사용자 OK 시 `git branch -f main HEAD && git push origin main`)
