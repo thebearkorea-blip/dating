@@ -280,7 +280,8 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     while (turns[0]?.role === "assistant") turns.shift();
     try {
       const reply = await generateGuardedReply(
-        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: stage <= 2 ? 160 : 400, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
+        // F6: thinking 블록이 토큰을 먼저 쓰므로 여유를 둔다. 길이는 persona 지시로 제한
+        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 1024, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
         rules,
         `${userMsg.id}:fallback`,
       );
