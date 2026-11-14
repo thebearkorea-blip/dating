@@ -43,8 +43,24 @@ it("text 없이 max_tokens로 끝나면 한도를 올려 1회 재시도한다", 
   expect(fetchMock).toHaveBeenCalledTimes(2);
   expect(JSON.parse(fetchMock.mock.calls[0]![1].body).max_tokens).toBe(160);
   expect(JSON.parse(fetchMock.mock.calls[1]![1].body).max_tokens).toBe(1024);
+  expect(JSON.parse(fetchMock.mock.calls[0]![1].body).providerOptions).toBeUndefined();
   expect(errSpy).toHaveBeenCalledOnce();
   errSpy.mockRestore();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
+
+it("gateway 경로 body에 providerOptions.gateway.order가 ['anthropic']이다", async () => {
+  vi.stubEnv("LLM_PROVIDER", "gateway");
+  vi.stubEnv("AI_GATEWAY_API_KEY", "gw-test");
+  const fetchMock = vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ content: [{ type: "text", text: "hi" }], stop_reason: "end_turn", usage: { input_tokens: 1, output_tokens: 1 } }),
+  } as Response);
+  vi.stubGlobal("fetch", fetchMock);
+  const { anthropicProvider } = await import("../../src/llm/index");
+  await anthropicProvider.complete({ model: CHAT_MODEL, messages: [{ role: "user", content: "hi" }] });
+  expect(JSON.parse(fetchMock.mock.calls[0]![1].body).providerOptions.gateway.order).toEqual(["anthropic"]);
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });

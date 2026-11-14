@@ -148,6 +148,8 @@ export const anthropicProvider: LlmProvider = {
           temperature: req.temperature ?? 0,
           // 기본값이 thinking이라 max_tokens를 사고에 다 쓰고 text 없이 끝나는 일이 있었다(빈 말풍선).
           thinking: { type: "disabled" },
+          // 일부 공급자(bedrock 등)가 thinking 비활성을 무시하므로 gateway는 anthropic 공급자를 먼저 쓰게 한다(F6).
+          ...(kind === "gateway" ? { providerOptions: { gateway: { order: ["anthropic"] } } } : {}),
           ...(system ? { system } : {}),
           messages,
         }),
