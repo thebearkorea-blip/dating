@@ -17,3 +17,4 @@
 | 2026-11-14 | e58f0bf(재배포 2회) | — | 변경 없음 | `CRON_SECRET` 교체(Secret 값은 pull 불가라 로컬 `.data/tmp/cron-secret.txt`에 보관). `/api/cron/proactive` 200 확인. 선톡 1건(사진 ihan-p108 포함)을 11-15 09:30 KST로 수동 틱 생성, `/api/media/ihan-p108` 302→Blob 실화면 확인. 푸시 구독 0(브라우저 알림 허용 대기) | Next 16 |
 | 2026-11-14 | df36dd8 | — | 변경 없음 | F6 닫힘: 공급자 순서 anthropic 우선(e0602dd, 효과 없음 확인) + 답장·선톡 maxTokens 1024. 배포본 답장 4건 실측(지연 2분·7분·13분 규칙대로) | Next 16 |
 | 2026-11-14 | Q3 persona 커밋 | — | 변경 없음 | persona에 앞으로 24시간 일정 섹션(Q3). GitHub Actions 15분 선톡 틱 가동 | Next 16 |
+| 2026-11-15 | 7460ba0 | — | 변경 없음 | u3(즉시 표시·after)·F7(연속 메시지)·대화 중 0~2분·함수 리전 iad1. Vercel CLI 로그아웃 사고(샌드박스가 auth.json 쓰기 거부) → 샌드박스 밖 `vercel login`으로 복구 | Next 16 |
