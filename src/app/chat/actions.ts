@@ -1,17 +1,30 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
-import { handleUserMessage } from "@/engine/chat";
+import { generateReplyFor, recordUserMessage } from "@/engine/chat";
 import { rateMessageCore } from "@/engine/ratings";
 import { handleReconcile } from "@/engine/reconcile";
 
-/** 어떤 예외든 삼킨다. 앱은 에러 화면을 보이지 않는다(화면은 그대로). */
+/**
+ * 어떤 예외든 삼킨다. 앱은 에러 화면을 보이지 않는다(화면은 그대로).
+ * 사용자 메시지만 저장하고 바로 돌아간다. 답장 생성(LLM)은 응답 뒤 after()에서 돈다.
+ */
 export async function sendMessage(text: string): Promise<{ ok: boolean }> {
   try {
     const user = await getCurrentUser();
     if (!user) return { ok: false };
-    await handleUserMessage({ db: getDb() }, user.id, String(text));
+    const r = await recordUserMessage({ db: getDb() }, user.id, String(text));
+    if (r.status === "ok") {
+      after(async () => {
+        try {
+          await generateReplyFor({ db: getDb() }, user.id, r.relId, r.userMsgId, String(text));
+        } catch (e) {
+          console.error("generateReplyFor failed", e);
+        }
+      });
+    }
     revalidatePath("/chat");
     return { ok: true };
   } catch {

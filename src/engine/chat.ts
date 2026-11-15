@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { now as clockNow } from "../clock";
 import { join } from "node:path";
-import { and, asc, count, desc, eq, gt, isNull, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import { bibleSchema, groupSchema, scheduleSchema, timelineSchema, type CanonRow, type Group } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
@@ -17,8 +17,9 @@ import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
 import { recordEvent } from "./events.js";
+import { scenesByTrigger } from "./scenes.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
-import { pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
+import { BUSY_OVERLAY_LINES, pickBusyOverlay, pickUnavailable, UNAVAILABLE_LINES } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
@@ -162,11 +163,64 @@ function llmErrorReason(e: unknown): string {
 
 export type SendResult = "ok" | "empty" | "ended";
 
-/** 사용자 메시지 1건을 받아 그의 답장(전송 지연 포함)까지 저장한다. */
-export async function handleUserMessage(deps: ChatDeps, userId: string, rawText: string): Promise<SendResult> {
+export type RecordResult = { status: "ok"; relId: string; userMsgId: string } | { status: "empty" | "ended"; relId: null; userMsgId: null };
+
+/** 1단계: 사용자 메시지만 저장한다(+first_message). 화면에 바로 보이도록 LLM은 부르지 않는다. */
+export async function recordUserMessage(deps: ChatDeps, userId: string, rawText: string): Promise<RecordResult> {
   const { db } = deps;
   const text = rawText.trim().slice(0, MAX_TEXT);
-  if (!text) return "empty";
+  if (!text) return { status: "empty", relId: null, userMsgId: null };
+  const now = deps.now ?? clockNow();
+  const [rel] = await db
+    .select({ id: relationships.id, endedAt: relationships.endedAt })
+    .from(relationships)
+    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID)))
+    .limit(1);
+  if (!rel) throw new Error("관계 없음: 온보딩 필요");
+  // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
+  if (rel.endedAt) return { status: "ended", relId: null, userMsgId: null };
+  const [userMsg] = await db
+    .insert(messages)
+    .values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text })
+    .returning({ id: messages.id });
+  if (!userMsg) throw new Error("메시지 저장 실패");
+  await recordEvent(db, userId, "first_message", { once: "ever", now });
+  return { status: "ok", relId: rel.id, userMsgId: userMsg.id };
+}
+
+/** 대화 중(그의 답장이 최근 10분 안에 전달됨)이면 첫 3개와 같은 범위로 답한다(2026-11-15). */
+const LIVE_REPLY_RANGE = FIRST_REPLY_RANGE;
+const LIVE_WINDOW_MIN = 10;
+
+/**
+ * 아직 전달 전인 일반 답장을 지운다(연속 메시지에 답장이 뒤섞이지 않게). 한도를 쓴 답장 수만큼 환불한다.
+ * 안전 대본·이별 확인 질문/장면은 origin이 같아도 지우지 않는다.
+ */
+async function dropPendingReplies(db: Db, userId: string, relId: string, now: Date): Promise<void> {
+  const keep = new Set<string>([SAFETY_SCRIPT]);
+  for (const s of scenesByTrigger(CHARACTER_ID, "breaker_confirmed")) {
+    if (s.confirmLine) keep.add(s.confirmLine);
+    for (const b of s.bubbles) keep.add(b);
+  }
+  const rows = (
+    await db
+      .select({ id: messages.id, text: messages.text })
+      .from(messages)
+      .where(and(eq(messages.relId, relId), eq(messages.sender, "char"), eq(messages.origin, "reply"), gt(messages.deliverAt, now)))
+  ).filter((r) => !keep.has(r.text));
+  if (rows.length === 0) return;
+  const ids = rows.map((r) => r.id);
+  await db.update(reviewFindings).set({ messageId: null }).where(inArray(reviewFindings.messageId, ids));
+  await db.delete(messages).where(inArray(messages.id, ids));
+  // 한도를 쓰지 않은 답장: 한도 소진 오버레이, LLM 실패 문장(이미 환불됨).
+  const free = new Set<string>([...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES]);
+  for (const r of rows) if (!free.has(r.text)) await refundQuota(db, userId);
+}
+
+/** 2단계: 저장된 사용자 메시지에 대한 그의 답장(전송 지연 포함)과 부수 처리(애정·토라짐·기억)를 한다. */
+export async function generateReplyFor(deps: ChatDeps, userId: string, relId: string, userMsgId: string, rawText: string): Promise<void> {
+  const { db } = deps;
+  const text = rawText.trim().slice(0, MAX_TEXT);
   const now = deps.now ?? clockNow();
   const base = deps.llm ?? complete;
   const rules = deps.rules ?? defaultRules();
@@ -182,27 +236,33 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
       profile: relationships.profile,
     })
     .from(relationships)
-    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID)))
+    .where(eq(relationships.id, relId))
     .limit(1);
-  if (!rel) throw new Error("관계 없음: 온보딩 필요");
-  // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
-  if (rel.endedAt) return "ended";
+  if (!rel || rel.endedAt) return;
   const chatLlm = trackedLlm(db, "chat", { relId: rel.id, userId, now }, base);
   const judgeLlm = trackedLlm(db, "judge", { relId: rel.id, userId, now }, base);
 
+  const [userMsg] = await db.select({ id: messages.id, at: messages.at }).from(messages).where(eq(messages.id, userMsgId)).limit(1);
+  if (!userMsg) return;
   const [prev] = await db
     .select({ at: messages.at })
     .from(messages)
-    .where(and(eq(messages.relId, rel.id), eq(messages.sender, "user")))
+    .where(and(eq(messages.relId, rel.id), eq(messages.sender, "user"), lt(messages.at, userMsg.at)))
     .orderBy(desc(messages.at))
     .limit(1);
 
-  const [userMsg] = await db
-    .insert(messages)
-    .values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text })
-    .returning({ id: messages.id });
-  if (!userMsg) throw new Error("메시지 저장 실패");
-  await recordEvent(db, userId, "first_message", { once: "ever", now });
+  // 연속 메시지: 아직 전달 전인 이전 답장은 지우고 최신 메시지 기준으로 하나만 만든다.
+  await dropPendingReplies(db, userId, rel.id, now);
+  /** 생성 도중 더 새 사용자 메시지가 왔으면 그 메시지의 처리에 맡긴다. */
+  const superseded = async () => {
+    const [latest] = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(and(eq(messages.relId, rel.id), eq(messages.sender, "user")))
+      .orderBy(desc(messages.at), desc(messages.id))
+      .limit(1);
+    return !!latest && latest.id !== userMsgId;
+  };
 
   const saveReply = async (replyText: string, deliverAt: Date) => {
     if (!replyText.trim()) return null; // 빈 텍스트는 저장하지 않는다(빈 말풍선 방지)
@@ -234,7 +294,20 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
 
   const activity = await currentActivity(db, stage, now);
   const [sent] = await db.select({ n: count() }).from(messages).where(and(eq(messages.relId, rel.id), eq(messages.sender, "user")));
-  const range = (sent?.n ?? 0) <= FIRST_REPLY_COUNT ? FIRST_REPLY_RANGE : undefined;
+  const [live] = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.relId, rel.id),
+        eq(messages.sender, "char"),
+        eq(messages.origin, "reply"),
+        lte(messages.deliverAt, now),
+        gt(messages.deliverAt, new Date(now.getTime() - LIVE_WINDOW_MIN * 60000)),
+      ),
+    )
+    .limit(1);
+  const range = (sent?.n ?? 0) <= FIRST_REPLY_COUNT ? FIRST_REPLY_RANGE : live ? LIVE_REPLY_RANGE : undefined;
   const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`, range) * 60000);
 
   const input = guardInput(text, rules);
@@ -248,7 +321,7 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
     // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {
     await recordEvent(db, userId, "quota_exhausted", { once: "day", now });
-    await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`), deliverAt);
+    if (!(await superseded())) await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`), deliverAt);
   } else {
     const [u] = await db.select({ tz: users.tz }).from(users).where(eq(users.id, userId)).limit(1);
     const secretNow = await peekSecret(db, rel.id, bible, now, u?.tz ?? null, text);
@@ -286,15 +359,22 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
         rules,
         `${userMsg.id}:fallback`,
       );
-      const replyId = await saveReply(reply.text, deliverAt);
-      await logFindings(db, rel.id, replyId, reply.findings);
-      if (secretNow) await recordDisclosure(db, rel.id, secretNow.id);
+      if (await superseded()) {
+        // 더 새 메시지의 답장이 이 답장을 대신한다. 한도는 되돌린다.
+        await refundQuota(db, userId);
+      } else {
+        const replyId = await saveReply(reply.text, deliverAt);
+        await logFindings(db, rel.id, replyId, reply.findings);
+        if (secretNow) await recordDisclosure(db, rel.id, secretNow.id);
+      }
     } catch (e) {
       // LLM 실패(네트워크·4xx·5xx·타임아웃)는 그의 사정으로 처리한다. 앱은 에러를 말하지 않는다.
       // 한도는 되돌리고, 사유에는 상태 코드만 남긴다(토큰·응답 본문 없음).
       await refundQuota(db, userId);
-      const replyId = await saveReply(pickUnavailable(`${userMsg.id}:unavailable`), deliverAt);
-      await logFindings(db, rel.id, replyId, [{ rule_id: "llm_error", severity: "flag", quote: "", reason: llmErrorReason(e) }]);
+      if (!(await superseded())) {
+        const replyId = await saveReply(pickUnavailable(`${userMsg.id}:unavailable`), deliverAt);
+        await logFindings(db, rel.id, replyId, [{ rule_id: "llm_error", severity: "flag", quote: "", reason: llmErrorReason(e) }]);
+      }
     }
   }
 
@@ -306,6 +386,13 @@ export async function handleUserMessage(deps: ChatDeps, userId: string, rawText:
   const [n] = await db.select({ n: count() }).from(messages).where(and(...sinceConds));
   if (n && n.n >= (cur?.cursor ? memoryEvery() : memoryFirstAfter())) await extractMemories(db, rel.id, now, { mode: deps.memoryMode, llm: deps.llm });
   await maybeFreezeProfile(db, rel.id, now);
+}
+
+/** 사용자 메시지 1건을 받아 그의 답장(전송 지연 포함)까지 저장한다(두 단계를 순서대로). */
+export async function handleUserMessage(deps: ChatDeps, userId: string, rawText: string): Promise<SendResult> {
+  const r = await recordUserMessage(deps, userId, rawText);
+  if (r.status !== "ok") return r.status;
+  await generateReplyFor(deps, userId, r.relId, r.userMsgId, rawText);
   return "ok";
 }
 

@@ -19,6 +19,10 @@ import { ReconcileForm } from "./ReconcileForm";
 
 export const dynamic = "force-dynamic";
 
+/** 보낸 뒤 이 시간 안에 답장 행이 안 생기면 다시 불러오기를 멈춘다. */
+const AWAIT_REPLY_MS = 2 * 60000;
+const AWAIT_POLL_MS = 3000;
+
 export default async function Chat() {
   const user = await getCurrentUser();
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
@@ -35,7 +39,7 @@ export default async function Chat() {
   await maybeDay3Return(db, user, now);
   if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const rows = await db
-    .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId })
+    .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId, at: messages.at })
     .from(messages)
     .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
     .orderBy(desc(messages.at), desc(sql`case when ${messages.sender} = 'user' then 0 else 1 end`), desc(messages.id))
@@ -52,6 +56,9 @@ export default async function Chat() {
   const next = await nextDeliverAt(db, rel.id, now);
   const status = await reconcileStatus(db, rel.id, now);
   const line = activityLine(await currentActivity(db, rel.stage, now));
+  // 답장 생성은 전송 응답 뒤에 돈다(after). 방금 보낸 말 뒤에 아직 저장된 답장이 없으면 잠시 다시 불러온다.
+  const last = list.at(-1);
+  const awaiting = !next && last?.sender === "user" && now.getTime() - last.at.getTime() < AWAIT_REPLY_MS;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col">
@@ -69,7 +76,8 @@ export default async function Chat() {
           </Link>
         </span>
       </header>
-      <ul className="flex flex-1 flex-col gap-2 p-4">
+      {/* 입력창이 있으면 빈 공간은 Composer가 채운다(보낸 말풍선이 목록 바로 뒤에 붙도록). */}
+      <ul className={status === "active" ? "flex flex-col gap-2 p-4" : "flex flex-1 flex-col gap-2 p-4"}>
         {list.map((m) => (
           <li
             key={m.id}
@@ -85,7 +93,11 @@ export default async function Chat() {
           </li>
         ))}
       </ul>
-      {next ? <DeliveryTimer at={next.toISOString()} /> : null}
+      {next ? (
+        <DeliveryTimer at={next.toISOString()} />
+      ) : awaiting ? (
+        <DeliveryTimer at={new Date(now.getTime() + AWAIT_POLL_MS).toISOString()} />
+      ) : null}
       {status === "active" ? (
         <Composer />
       ) : (

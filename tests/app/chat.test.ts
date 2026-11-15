@@ -39,6 +39,7 @@ beforeEach(async () => {
   calls = [];
   replyText = "Hey, good to hear from you.";
   delete process.env.DAILY_QUOTA_OVERRIDE;
+  delete process.env.REPLY_DELAY_SCALE;
   const [u] = await db.insert(users).values({ displayName: "t" }).returning();
   userId = u!.id;
   const [r] = await db
@@ -61,10 +62,15 @@ describe("페르소나 멤버 개성", () => {
 });
 
 describe("한도", () => {
+  // 메시지 간격은 이전 답장이 전달된 뒤로 둔다(전달 전 답장은 다음 메시지가 대체한다).
+  // 최대 지연 30분 x busy 6 = 180분이라 배수 0.5로 120분 간격 안에 들게 한다.
+  beforeEach(() => {
+    process.env.REPLY_DELAY_SCALE = "0.5";
+  });
   it("5회째까지 LLM을 부르고 6회째는 0회 + 오버레이 문장", async () => {
-    for (let i = 0; i < 5; i++) await send(`hello ${i}`, i);
+    for (let i = 0; i < 5; i++) await send(`hello ${i}`, i * 120);
     expect(llm).toHaveBeenCalledTimes(5);
-    await send("hello again", 5);
+    await send("hello again", 5 * 120);
     expect(llm).toHaveBeenCalledTimes(5);
     const rows = await chars();
     expect(rows).toHaveLength(6);
@@ -76,13 +82,13 @@ describe("한도", () => {
     process.env.DAILY_QUOTA_OVERRIDE = "1";
     llm.mockClear();
     await send("one", 0);
-    await send("two", 1);
+    await send("two", 120);
     expect(llm).toHaveBeenCalledTimes(1);
   });
 
   it("KST 다음 날이면 리셋된다", async () => {
     llm.mockClear();
-    for (let i = 0; i < 6; i++) await send(`m${i}`, i);
+    for (let i = 0; i < 6; i++) await send(`m${i}`, i * 120);
     expect(llm).toHaveBeenCalledTimes(5);
     await send("next day", 24 * 60);
     expect(llm).toHaveBeenCalledTimes(6);
@@ -174,9 +180,11 @@ describe("가드", () => {
 
 describe("전송 지연", () => {
   it("deliver_at은 replyDelayRange 안이고 결정적이다", async () => {
-    await send("hi", 0);
-    const [r] = await chars();
-    const min = (r!.deliverAt.getTime() - T0.getTime()) / 60000;
+    // 첫 3개(0~2분) 규칙을 먼저 소진한다. 4번째는 앞 답장 전달 뒤 10분이 넘게 지나 대화 중이 아니다.
+    for (let i = 0; i < 3; i++) await send(`hi ${i}`, i * 120);
+    await send("hi", 360);
+    const r = (await chars()).sort((x, y) => x.deliverAt.getTime() - y.deliverAt.getTime()).at(-1);
+    const min = (r!.deliverAt.getTime() - at(360).getTime()) / 60000;
     expect(min).toBeGreaterThanOrEqual(5);
     expect(min).toBeLessThanOrEqual(30 * 3);
   });
@@ -185,12 +193,13 @@ describe("전송 지연", () => {
 describe("전송 지연 화면 갱신", () => {
   it("한도 3·4건 전송: 답장 4건 모두 저장(3건 LLM + 오버레이), 전달 전 가장 이른 deliver_at을 돌려준다", async () => {
     process.env.DAILY_QUOTA_OVERRIDE = "3";
-    for (let i = 0; i < 4; i++) await send(`hello ${i}`, i);
+    process.env.REPLY_DELAY_SCALE = "0.5";
+    for (let i = 0; i < 4; i++) await send(`hello ${i}`, i * 120);
     expect(llm).toHaveBeenCalledTimes(3);
     const rs = await chars();
     expect(rs).toHaveLength(4);
-    const next = await nextDeliverAt(db, relId, at(3));
-    const earliest = Math.min(...rs.map((r) => r.deliverAt.getTime()).filter((t) => t > at(3).getTime()));
+    const next = await nextDeliverAt(db, relId, at(360));
+    const earliest = Math.min(...rs.map((r) => r.deliverAt.getTime()).filter((t) => t > at(360).getTime()));
     expect(next?.getTime()).toBe(earliest);
     expect(await nextDeliverAt(db, relId, at(100000))).toBeNull();
   });

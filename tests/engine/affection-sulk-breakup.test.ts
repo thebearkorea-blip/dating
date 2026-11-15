@@ -45,6 +45,7 @@ beforeEach(async () => {
   calls = [];
   llm.mockClear();
   delete process.env.DAILY_QUOTA_OVERRIDE;
+  delete process.env.REPLY_DELAY_SCALE;
   const [u] = await db.insert(users).values({ displayName: "t" }).returning();
   userId = u!.id;
   const [r] = await db.insert(relationships).values({ userId, characterId: "ihan", mode: "romance", startedAt: T0 }).returning();
@@ -209,6 +210,38 @@ describe("이별", () => {
     await send("hello 3", now);
     const d = (await chars()).at(-1)!.deliverAt.getTime() - now.getTime();
     expect(d).toBeGreaterThanOrEqual(5 * MIN);
+  });
+  it("대화 중(그의 답장이 5분 전 전달)이면 4번째 이후 메시지도 2분 안에, 30분 전이면 단계 범위", async () => {
+    for (let i = 0; i < 3; i++) await db.insert(messages).values({ relId, sender: "user", text: `old ${i}`, at: at(i), deliverAt: at(i) });
+    await db.insert(messages).values({ relId, sender: "char", text: "yeah", origin: "reply", at: at(55), deliverAt: at(55) });
+    await send("still there?", at(60));
+    expect((await chars()).at(-1)!.deliverAt.getTime() - at(60).getTime()).toBeLessThanOrEqual(2 * MIN);
+    // 30분 전 전달이면 대화 중이 아니다.
+    await db.delete(messages).where(eq(messages.relId, relId));
+    for (let i = 0; i < 3; i++) await db.insert(messages).values({ relId, sender: "user", text: `old ${i}`, at: at(200 + i), deliverAt: at(200 + i) });
+    await db.insert(messages).values({ relId, sender: "char", text: "yeah", origin: "reply", at: at(230), deliverAt: at(230) });
+    await send("hello?", at(260));
+    expect((await chars()).at(-1)!.deliverAt.getTime() - at(260).getTime()).toBeGreaterThanOrEqual(5 * MIN);
+  });
+  it("연속 메시지: 1초 간격 3개면 전달 전 답장은 1개만 남고, 그 답장의 history에 3개 모두 들어간다. 한도는 1회분만 쓴다", async () => {
+    const t = (s: number) => new Date(T0.getTime() + s * 1000);
+    await send("first", t(0));
+    await send("second", t(1));
+    await send("third", t(2));
+    const pending = (await chars()).filter((c) => c.deliverAt.getTime() > t(2).getTime());
+    expect(pending).toHaveLength(1);
+    expect(llm).toHaveBeenCalledTimes(3);
+    const userTurns = calls.at(-1)!.messages.filter((m) => m.role === "user").map((m) => m.content);
+    expect(userTurns).toEqual(expect.arrayContaining(["first", "second", "third"]));
+    const [e] = await db.select().from(schema.entitlements).where(eq(schema.entitlements.userId, userId));
+    expect(e!.quotaUsedToday).toBe(1);
+  });
+  it("연속 메시지: 즉시 전달되는 안전 대본은 지우지 않는다", async () => {
+    await send("I want to kill myself", at(0));
+    await send("sorry", new Date(at(0).getTime() + 500));
+    const cs = await chars();
+    expect(cs.some((c) => c.text.startsWith("I'm really glad you told me."))).toBe(true);
+    expect(cs).toHaveLength(2);
   });
   it("부정이면 해제되고 일반 답장으로 이어진다", async () => {
     await send("I cheated on you with someone.", at(0));
