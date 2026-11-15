@@ -19,7 +19,7 @@ import { applyUserMessage } from "./affection.js";
 import { recordEvent } from "./events.js";
 import { scenesByTrigger } from "./scenes.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
-import { BUSY_OVERLAY_LINES, pickBusyOverlay, pickUnavailable, UNAVAILABLE_LINES } from "./busy-overlay.js";
+import { BUSY_OVERLAY_LINES, BUSY_OVERLAY_LINES_KO, langOf, pickBusyOverlay, pickUnavailable, UNAVAILABLE_LINES, UNAVAILABLE_LINES_KO } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
@@ -213,7 +213,7 @@ async function dropPendingReplies(db: Db, userId: string, relId: string, now: Da
   await db.update(reviewFindings).set({ messageId: null }).where(inArray(reviewFindings.messageId, ids));
   await db.delete(messages).where(inArray(messages.id, ids));
   // 한도를 쓰지 않은 답장: 한도 소진 오버레이, LLM 실패 문장(이미 환불됨).
-  const free = new Set<string>([...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES]);
+  const free = new Set<string>([...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES, ...BUSY_OVERLAY_LINES_KO, ...UNAVAILABLE_LINES_KO]);
   for (const r of rows) if (!free.has(r.text)) await refundQuota(db, userId);
 }
 
@@ -321,7 +321,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {
     await recordEvent(db, userId, "quota_exhausted", { once: "day", now });
-    if (!(await superseded())) await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`), deliverAt);
+    if (!(await superseded())) await saveReply(pickBusyOverlay(`${rel.id}:${now.toISOString().slice(0, 10)}:${text}`, langOf(text)), deliverAt);
   } else {
     const [u] = await db.select({ tz: users.tz }).from(users).where(eq(users.id, userId)).limit(1);
     const secretNow = await peekSecret(db, rel.id, bible, now, u?.tz ?? null, text);
@@ -373,7 +373,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       // 한도는 되돌리고, 사유에는 상태 코드만 남긴다(토큰·응답 본문 없음).
       await refundQuota(db, userId);
       if (!(await superseded())) {
-        const replyId = await saveReply(pickUnavailable(`${userMsg.id}:unavailable`), deliverAt);
+        const replyId = await saveReply(pickUnavailable(`${userMsg.id}:unavailable`, langOf(text)), deliverAt);
         await logFindings(db, rel.id, replyId, [{ rule_id: "llm_error", severity: "flag", quote: "", reason: llmErrorReason(e) }]);
       }
     }
