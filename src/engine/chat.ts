@@ -24,7 +24,7 @@ import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
-import { activityAt, hash32, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
+import { activityAt, formatNowKst, hash32, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
 import { peekSecret, recordDisclosure } from "./secrets.js";
 import { onUserMessageSulk, sulkDirective } from "./sulk.js";
 
@@ -133,8 +133,8 @@ async function logFindings(db: Db, relId: string, messageId: string | null, find
     .values(findings.map((f) => ({ relId, messageId, ruleId: f.rule_id, severity: f.severity, quote: f.quote, reason: f.reason })));
 }
 
-/** 관계의 첫 3개 사용자 메시지는 0~2분 안에 답한다(2026-11-14 결정). */
-const FIRST_REPLY_RANGE = { min: 0, max: 2 };
+/** 관계의 첫 3개 사용자 메시지는 지연 없이 답한다(2026-11-15 결정, 이전 0~2분). */
+const FIRST_REPLY_RANGE = { min: 0, max: 0 };
 const FIRST_REPLY_COUNT = 3;
 
 function delayMinutes(a: Activity, seed: string, range = a.replyDelayRange): number {
@@ -188,8 +188,8 @@ export async function recordUserMessage(deps: ChatDeps, userId: string, rawText:
   return { status: "ok", relId: rel.id, userMsgId: userMsg.id };
 }
 
-/** 대화 중(그의 답장이 최근 10분 안에 전달됨)이면 첫 3개와 같은 범위로 답한다(2026-11-15). */
-const LIVE_REPLY_RANGE = FIRST_REPLY_RANGE;
+/** 대화 중(그의 답장이 최근 10분 안에 전달됨)은 지연 없음 — 사용자 결정 2026-11-15. */
+const LIVE_REPLY_RANGE = { min: 0, max: 0 };
 const LIVE_WINDOW_MIN = 10;
 
 /**
@@ -334,6 +334,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       voiceMd,
       canon,
       activity,
+      nowKst: formatNowKst(now),
       upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage }),
       stage,
       memories: await selectMemories(db, rel.id, text),

@@ -75,6 +75,14 @@ export function kstParts(worldTime: Date): {
   return { dayIndex, date: dayIndexToStr(dayIndex), weekday: new Date(dayIndex * DAY_MS).getUTCDay(), minutes };
 }
 
+/** UTC Date → "2026-11-15 (일) 22:51" (KST) */
+export function formatNowKst(worldTime: Date): string {
+  const k = kstParts(worldTime);
+  const hh = String(Math.floor(k.minutes / 60)).padStart(2, "0");
+  const mm = String(k.minutes % 60).padStart(2, "0");
+  return `${k.date} (${"일월화수목금토"[k.weekday]}) ${hh}:${mm}`;
+}
+
 function parseHm(s: string): number {
   const [h, m] = s.split(":");
   return Number(h) * 60 + Number(m);

@@ -196,12 +196,12 @@ describe("이별", () => {
     expect(all.map((m) => m.sender)).toEqual(["user", "char"]);
     expect(all[1]!.at.getTime()).toBeGreaterThanOrEqual(all[0]!.at.getTime() + 1000);
   });
-  it("첫 3개 사용자 메시지의 답장은 0~2분 안에 도착한다", async () => {
+  it("첫 3개 사용자 메시지의 답장은 즉시 도착한다", async () => {
     for (let i = 0; i < 3; i++) {
       const now = at(i * 60);
       await send(`hello ${i}`, now);
       const cs = await chars();
-      expect(cs.at(-1)!.deliverAt.getTime() - now.getTime()).toBeLessThanOrEqual(2 * MIN);
+      expect(cs.at(-1)!.deliverAt.getTime() - now.getTime()).toBeLessThanOrEqual(1000);
     }
   });
   it("4번째 메시지부터 단계별 지연(stage 1: 5~30분 x 배수)을 적용한다", async () => {
@@ -211,11 +211,12 @@ describe("이별", () => {
     const d = (await chars()).at(-1)!.deliverAt.getTime() - now.getTime();
     expect(d).toBeGreaterThanOrEqual(5 * MIN);
   });
-  it("대화 중(그의 답장이 5분 전 전달)이면 4번째 이후 메시지도 2분 안에, 30분 전이면 단계 범위", async () => {
+  it("대화 중(그의 답장이 5분 전 전달)이면 4번째 이후 메시지도 즉시, 30분 전이면 단계 범위", async () => {
     for (let i = 0; i < 3; i++) await db.insert(messages).values({ relId, sender: "user", text: `old ${i}`, at: at(i), deliverAt: at(i) });
     await db.insert(messages).values({ relId, sender: "char", text: "yeah", origin: "reply", at: at(55), deliverAt: at(55) });
     await send("still there?", at(60));
-    expect((await chars()).at(-1)!.deliverAt.getTime() - at(60).getTime()).toBeLessThanOrEqual(2 * MIN);
+    const live = (await chars()).at(-1)!.deliverAt.getTime() - at(60).getTime();
+    expect(live).toBeLessThanOrEqual(1000);
     // 30분 전 전달이면 대화 중이 아니다.
     await db.delete(messages).where(eq(messages.relId, relId));
     for (let i = 0; i < 3; i++) await db.insert(messages).values({ relId, sender: "user", text: `old ${i}`, at: at(200 + i), deliverAt: at(200 + i) });
@@ -225,6 +226,8 @@ describe("이별", () => {
   });
   it("연속 메시지: 1초 간격 3개면 전달 전 답장은 1개만 남고, 그 답장의 history에 3개 모두 들어간다. 한도는 1회분만 쓴다", async () => {
     const t = (s: number) => new Date(T0.getTime() + s * 1000);
+    // 첫 3개·대화 중은 지연 0이라 전달 전 답장이 없다. 단계 지연이 걸리는 상태(첫 3개 소진, 대화 중 아님)에서 확인한다.
+    for (let i = 0; i < 3; i++) await db.insert(messages).values({ relId, sender: "user", text: `old ${i}`, at: at(-300 + i), deliverAt: at(-300 + i) });
     await send("first", t(0));
     await send("second", t(1));
     await send("third", t(2));

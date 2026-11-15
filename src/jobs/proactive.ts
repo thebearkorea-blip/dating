@@ -13,7 +13,7 @@ import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
 import { scenesByTrigger } from "../engine/scenes.js";
 import { isSulking } from "../engine/sulk.js";
-import { activityAt, hash32, kstParts, upcomingBlocks, type Activity } from "../engine/schedule.js";
+import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { trackedLlm } from "../llm/tracked.js";
 import { guardOutput } from "../policy/output-guard.js";
@@ -223,6 +223,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
     voiceMd,
     canon,
     activity,
+    nowKst: formatNowKst(now),
     upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage: rel.stage }),
     stage: rel.stage,
     memories: memory ? [memory] : [],

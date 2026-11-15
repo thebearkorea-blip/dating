@@ -13,6 +13,10 @@ const act = (stage: number) => activityAt(character, new Date("2026-12-01T03:00:
 const build = (stage: number) => buildPersona({ bible, voiceMd, canon, activity: act(stage), stage });
 
 describe("buildPersona", () => {
+  it("nowKst goes into suffix", () => {
+    const p = buildPersona({ bible, voiceMd, canon, activity: act(3), stage: 3, nowKst: "2026-11-15 (일) 22:51" });
+    expect(p.dynamic_suffix).toContain("- 지금 시각(KST): 2026-11-15 (일) 22:51");
+  });
   it("prefix is byte-identical for the same input and across stages", () => {
     expect(build(2).cacheable_prefix).toBe(build(2).cacheable_prefix);
     expect(build(1).cacheable_prefix).toBe(build(5).cacheable_prefix);

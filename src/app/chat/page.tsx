@@ -2,6 +2,7 @@ import { devOnlyEnabled } from "@/dev-only";
 import { and, asc, desc, eq, lte, sql } from "drizzle-orm";
 import { now as clockNow } from "@/clock";
 import Link from "next/link";
+import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { takePaywall } from "@/billing/paywall";
@@ -23,6 +24,16 @@ export const dynamic = "force-dynamic";
 const AWAIT_REPLY_MS = 2 * 60000;
 const AWAIT_POLL_MS = 3000;
 
+function safeTz(tz: string | null): string {
+  const t = tz || "Asia/Seoul";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: t });
+    return t;
+  } catch {
+    return "Asia/Seoul";
+  }
+}
+
 export default async function Chat() {
   const user = await getCurrentUser();
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
@@ -39,7 +50,7 @@ export default async function Chat() {
   await maybeDay3Return(db, user, now);
   if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const rows = await db
-    .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId, at: messages.at })
+    .select({ id: messages.id, sender: messages.sender, text: messages.text, mediaId: messages.mediaId, at: messages.at, deliverAt: messages.deliverAt })
     .from(messages)
     .where(and(eq(messages.relId, rel.id), lte(messages.deliverAt, now)))
     .orderBy(desc(messages.at), desc(sql`case when ${messages.sender} = 'user' then 0 else 1 end`), desc(messages.id))
@@ -53,6 +64,10 @@ export default async function Chat() {
       mine.set(r.msgId, r.score === 1 ? 1 : -1);
     }
   }
+  const tz = safeTz(user.tz);
+  const hm = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz });
+  const dayFmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", weekday: "short", timeZone: tz });
+  const dayKey = new Intl.DateTimeFormat("en-CA", { timeZone: tz });
   const next = await nextDeliverAt(db, rel.id, now);
   const status = await reconcileStatus(db, rel.id, now);
   const line = activityLine(await currentActivity(db, rel.stage, now));
@@ -78,9 +93,18 @@ export default async function Chat() {
       </header>
       {/* 입력창이 있으면 빈 공간은 Composer가 채운다(보낸 말풍선이 목록 바로 뒤에 붙도록). */}
       <ul className={status === "active" ? "flex flex-col gap-2 p-4" : "flex flex-1 flex-col gap-2 p-4"}>
-        {list.map((m) => (
+        {list.map((m, i) => {
+          const d = dayKey.format(m.deliverAt);
+          const newDay = i === 0 || d !== dayKey.format(list[i - 1]!.deliverAt);
+          const dayLabel = (() => {
+            const parts = dayFmt.formatToParts(m.deliverAt);
+            const g = (t: string) => parts.find((x) => x.type === t)?.value ?? "";
+            return `${g("month")} ${g("day")} (${g("weekday")})`;
+          })();
+          return (
+          <Fragment key={m.id}>
+          {newDay ? <li className="text-center text-xs text-[var(--color-ink-soft)]">{dayLabel}</li> : null}
           <li
-            key={m.id}
             className={
               m.sender === "user"
                 ? "ml-auto max-w-[80%] rounded-[var(--radius-bubble-mine)] bg-[var(--color-bubble-mine)] px-4 py-2 text-[var(--color-bubble-mine-ink)]"
@@ -91,7 +115,10 @@ export default async function Chat() {
             {m.text}
             {user.isBeta && m.sender === "char" ? <Rate msgId={m.id} initial={mine.get(m.id) ?? null} /> : null}
           </li>
-        ))}
+          <li className={`-mt-1 text-xs text-[var(--color-ink-soft)] ${m.sender === "user" ? "ml-auto" : "mr-auto"}`}>{hm.format(m.deliverAt)}</li>
+          </Fragment>
+          );
+        })}
       </ul>
       {next ? (
         <DeliveryTimer at={next.toISOString()} />
@@ -99,7 +126,7 @@ export default async function Chat() {
         <DeliveryTimer at={new Date(now.getTime() + AWAIT_POLL_MS).toISOString()} />
       ) : null}
       {status === "active" ? (
-        <Composer />
+        <Composer tz={tz} />
       ) : (
         <AppVoice screen="reconcile">
           <ReconcileForm open={status === "open"} />

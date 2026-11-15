@@ -24,6 +24,8 @@ export interface PersonaInput {
   /** 그룹 세계관(선택). 있으면 멤버 줄에 archetype·vibe를 붙인다 */
   group?: Group;
   /** 앞으로 24시간 일정(선택). 내일 계획을 말할 때 어긋나지 않게 하는 참고용 */
+  /** 현재 시각 KST 문자열(선택). 예: "2026-11-15 (일) 22:51" */
+  nowKst?: string;
   upcoming?: { startKst: string; dayLabel: string; activity: string }[];
 }
 
@@ -94,6 +96,7 @@ function suffix(i: PersonaInput): string {
   const lines = [
     "# 오늘의 상태 (KST 기준)",
     `활동: ${a.activity}`,
+    ...(i.nowKst ? [`- 지금 시각(KST): ${i.nowKst} — 시간을 물으면 이 값으로 답한다`] : []),
     `busy: ${a.busy}/3`,
     `기분: ${a.mood}`,
     `답장 지연: ${a.replyDelayRange.min}~${a.replyDelayRange.max}분`,
