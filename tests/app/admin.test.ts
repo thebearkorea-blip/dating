@@ -185,10 +185,13 @@ describe("일반 사용자 화면 grep", () => {
 
   it("평가 UI는 베타 가드 안에서만 렌더되고, 일반 화면은 admin·숫자(애정·단계·원가)를 싣지 않는다", () => {
     const page = readFileSync("src/app/chat/page.tsx", "utf8");
-    expect(page.match(/<Rate\b/g)).toHaveLength(1);
-    expect(page).toMatch(/user\.isBeta && m\.sender === "char" \? <Rate/);
+    const list = readFileSync("src/app/chat/MessageList.tsx", "utf8");
+    expect(list.match(/<Rate\b/g)).toHaveLength(1);
+    expect(list).toMatch(/props\.isBeta && m\.sender === "char" \?/);
+    // 평가 데이터는 베타일 때만 읽는다.
+    expect(page).toMatch(/if \(user\.isBeta\) \{[^}]*ratings/s);
     for (const f of user) {
-      if (f.endsWith("Rate.tsx")) continue;
+      if (f.endsWith("Rate.tsx") || f.endsWith("MessageList.tsx") || f.endsWith("ChatClient.tsx")) continue;
       const s = readFileSync(f, "utf8");
       expect(s, f).not.toMatch(/@\/admin|llmUsage|affection|\{rel\.stage\}|\{[^}]*\.stage\}/);
       if (!f.endsWith("chat/page.tsx") && !f.endsWith("chat/actions.ts")) expect(s, f).not.toMatch(/Rate|ratings/);

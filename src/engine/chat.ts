@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { now as clockNow } from "../clock";
 import { join } from "node:path";
-import { and, asc, count, desc, eq, gt, inArray, isNull, lt, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
 import { parse as parseYaml } from "yaml";
 import { bibleSchema, groupSchema, scheduleSchema, timelineSchema, type CanonRow, type Group } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
@@ -25,6 +25,9 @@ import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
 import { activityAt, formatNowKst, hash32, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
+import { seenAtFor } from "./typing.js";
+import { judgeModeOf, ruleReaction } from "./judge.js";
+import { isQuotable, maybeRecordCharReaction, moveCharReaction, replyContextBlock, replyContextLines } from "./reactions.js";
 import { peekSecret, recordDisclosure } from "./secrets.js";
 import { onUserMessageSulk, sulkDirective } from "./sulk.js";
 
@@ -161,13 +164,20 @@ function llmErrorReason(e: unknown): string {
   return m ? `llm http ${m[1]}` : "llm call failed (network/timeout)";
 }
 
-export type SendResult = "ok" | "empty" | "ended";
+export type SendResult = "ok" | "empty" | "ended" | "duplicate";
 
-export type RecordResult = { status: "ok"; relId: string; userMsgId: string } | { status: "empty" | "ended"; relId: null; userMsgId: null };
+export type RecordResult = { status: "ok"; relId: string; userMsgId: string } | { status: "empty" | "ended" | "duplicate"; relId: null; userMsgId: null };
 
-/** 1단계: 사용자 메시지만 저장한다(+first_message). 화면에 바로 보이도록 LLM은 부르지 않는다. */
-export async function recordUserMessage(deps: ChatDeps, userId: string, rawText: string): Promise<RecordResult> {
+const CLIENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 1단계: 사용자 메시지만 저장한다(+first_message). 화면에 바로 보이도록 LLM은 부르지 않는다.
+ * clientId(uuid)를 주면 그 id로 저장한다. 이미 있는 id면 아무것도 하지 않고 "duplicate"(재시도 중복·LLM 2회 방지).
+ * replyTo(인용 대상)는 같은 관계의 이미 도착한 메시지만. 아니면 던진다.
+ */
+export async function recordUserMessage(deps: ChatDeps, userId: string, rawText: string, clientId?: string, replyTo?: string | null): Promise<RecordResult> {
   const { db } = deps;
+  if (clientId !== undefined && !CLIENT_ID.test(clientId)) throw new Error("잘못된 메시지 id");
   const text = rawText.trim().slice(0, MAX_TEXT);
   if (!text) return { status: "empty", relId: null, userMsgId: null };
   const now = deps.now ?? clockNow();
@@ -179,11 +189,16 @@ export async function recordUserMessage(deps: ChatDeps, userId: string, rawText:
   if (!rel) throw new Error("관계 없음: 온보딩 필요");
   // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
   if (rel.endedAt) return { status: "ended", relId: null, userMsgId: null };
+  if (replyTo != null && !(await isQuotable(db, rel.id, String(replyTo), now))) throw new Error("잘못된 인용 대상");
   const [userMsg] = await db
     .insert(messages)
-    .values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text })
+    .values({ ...(clientId ? { id: clientId } : {}), relId: rel.id, at: now, deliverAt: now, sender: "user", text, replyTo: replyTo ?? null })
+    .onConflictDoNothing({ target: messages.id })
     .returning({ id: messages.id });
-  if (!userMsg) throw new Error("메시지 저장 실패");
+  if (!userMsg) {
+    if (clientId) return { status: "duplicate", relId: null, userMsgId: null };
+    throw new Error("메시지 저장 실패");
+  }
   await recordEvent(db, userId, "first_message", { once: "ever", now });
   return { status: "ok", relId: rel.id, userMsgId: userMsg.id };
 }
@@ -270,7 +285,34 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       .insert(messages)
       .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: replyText, origin: "reply" })
       .returning({ id: messages.id });
+    await markSeen(replyText, deliverAt);
+    // 그의 반응(W11): 위기 대본에는 달지 않는다.
+    if (replyText !== SAFETY_SCRIPT) {
+      await maybeRecordCharReaction(db, { userId, relId: rel.id, userMsgId: userMsg.id, judged, busy: activity.busy, delayMs: deliverAt.getTime() - now.getTime() });
+    }
     return m?.id ?? null;
+  };
+  /**
+   * 이 답장이 답하는 사용자 메시지(이 메시지까지, 아직 읽음 표시가 없거나 미래인 것)에 seen_at을 기록한다.
+   * 이미 지난 seen_at(화면에 Read로 보인 값)은 F7 재생성에서도 옮기지 않는다.
+   */
+  const markSeen = async (replyText: string, deliverAt: Date) => {
+    const pending = await db
+      .select({ id: messages.id, at: messages.at })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.relId, rel.id),
+          eq(messages.sender, "user"),
+          lte(messages.at, userMsg.at),
+          or(isNull(messages.seenAt), gt(messages.seenAt, now)),
+        ),
+      );
+    for (const u of pending) {
+      const seenAt = seenAtFor(u.id, u.at, deliverAt, replyText.length);
+      await db.update(messages).set({ seenAt }).where(eq(messages.id, u.id));
+      await moveCharReaction(db, u.id, seenAt, now);
+    }
   };
 
   await logFindings(db, rel.id, userMsg.id, detectBreakers(text));
@@ -310,10 +352,18 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
   const range = (sent?.n ?? 0) <= FIRST_REPLY_COUNT ? FIRST_REPLY_RANGE : live ? LIVE_REPLY_RANGE : undefined;
   const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`, range) * 60000);
 
+  // 그의 반응 후보(W11): rules 모드는 키워드 규칙, llm 모드는 이별 분류 판단 호출의 reaction 필드(추가 호출 없음).
+  let judged: string | null = judgeModeOf(deps.memoryMode) === "rules" ? ruleReaction(text) : null;
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
   // 이별 전이(확인 질문 → 이별 장면). 위기 신호는 안전 대본이 먼저라 분류하지 않는다.
-  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, { mode: deps.memoryMode, llm: judgeLlm });
+  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, {
+        mode: deps.memoryMode,
+        llm: judgeLlm,
+        onReaction: (e) => {
+          judged = e;
+        },
+      });
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
     await saveReply(SAFETY_SCRIPT, nextCharacterAt(now, 0));
@@ -353,10 +403,12 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       .reverse()
       .map((m) => ({ role: m.sender === "user" ? ("user" as const) : ("assistant" as const), content: m.text }));
     while (turns[0]?.role === "assistant") turns.shift();
+    // 그의 마지막 답장 이후 반응·인용(W9·W10). 반응만으로는 답장을 만들지 않는다(여기서 문맥으로만).
+    const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now));
     try {
       const reply = await generateGuardedReply(
         // F6: thinking 블록이 토큰을 먼저 쓰므로 여유를 둔다. 길이는 persona 지시로 제한
-        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 1024, temperature: 0.8, messages: [{ role: "system", content: persona.system }, ...turns] })),
+        () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 1024, temperature: 0.8, messages: [{ role: "system", content: system }, ...turns] })),
         rules,
         `${userMsg.id}:fallback`,
       );

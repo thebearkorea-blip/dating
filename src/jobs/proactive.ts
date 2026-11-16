@@ -352,7 +352,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       result.saved++;
       say(rel.id, "saved: reward");
       try {
-        result.pushed += await push(db, rel.userId, { title: bible.name, body: first.slice(0, 120), url: "/chat" });
+        result.pushed += await push(db, rel.userId, { title: bible.name, body: first.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
       } catch {
         // 푸시 실패는 선톡 저장에 영향이 없다.
       }
@@ -378,7 +378,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     result.saved++;
     say(rel.id, "saved: generated");
     try {
-      result.pushed += await push(db, rel.userId, { title: bible.name, body: gen.text.slice(0, 120), url: "/chat" });
+      result.pushed += await push(db, rel.userId, { title: bible.name, body: gen.text.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
     } catch {
       // 푸시 실패는 선톡 저장에 영향이 없다.
     }

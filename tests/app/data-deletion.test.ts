@@ -8,7 +8,7 @@ import { loadContent } from "../../src/db/load-content.js";
 import * as schema from "../../src/db/schema/index.js";
 import { deleteAccount, deleteAllConversations } from "../../src/engine/data-deletion.js";
 
-const { disclosures, events, memories, messages, ratings, relationships, users } = schema;
+const { disclosures, events, memories, messages, ratings, reactions, relationships, users } = schema;
 const db = drizzle(new PGlite(), { schema });
 
 beforeAll(async () => {
@@ -23,6 +23,9 @@ async function seed() {
   await db.insert(memories).values({ relId: r!.id, fact: "likes tea" });
   await db.insert(disclosures).values({ relId: r!.id, secretId: "s1" });
   await db.insert(ratings).values({ msgId: m!.id, userId: u!.id, score: 1 });
+  const [m2] = await db.insert(messages).values({ relId: r!.id, sender: "char", text: "re", replyTo: m!.id }).returning();
+  await db.insert(reactions).values({ msgId: m2!.id, userId: u!.id, by: "user", emoji: "❤️" });
+  await db.insert(reactions).values({ msgId: m!.id, userId: u!.id, by: "char", emoji: "👀" });
   await db.insert(events).values({ userId: u!.id, kind: "signup" });
   return { userId: u!.id, relId: r!.id };
 }
@@ -35,6 +38,7 @@ describe("데이터 삭제", () => {
     expect(await db.select().from(memories).where(eq(memories.relId, relId))).toHaveLength(0);
     expect(await db.select().from(disclosures).where(eq(disclosures.relId, relId))).toHaveLength(0);
     expect(await db.select().from(ratings).where(eq(ratings.userId, userId))).toHaveLength(0);
+    expect(await db.select().from(reactions).where(eq(reactions.userId, userId))).toHaveLength(0);
     const [rel] = await db.select().from(relationships).where(eq(relationships.id, relId));
     expect(rel?.stage).toBe(1);
     expect(rel?.affection).toBe(0);
@@ -47,6 +51,7 @@ describe("데이터 삭제", () => {
     expect(await db.select().from(users).where(eq(users.id, userId))).toHaveLength(0);
     expect(await db.select().from(relationships).where(eq(relationships.userId, userId))).toHaveLength(0);
     expect(await db.select().from(events).where(eq(events.userId, userId))).toHaveLength(0);
+    expect(await db.select().from(reactions).where(eq(reactions.userId, userId))).toHaveLength(0);
     const ev = await db.select().from(events).where(isNull(events.userId));
     expect(ev.some((e) => e.kind === "account_deleted")).toBe(true);
   });

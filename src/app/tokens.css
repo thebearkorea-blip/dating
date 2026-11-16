@@ -1,4 +1,4 @@
-/* 디자인 토큰 한 곳. 색·간격·말풍선 반경. 카카오(노랑/갈색)·라인(초록)과 겹치지 않는 팔레트. */
+/* 디자인 토큰 한 곳. 색·간격·말풍선 반경·글꼴. 카카오(노랑/갈색)·라인(초록)과 겹치지 않는 팔레트. */
 :root {
   --color-bg: #f6f3f8;
   --color-surface: #ffffff;
@@ -13,6 +13,10 @@
   --color-system-bg: #fff4d6;
   --color-system-ink: #5a4500;
   --color-line: #ded8e8;
+  --color-header-bg: rgba(246, 243, 248, 0.92);
+  --color-input-bg: #ffffff;
+  --color-placeholder: #6b6577;
+  --color-focus: #5b4bdb;
 
   --space-1: 4px;
   --space-2: 8px;
@@ -24,4 +28,74 @@
   --radius-bubble: 18px 18px 18px 6px; /* 그의 말풍선: 왼쪽 아래만 뾰족 */
   --radius-bubble-mine: 18px 18px 6px 18px;
   --radius-control: 12px;
+
+  --font-sans: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14111a;
+    --color-surface: #1e1a27;
+    --color-ink: #f1eef7;
+    --color-ink-soft: #a9a2b8;
+    --color-accent: #8b7dff;
+    --color-accent-ink: #0f0c18;
+    --color-bubble-mine: #5b4bdb;
+    --color-bubble-mine-ink: #ffffff;
+    --color-bubble-his: #2c2638;
+    --color-bubble-his-ink: #f1eef7;
+    --color-system-bg: #3a3014;
+    --color-system-ink: #f3dfa0;
+    --color-line: #332d40;
+    --color-header-bg: rgba(20, 17, 26, 0.92);
+    --color-input-bg: #1e1a27;
+    --color-placeholder: #a9a2b8;
+    --color-focus: #8b7dff;
+  }
+}
+
+/* 일본판 팔레트 — 초안(사용자 확인 전). 부드럽고 따뜻한 사쿠라·베이지 계열. LINE 초록·카카오 노랑과 겹치지 않게 피한다. */
+[data-product="jp"] {
+  --color-bg: #faf4f2;
+  --color-surface: #ffffff;
+  --color-ink: #2b2226;
+  --color-ink-soft: #7a6a6f;
+  --color-accent: #c2476f; /* 두꺼운 사쿠라 핑크(대비 확보) */
+  --color-accent-ink: #ffffff;
+  --color-bubble-mine: #c2476f;
+  --color-bubble-mine-ink: #ffffff;
+  --color-bubble-his: #f1e4e0;
+  --color-bubble-his-ink: #2b2226;
+  --color-system-bg: #eef4f1;
+  --color-system-ink: #264235;
+  --color-line: #eadbd7;
+  --color-header-bg: rgba(250, 244, 242, 0.92);
+  --color-input-bg: #ffffff;
+  --color-placeholder: #7a6a6f;
+  --color-focus: #c2476f;
+  --radius-bubble: 20px 20px 20px 8px;
+  --radius-bubble-mine: 20px 20px 8px 20px;
+  --font-sans: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-product="jp"] {
+    --color-bg: #1a1416;
+    --color-surface: #261d20;
+    --color-ink: #f6eef0;
+    --color-ink-soft: #bfaeb3;
+    --color-accent: #ef8fae;
+    --color-accent-ink: #2b1018;
+    --color-bubble-mine: #b03c63;
+    --color-bubble-mine-ink: #ffffff;
+    --color-bubble-his: #342a2e;
+    --color-bubble-his-ink: #f6eef0;
+    --color-system-bg: #1f2e27;
+    --color-system-ink: #cfe8dc;
+    --color-line: #3b2f33;
+    --color-header-bg: rgba(26, 20, 22, 0.92);
+    --color-input-bg: #261d20;
+    --color-placeholder: #bfaeb3;
+    --color-focus: #ef8fae;
+  }
 }

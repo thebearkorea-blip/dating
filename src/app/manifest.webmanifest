@@ -1,9 +1,0 @@
-{
-  "name": "ONDAY",
-  "short_name": "ONDAY",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f6f3f8",
-  "theme_color": "#5b4bdb",
-  "icons": []
-}

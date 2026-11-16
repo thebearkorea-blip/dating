@@ -8,9 +8,9 @@ CREATE ROLE role_growth NOLOGIN;
 GRANT USAGE ON SCHEMA personal, world, collective TO role_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA personal TO role_app;
 GRANT SELECT ON ALL TABLES IN SCHEMA world, collective TO role_app;
--- 후속 테이블(재실행 시에도 명시적으로 보장): 검수·푸시·고지·평가·이벤트.
+-- 후속 테이블(재실행 시에도 명시적으로 보장): 검수·푸시·고지·평가·이벤트·반응.
 GRANT SELECT, INSERT, UPDATE, DELETE ON
-  personal.review_findings, personal.push_subscriptions, personal.disclosures, personal.ratings, personal.events
+  personal.review_findings, personal.push_subscriptions, personal.disclosures, personal.ratings, personal.events, personal.reactions
   TO role_app;
 GRANT USAGE ON SCHEMA billing TO role_app;
 GRANT SELECT ON ALL TABLES IN SCHEMA billing TO role_app;

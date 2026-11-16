@@ -5,8 +5,14 @@ import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
+import { now as clockNow } from "@/clock";
 import { getDb } from "@/db/client";
 import { characters } from "@/db/schema/index";
+import { relDayOf } from "@/engine/chat";
+import { findOwnedRelationship } from "@/engine/chat-view";
+import { himActivity, loadSentPhotos } from "@/engine/him-view";
+import { fmt, getStrings } from "@/product";
+import { PhotoGrid } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
 
@@ -28,39 +34,60 @@ export default async function Him() {
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const [c] = await getDb().select().from(characters).where(eq(characters.id, "ihan")).limit(1);
   if (!c) redirect("/chat");
+  const str = getStrings();
+  const now = clockNow();
+  const rel = await findOwnedRelationship(getDb(), user.id);
+  const photos = rel ? await loadSentPhotos(getDb(), rel.id, now) : [];
+  const relDay = rel ? await relDayOf(getDb()) : 0;
+  const days = -relDay;
+  const debutLine = !rel || days < 0 ? null : days === 0 ? str["him.debutToday"] : days === 1 ? str["him.debutTomorrow"] : fmt(str["him.debutIn"], { days });
+  const activity = rel ? await himActivity(getDb(), rel, now) : "";
   const position = ((c.bible as { position?: string[] }).position ?? []).join(" · ");
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Profile</h1>
+        <h1 className="text-lg font-semibold">{str["him.title"]}</h1>
         <Link href="/chat" className="text-sm underline">
-          Back
+          {str["header.back"]}
         </Link>
       </header>
       <div
-        role="img"
-        aria-label="Photo placeholder"
-        className="flex aspect-square w-full items-center justify-center rounded-[var(--radius-control)] bg-[var(--color-surface)] text-[var(--color-ink-soft)]"
+        aria-hidden="true"
+        className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-4xl font-semibold text-[var(--color-bubble-his-ink)]"
       >
-        Photo
+        {c.name.slice(0, 1)}
       </div>
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">{c.name}</h2>
           <span data-profile-meta="ai-character" className="rounded-[var(--radius-control)] border border-[var(--color-line)] px-2 py-0.5 text-xs text-[var(--color-ink-soft)]">
-            AI character
+            {str["him.aiTag"]}
           </span>
         </div>
         <p className="text-[var(--color-ink-soft)]">{tagline()}</p>
+        {debutLine ? <p className="text-sm font-medium">{debutLine}</p> : null}
+        {activity ? (
+          <p className="text-sm text-[var(--color-ink-soft)]">
+            {str["him.today"]}: {activity}
+          </p>
+        ) : null}
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          <dt className="text-[var(--color-ink-soft)]">Group</dt>
+          <dt className="text-[var(--color-ink-soft)]">{str["him.group"]}</dt>
           <dd>{c.groupName}</dd>
-          <dt className="text-[var(--color-ink-soft)]">Position</dt>
+          <dt className="text-[var(--color-ink-soft)]">{str["him.position"]}</dt>
           <dd>{position}</dd>
-          <dt className="text-[var(--color-ink-soft)]">Age</dt>
+          <dt className="text-[var(--color-ink-soft)]">{str["him.age"]}</dt>
           <dd>{c.age}</dd>
         </dl>
+      </section>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">{fmt(str["him.photos"], { name: c.name })}</h2>
+        {photos.length > 0 ? (
+          <PhotoGrid mediaIds={photos.map((p) => p.mediaId)} alt={fmt(str["photo.alt"], { name: c.name })} closeLabel={str["photo.close"]} />
+        ) : (
+          <p className="text-sm text-[var(--color-ink-soft)]">{str["him.noPhotos"]}</p>
+        )}
       </section>
     </main>
   );

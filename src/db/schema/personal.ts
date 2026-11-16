@@ -1,8 +1,11 @@
 import {
+  type AnyPgColumn,
   boolean,
+  index,
   integer,
   jsonb,
   pgSchema,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -72,19 +75,43 @@ export const relationships = personal.table(
   (t) => [unique("relationships_user_character_uq").on(t.userId, t.characterId)],
 );
 
-export const messages = personal.table("messages", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  relId: uuid("rel_id").notNull().references(() => relationships.id),
-  at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
-  sender: text("sender").notNull(), // user | char | member
-  text: text("text").notNull(),
-  mediaId: text("media_id"),
-  ttsUrl: text("tts_url"),
-  origin: text("origin"), // reply | proactive | catchup
-  tag: text("tag"), // promise | reward (선톡 분류용, 화면에 싣지 않음)
-  /** 이 시각 전에는 화면에 내보내지 않는다(사람다운 답장 지연). 사용자 메시지는 at과 같다. */
-  deliverAt: timestamp("deliver_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const messages = personal.table(
+  "messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    relId: uuid("rel_id").notNull().references(() => relationships.id),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    sender: text("sender").notNull(), // user | char | member
+    text: text("text").notNull(),
+    mediaId: text("media_id"),
+    ttsUrl: text("tts_url"),
+    origin: text("origin"), // reply | proactive | catchup
+    tag: text("tag"), // promise | reward (선톡 분류용, 화면에 싣지 않음)
+    /** 이 시각 전에는 화면에 내보내지 않는다(사람다운 답장 지연). 사용자 메시지는 at과 같다. */
+    deliverAt: timestamp("deliver_at", { withTimezone: true }).notNull().defaultNow(),
+    /** 인용 답장 대상. 대상이 지워지면 null. */
+    replyTo: uuid("reply_to").references((): AnyPgColumn => messages.id, { onDelete: "set null" }),
+    /** 사용자 메시지를 그가 읽은 시각(이 시각이 지나면 Read 표시). */
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+  },
+  (t) => [index("messages_rel_deliver_idx").on(t.relId, t.deliverAt, t.id)],
+);
+
+/**
+ * 메시지 반응(이모지). 메시지당 by(user|char)별 1개. userId는 관계 소유자(권한·삭제용).
+ * char 반응의 at은 미래일 수 있고, 그 시각 전에는 화면에 내보내지 않는다.
+ */
+export const reactions = personal.table(
+  "reactions",
+  {
+    msgId: uuid("msg_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    by: text("by").notNull(), // user | char
+    emoji: text("emoji").notNull(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.msgId, t.by] })],
+);
 
 /** 검수·감지 로그(차단·플래그·relationship_breakers 감지). 화면에 싣지 않는다. */
 export const reviewFindings = personal.table("review_findings", {

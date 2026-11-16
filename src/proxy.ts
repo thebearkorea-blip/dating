@@ -15,5 +15,5 @@ export const proxy = clerkMiddleware((_auth, request) => {
 });
 
 export const config = {
-  matcher: ["/((?!geo-block|_next/|manifest\\.webmanifest|favicon\\.ico).*)"],
+  matcher: ["/((?!geo-block|_next/|manifest\\.webmanifest|favicon\\.ico|pwa-icon|apple-icon|icon|sw\\.js).*)"],
 };

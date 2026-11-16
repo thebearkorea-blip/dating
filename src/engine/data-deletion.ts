@@ -1,7 +1,7 @@
 // 사용자 데이터 삭제(체크리스트 7). 대화만 지우기 / 계정 전체 삭제.
 import { eq, inArray } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { disclosures, events, memories, messages, platformIdentities, pushSubscriptions, ratings, relationships, reviewFindings, users } from "../db/schema/index";
+import { disclosures, events, memories, messages, platformIdentities, pushSubscriptions, ratings, reactions, relationships, reviewFindings, users } from "../db/schema/index";
 import { recordEvent } from "./events.js";
 
 async function wipeConversations(db: Db, userId: string): Promise<string[]> {
@@ -11,6 +11,7 @@ async function wipeConversations(db: Db, userId: string): Promise<string[]> {
     await db.delete(memories).where(inArray(memories.relId, relIds));
     await db.delete(disclosures).where(inArray(disclosures.relId, relIds));
     await db.delete(reviewFindings).where(inArray(reviewFindings.relId, relIds));
+    await db.delete(reactions).where(inArray(reactions.msgId, db.select({ id: messages.id }).from(messages).where(inArray(messages.relId, relIds))));
     await db.delete(messages).where(inArray(messages.relId, relIds));
   }
   return relIds;

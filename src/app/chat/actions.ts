@@ -2,20 +2,29 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { getCurrentUser } from "@/auth/index";
+import { now as clockNow } from "@/clock";
 import { getDb } from "@/db/client";
 import { generateReplyFor, recordUserMessage } from "@/engine/chat";
+import { isUuid } from "@/engine/chat-view";
 import { rateMessageCore } from "@/engine/ratings";
+import { setUserReaction } from "@/engine/reactions";
 import { handleReconcile } from "@/engine/reconcile";
 
 /**
  * 어떤 예외든 삼킨다. 앱은 에러 화면을 보이지 않는다(화면은 그대로).
  * 사용자 메시지만 저장하고 바로 돌아간다. 답장 생성(LLM)은 응답 뒤 after()에서 돈다.
+ * id는 클라이언트가 만든 uuid. 같은 id로 다시 오면(재시도) 저장·답장 생성 없이 ok만 돌려준다.
+ * 목록은 클라이언트가 직접 다시 불러오므로 revalidatePath는 부르지 않는다.
+ * replyTo(인용 대상)는 같은 관계의 도착한 메시지만. 아니면 저장하지 않고 ok:false.
  */
-export async function sendMessage(text: string): Promise<{ ok: boolean }> {
+export async function sendMessage(text: string, id: string, replyTo?: string | null): Promise<{ ok: boolean }> {
   try {
+    if (typeof id !== "string" || !isUuid(id)) return { ok: false };
+    if (replyTo != null && (typeof replyTo !== "string" || !isUuid(replyTo))) return { ok: false };
     const user = await getCurrentUser();
     if (!user) return { ok: false };
-    const r = await recordUserMessage({ db: getDb() }, user.id, String(text));
+    const r = await recordUserMessage({ db: getDb() }, user.id, String(text), id, replyTo ?? null);
+    if (r.status === "duplicate") return { ok: true };
     if (r.status === "ok") {
       after(async () => {
         try {
@@ -25,8 +34,19 @@ export async function sendMessage(text: string): Promise<{ ok: boolean }> {
         }
       });
     }
-    revalidatePath("/chat");
     return { ok: true };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/** 그의 메시지에 내 반응 1개(emoji=null이면 취소). 허용 목록·소유·도착·보낸 사람 검사는 엔진이 한다. */
+export async function setReaction(msgId: string, emoji: string | null): Promise<{ ok: boolean }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ok: false };
+    const r = await setUserReaction(getDb(), user.id, String(msgId), emoji === null ? null : String(emoji), clockNow());
+    return { ok: r === "ok" };
   } catch {
     return { ok: false };
   }

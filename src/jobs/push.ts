@@ -11,6 +11,9 @@ export interface PushPayload {
   title: string;
   body: string;
   url: string;
+  /** 같은 관계의 알림은 sw.js가 tag로 하나로 묶는다. */
+  relId?: string;
+  tag?: string;
 }
 export type PushSender = (db: Db, userId: string, payload: PushPayload) => Promise<number>;
 
