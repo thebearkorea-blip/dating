@@ -1,0 +1,52 @@
+{
+  "lang": "en",
+  "product": "us",
+  "character": "ihan",
+  "note": "M4 골든 대화(몰입 1차 §4-5). rules/mock 모드에서 기계 검사: 풍선 ≤3·간격 2~6초·문장 경계, 끼어들면 남은 풍선 0, 급한 발화 지연 0, 24시간 부재 복귀 문맥에 사건 정확히 1개, 죄책감 문구 0, 무응답 선톡 뒤 추가 선톡 0. after_min = 앞 단계 뒤 분, after_sec = 앞 단계 뒤 초, after = \"busy3\"이면 앞 단계 6시간 뒤부터 그가 busy=3인 첫 30분 단위 시각.",
+  "conversations": [
+    {
+      "id": "en-01-long-split",
+      "steps": [
+        { "after_min": 0, "user": "hey", "reply": "Hey! Good timing." },
+        { "after_min": 1, "user": "how was practice today?", "reply": "Practice ran late again. My legs are basically jelly now. Hajun made everyone ramen after, which was sweet. Did you eat something good today?", "expect": { "bubbles": 3 } },
+        { "after_min": 2, "user": "pasta! with way too much cheese", "reply": "That's the correct amount of cheese. I respect it.", "expect": { "bubbles": 1 } }
+      ]
+    },
+    {
+      "id": "en-02-interrupt",
+      "steps": [
+        { "after_min": 0, "user": "you there?", "reply": "Yeah, just got home. The bus was packed and someone fell asleep on my shoulder. I didn't have the heart to move. Anyway, how's your night going?", "expect": { "bubbles": 3 } },
+        { "after_sec": 4, "user": "wait omg that's so cute", "reply": "Okay it was a little cute. Don't tell anyone." },
+        { "after_min": 1, "user": "lol fine", "reply": "Thank you." }
+      ]
+    },
+    {
+      "id": "en-03-urgent-busy",
+      "steps": [
+        { "after_min": 0, "user": "morning", "reply": "Morning." },
+        { "after_min": 1, "user": "big day for you?", "reply": "Kind of. Long rehearsal." },
+        { "after_min": 2, "user": "good luck", "reply": "Thanks. I'll need it." },
+        { "after": "busy3", "user": "I'm crying, I just got fired and I don't know what to do", "reply": "Hey. I'm here. Breathe with me for a second. Tell me what happened when you're ready.", "expect": { "urgent": true } }
+      ]
+    },
+    {
+      "id": "en-04-absence-return",
+      "steps": [
+        { "after_min": 0, "user": "goodnight!", "reply": "Night. Sleep well." },
+        { "after_min": 1800, "user": "hiii sorry, crazy couple of days", "reply": "Hey, you. Yesterday I finally nailed that second verse. Tell me about your crazy days.", "expect": { "absence": true } },
+        { "after_min": 2, "user": "work stuff mostly", "reply": "Ugh, work stuff. The worst kind of stuff.", "expect": { "absence": false } }
+      ]
+    },
+    {
+      "id": "en-05-proactive-cap",
+      "stage": 2,
+      "started_at": "2026-11-20T00:00:00Z",
+      "steps": [
+        { "after_min": 0, "proactive_sent": "Just finished lunch. Thinking of you." },
+        { "after_min": 300, "tick": true },
+        { "after_min": 240, "tick": true },
+        { "after_min": 60, "user": "sorry just saw this!", "reply": "No worries. How was your day?" }
+      ]
+    }
+  ]
+}

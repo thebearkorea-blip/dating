@@ -45,6 +45,8 @@ export interface ProactiveInput {
   lastUserAt: Date | null;
   /** 최근(약 2일) 선톡 시각들 */
   proactiveAts: Date[];
+  /** 기간 제한 없는 마지막 선톡 시각(M4 무응답 상한). 없으면 null */
+  lastProactiveAt?: Date | null;
   activity: Activity;
   /** bible affection_stages[stage].initiative_per_day */
   initiativePerDay: number;
@@ -87,6 +89,8 @@ function windowOf(w: PushWindow | null): { start: number; len: number } {
 
 /** 규칙만으로 선톡 후보 여부를 판정한다. 후보가 아니면 사유를 돌려준다(--verbose용). */
 export function explainProactive(i: ProactiveInput): { cand: ProactiveCandidate } | { reason: string } {
+  // 답 없는 선톡 뒤에는 그녀가 답할 때까지 더 보내지 않는다(M4). 첫 접속 장면은 선톡(origin=proactive)이 아니라 세지 않는다.
+  if (i.lastProactiveAt && (!i.lastUserAt || i.lastUserAt.getTime() < i.lastProactiveAt.getTime())) return { reason: "unanswered_proactive" };
   if (!i.activity.canInitiate) return { reason: "cannot_initiate" };
   if (i.activity.busy >= 3) return { reason: "busy3" };
   const win = windowOf(i.pushWindow);
@@ -321,6 +325,12 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       .select({ at: messages.at })
       .from(messages)
       .where(and(eq(messages.relId, rel.id), eq(messages.origin, "proactive"), gte(messages.at, new Date(now.getTime() - 2 * DAY_MS))));
+    const [lastProactive] = await db
+      .select({ at: messages.at })
+      .from(messages)
+      .where(and(eq(messages.relId, rel.id), eq(messages.origin, "proactive")))
+      .orderBy(desc(messages.at))
+      .limit(1);
     const activity = await currentActivity(db, rel.stage, now);
     const stageDef = bible.affection_stages.find((s) => s.stage === rel.stage);
     const decision = explainProactive({
@@ -332,6 +342,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
       pushMax: rel.pushMax,
       lastUserAt: lastUser?.at ?? null,
       proactiveAts: recent.map((r) => r.at),
+      lastProactiveAt: lastProactive?.at ?? null,
       activity,
       initiativePerDay: stageDef?.initiative_per_day ?? 0,
     });

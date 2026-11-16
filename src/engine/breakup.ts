@@ -40,7 +40,7 @@ export async function breakerTurn(
   rel: { id: string; pendingBreaker: string | null },
   text: string,
   now: Date,
-  opts: { mode?: JudgeMode; llm?: JudgeLlm; onReaction?: (emoji: string | null) => void } = {},
+  opts: { mode?: JudgeMode; llm?: JudgeLlm; onReaction?: (emoji: string | null) => void; onUrgent?: (urgent: boolean | null) => void } = {},
 ): Promise<BreakerTurn> {
   const scene = scenesByTrigger(characterId, "breaker_confirmed")[0];
   if (!scene) return "none";

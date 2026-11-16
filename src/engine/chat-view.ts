@@ -5,6 +5,7 @@ import type { Db } from "../db/client";
 import { messages, reactions, relationships } from "../db/schema/index";
 import { getCharacterId } from "../product/index.js";
 import { activityLine, currentActivity, nextDeliverAt } from "./chat.js";
+import { ruleUrgent } from "./judge.js";
 import { typingStartDelayMs, typingWindowMs } from "./typing.js";
 
 export { seenAtFor, typingStartDelayMs, typingWindowMs } from "./typing.js";
@@ -275,14 +276,14 @@ async function typingMeta(db: Db, rel: { id: string; stage: number }, now: Date)
   const next = await nextDeliverAt(db, rel.id, now);
   if (next) return { ...base, typing: false, wakeAt: next.toISOString() };
 
-  // 답장 행이 아직 없다: 마지막 도착 메시지가 내 것이고 최근이며 그가 바쁘지 않으면 곧 입력 중.
+  // 답장 행이 아직 없다: 마지막 도착 메시지가 내 것이고 최근이며 그가 바쁘지 않으면(또는 급한 감정 키워드면, M4) 곧 입력 중.
   const [last] = await db
-    .select({ id: messages.id, sender: messages.sender, at: messages.deliverAt })
+    .select({ id: messages.id, sender: messages.sender, at: messages.deliverAt, text: messages.text })
     .from(messages)
     .where(eq(messages.relId, rel.id))
     .orderBy(desc(messages.deliverAt), desc(messages.id))
     .limit(1);
-  if (last && last.sender === "user" && nowMs - last.at.getTime() < AWAIT_REPLY_MS && activity.busy === 0) {
+  if (last && last.sender === "user" && nowMs - last.at.getTime() < AWAIT_REPLY_MS && (activity.busy === 0 || ruleUrgent(last.text))) {
     const typingAt = last.at.getTime() + typingStartDelayMs(last.id);
     if (nowMs >= typingAt) return { ...base, typing: true, wakeAt: null };
     return { ...base, typing: false, wakeAt: new Date(typingAt).toISOString() };

@@ -44,3 +44,27 @@ export function ruleReaction(text: string): UserReaction {
   if (/\b(?:good luck|fighting|you can do|proud|done|finished|passed)\b/i.test(text)) return "👍";
   return "❤️";
 }
+
+// ---------- 급한 감정(M4): 같은 판단 호출에 붙이는 선택 필드. 위기·자해는 입력 가드(안전 대본)가 먼저라 여기 오지 않는다 ----------
+
+/** 판단 프롬프트 끝에 붙인다. 답 JSON에 "urgent" 필드 1개가 늘어난다(추가 호출 없음). */
+export const URGENT_FIELD_PROMPT = `Also include "urgent": true only if the user is in acute emotional distress right now or just got very bad news and needs a reply immediately (crying, panicking, scared, an accident, someone died, just got fired or dumped); false for ordinary sadness, tiredness, complaints, or jokes.`;
+
+/** 판단 JSON의 urgent 필드. 불리언이 아니면 null(호출자가 키워드 규칙으로 대신한다). */
+export function urgentField(r: Record<string, unknown> | null): boolean | null {
+  return typeof r?.urgent === "boolean" ? r.urgent : null;
+}
+
+const URGENT_RULES: RegExp[] = [
+  // en
+  /\b(?:i'?m crying|can'?t stop crying|crying so hard|been crying|panic(?:king)?|panic attack|freaking out|so scared|terrified|emergency|(?:was|were|got) in an accident|in the hospital|at the hospital|passed away|got fired|lost my job|got dumped|broke up with me|help me)\b/i,
+  // ja
+  /泣いて(?:る|い)|泣きそう|涙が止まらない|パニック|怖い|助けて|事故|病院に|亡くなった|クビになった|振られた|最悪なことが/,
+  // ko
+  /울고 있|울었어|눈물이 안 멈|눈물 나|공황|무서워|도와줘|사고 났|사고가 났|응급실|병원에 있|돌아가셨|해고|잘렸어|차였어|헤어지자고/,
+];
+
+/** mock(규칙) 모드·판단 실패 때의 급한 감정 키워드 규칙(en/ja/ko). */
+export function ruleUrgent(text: string): boolean {
+  return URGENT_RULES.some((re) => re.test(text));
+}

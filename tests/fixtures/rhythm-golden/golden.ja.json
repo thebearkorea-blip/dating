@@ -1,0 +1,52 @@
+{
+  "lang": "ja",
+  "product": "jp",
+  "character": "yeonhu",
+  "note": "M4 골든 대화 일본어판. 형식은 golden.en.json과 같다.",
+  "conversations": [
+    {
+      "id": "ja-01-long-split",
+      "steps": [
+        { "after_min": 0, "user": "おつかれ", "reply": "おつかれ。今帰ったとこ。" },
+        { "after_min": 1, "user": "今日の撮影どうだった？", "reply": "今日は朝から撮影が長引いた。セリフを三回噛んで、監督に笑われた。でも最後のテイクはちょっと良かったと思う！そっちは今日どんな一日だった？", "expect": { "bubbles": 3 } },
+        { "after_min": 2, "user": "普通だったよ", "reply": "普通が一番だよ。", "expect": { "bubbles": 1 } }
+      ]
+    },
+    {
+      "id": "ja-02-interrupt",
+      "steps": [
+        { "after_min": 0, "user": "起きてる？", "reply": "起きてるよ。台本読んでたら、いつの間にかこんな時間だった。明日の本読み、ちょっと緊張してる。そっちはまだ寝ないの？", "expect": { "bubbles": 3 } },
+        { "after_sec": 4, "user": "待って、明日本読みなの？", "reply": "うん、明日。だから今日は早めに寝る。" },
+        { "after_min": 1, "user": "がんばってね", "reply": "ありがとう。" }
+      ]
+    },
+    {
+      "id": "ja-03-urgent-busy",
+      "steps": [
+        { "after_min": 0, "user": "おはよう", "reply": "おはよう。" },
+        { "after_min": 1, "user": "今日も撮影？", "reply": "うん、一日中。" },
+        { "after_min": 2, "user": "いってらっしゃい", "reply": "いってきます。" },
+        { "after": "busy3", "user": "泣いてる。さっき仕事クビになった", "reply": "今ここにいるよ。ゆっくりでいいから、何があったか聞かせて。", "expect": { "urgent": true } }
+      ]
+    },
+    {
+      "id": "ja-04-absence-return",
+      "steps": [
+        { "after_min": 0, "user": "おやすみ", "reply": "おやすみ。" },
+        { "after_min": 1800, "user": "ただいま！ばたばたしてた", "reply": "おかえり。昨日は植物園でずっと冬芽を見てた。ばたばた、何があったの？", "expect": { "absence": true } },
+        { "after_min": 2, "user": "引っ越しの準備", "reply": "それは大変だ。手伝えたらいいのに。", "expect": { "absence": false } }
+      ]
+    },
+    {
+      "id": "ja-05-proactive-cap",
+      "stage": 2,
+      "started_at": "2026-11-20T00:00:00Z",
+      "steps": [
+        { "after_min": 0, "proactive_sent": "撮影の合間。ちょっとだけ空が見えた。" },
+        { "after_min": 300, "tick": true },
+        { "after_min": 240, "tick": true },
+        { "after_min": 60, "user": "今見た！", "reply": "見てくれてありがとう。" }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,8 @@ import { guardInput, isSafetyScript, SAFETY_SCRIPTS, safetyScriptFor } from "../
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
+import { ABSENCE_MS, absenceBlock, diaryEntriesBetween, gapEvents, pickGapEvent } from "./absence.js";
+import { BUBBLE_CONT_TAG, splitBubbles } from "./bubbles.js";
 import { recordEvent } from "./events.js";
 import { pendingUserDayScene } from "./first-week.js";
 import { scenesByTrigger } from "./scenes.js";
@@ -27,7 +29,7 @@ import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
 import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
 import { seenAtFor } from "./typing.js";
-import { judgeModeOf, ruleReaction } from "./judge.js";
+import { judgeModeOf, ruleReaction, ruleUrgent } from "./judge.js";
 import { isQuotable, maybeRecordCharReaction, moveCharReaction, replyContextBlock, replyContextLines } from "./reactions.js";
 import { peekSecret, recordDisclosure } from "./secrets.js";
 import { onUserMessageSulk, sulkDirective } from "./sulk.js";
@@ -255,6 +257,7 @@ const LIVE_WINDOW_MIN = 10;
 
 /**
  * 아직 전달 전인 일반 답장을 지운다(연속 메시지에 답장이 뒤섞이지 않게). 한도를 쓴 답장 수만큼 환불한다.
+ * 분할 풍선(M4)은 남은 풍선도 함께 지우되, 한도는 답 1개 = 1회라 2번째 이후 풍선(BUBBLE_CONT_TAG)은 환불하지 않는다.
  * 안전 대본·이별 확인 질문/장면은 origin이 같아도 지우지 않는다.
  */
 async function dropPendingReplies(db: Db, userId: string, relId: string, now: Date): Promise<void> {
@@ -265,7 +268,7 @@ async function dropPendingReplies(db: Db, userId: string, relId: string, now: Da
   }
   const rows = (
     await db
-      .select({ id: messages.id, text: messages.text })
+      .select({ id: messages.id, text: messages.text, tag: messages.tag })
       .from(messages)
       .where(and(eq(messages.relId, relId), eq(messages.sender, "char"), eq(messages.origin, "reply"), gt(messages.deliverAt, now)))
   ).filter((r) => !keep.has(r.text));
@@ -275,7 +278,7 @@ async function dropPendingReplies(db: Db, userId: string, relId: string, now: Da
   await db.delete(messages).where(inArray(messages.id, ids));
   // 한도를 쓰지 않은 답장: 한도 소진 오버레이, LLM 실패 문장(이미 환불됨).
   const free = freeLines();
-  for (const r of rows) if (!free.has(r.text)) await refundQuota(db, userId);
+  for (const r of rows) if (!free.has(r.text) && r.tag !== BUBBLE_CONT_TAG) await refundQuota(db, userId);
 }
 
 /** 2단계: 저장된 사용자 메시지에 대한 그의 답장(전송 지연 포함)과 부수 처리(애정·토라짐·기억)를 한다. */
@@ -325,13 +328,20 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     return !!latest && latest.id !== userMsgId;
   };
 
-  const saveReply = async (replyText: string, deliverAt: Date, tag: string | null = null) => {
+  const saveReply = async (replyText: string, deliverAt: Date, tag: string | null = null, split = false) => {
     if (!replyText.trim()) return null; // 빈 텍스트는 저장하지 않는다(빈 말풍선 방지)
+    // 생성한 답(split)이 길면 문장 경계에서 풍선 최대 3개, 각자 deliverAt(2~6초 간격). 읽음·반응·태그는 첫 풍선 기준.
+    // 고정 문장(안전 대본·오버레이·폴백)은 나누지 않는다.
+    const [first, ...rest] = split ? splitBubbles(replyText, `${userMsg.id}:bubbles`) : [{ text: replyText, offsetMs: 0 }];
     const [m] = await db
       .insert(messages)
-      .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: replyText, origin: "reply", tag })
+      .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: first!.text, origin: "reply", tag })
       .returning({ id: messages.id });
-    await markSeen(replyText, deliverAt);
+    for (const b of rest) {
+      const when = new Date(deliverAt.getTime() + b.offsetMs);
+      await db.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text: b.text, origin: "reply", tag: BUBBLE_CONT_TAG });
+    }
+    await markSeen(first!.text, deliverAt);
     // 그의 반응(W11): 위기 대본에는 달지 않는다.
     if (!isSafetyScript(replyText)) {
       await maybeRecordCharReaction(db, { userId, relId: rel.id, userMsgId: userMsg.id, judged, busy: activity.busy, delayMs: deliverAt.getTime() - now.getTime() });
@@ -396,10 +406,11 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     )
     .limit(1);
   const range = (sent?.n ?? 0) <= FIRST_REPLY_COUNT ? FIRST_REPLY_RANGE : live ? LIVE_REPLY_RANGE : undefined;
-  const deliverAt = nextCharacterAt(now, delayMinutes(activity, `${userMsg.id}:delay`, range) * 60000);
 
   // 그의 반응 후보(W11): rules 모드는 키워드 규칙, llm 모드는 이별 분류 판단 호출의 reaction 필드(추가 호출 없음).
   let judged: string | null = judgeModeOf(deps.memoryMode) === "rules" ? ruleReaction(text) : null;
+  // 급한 감정(M4): llm 모드는 같은 판단 호출의 urgent 필드, rules 모드·판정 없음은 키워드 규칙.
+  let urgentJudged: boolean | null = null;
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
   // 이별 전이(확인 질문 → 이별 장면). 위기 신호는 안전 대본이 먼저라 분류하지 않는다.
@@ -409,7 +420,13 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
         onReaction: (e) => {
           judged = e;
         },
+        onUrgent: (u) => {
+          urgentJudged = u;
+        },
       });
+  const urgent = urgentJudged ?? ruleUrgent(text);
+  // 급한 감정은 바쁨과 상관없이 지연 0(입력 중은 보낸 뒤 1~2초).
+  const deliverAt = nextCharacterAt(now, urgent ? 0 : delayMinutes(activity, `${userMsg.id}:delay`, range) * 60000);
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
     await saveReply(safetyScriptFor(text), nextCharacterAt(now, 0));
@@ -456,7 +473,14 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       daily && daily.bubbles.length > 0
         ? `\n\n[Private note, not from the user] You planned to bring this up today. First answer what they just said, then work it in naturally in your own words, briefly. Do not quote it, and never mention this note:\n${daily.bubbles.join("\n")}`
         : "";
-    const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now)) + dailyBlock;
+    // 부재 복귀(M4): 직전 사용자 메시지 뒤 24시간 이상이면 그 사이 그의 삶에서 사건 1개 + 죄책감 문구 금지.
+    let absence = "";
+    if (prev && userMsg.at.getTime() - prev.at.getTime() >= ABSENCE_MS) {
+      const diary = diaryEntriesBetween(getCharacterId(), kstParts(prev.at).date, kstParts(userMsg.at).date);
+      const events = gapEvents(engine, prev.at, userMsg.at, await relDayOf(db, userMsg.at), stage, diary);
+      absence = absenceBlock(pickGapEvent(events, `${userMsg.id}:gap`), userMsg.at.getTime() - prev.at.getTime());
+    }
+    const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now)) + dailyBlock + absence;
     try {
       const reply = await generateGuardedReply(
         // F6: thinking 블록이 토큰을 먼저 쓰므로 여유를 둔다. 길이는 persona 지시로 제한
@@ -469,7 +493,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
         // 더 새 메시지의 답장이 이 답장을 대신한다. 한도는 되돌린다.
         await refundQuota(db, userId);
       } else {
-        const replyId = await saveReply(reply.text, deliverAt, dailyBlock && daily ? daily.tag : null);
+        const replyId = await saveReply(reply.text, deliverAt, dailyBlock && daily ? daily.tag : null, true);
         await logFindings(db, rel.id, replyId, reply.findings);
         if (secretNow) await recordDisclosure(db, rel.id, secretNow.id);
       }
