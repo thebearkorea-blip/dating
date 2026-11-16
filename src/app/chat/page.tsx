@@ -1,6 +1,7 @@
 import { devOnlyEnabled } from "@/dev-only";
 import { and, eq } from "drizzle-orm";
 import { now as clockNow } from "@/clock";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -8,6 +9,7 @@ import { takePaywall } from "@/billing/paywall";
 import { getDb } from "@/db/client";
 import { isUuid, loadChatMeta, loadMessages } from "@/engine/chat-view";
 import { reconcileStatus } from "@/engine/reconcile";
+import { maybeRecordAppOpen } from "@/engine/app-open";
 import { maybeDay3Return } from "@/engine/events";
 import { characters, ratings, relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
@@ -37,6 +39,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ a
 
   const now = clockNow();
   await maybeDay3Return(db, user, now);
+  await maybeRecordAppOpen(db, user, now, await headers());
   if (await takePaywall(db, user.id, now)) redirect("/paywall");
   const meta = await loadChatMeta(db, rel, now);
   const aroundParam = (await searchParams).around;

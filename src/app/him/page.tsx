@@ -1,11 +1,13 @@
 import { devOnlyEnabled } from "@/dev-only";
 import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { now as clockNow } from "@/clock";
 import { getDb } from "@/db/client";
 import { characters } from "@/db/schema/index";
+import { maybeRecordAppOpen } from "@/engine/app-open";
 import { relDayOf } from "@/engine/chat";
 import { findOwnedRelationship } from "@/engine/chat-view";
 import { characterName, characterProfile } from "@/engine/character-profile";
@@ -24,6 +26,7 @@ export default async function Him() {
   const str = getStrings();
   const name = characterName(c.name);
   const now = clockNow();
+  await maybeRecordAppOpen(getDb(), user, now, await headers());
   const rel = await findOwnedRelationship(getDb(), user.id);
   const photos = rel ? await loadSentPhotos(getDb(), rel.id, now) : [];
   const relDay = rel ? await relDayOf(getDb()) : 0;

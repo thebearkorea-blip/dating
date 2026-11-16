@@ -1,9 +1,12 @@
 import { devOnlyEnabled } from "@/dev-only";
 import { and, desc, eq, isNull } from "drizzle-orm";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
+import { now as clockNow } from "@/clock";
 import { getDb } from "@/db/client";
+import { maybeRecordAppOpen } from "@/engine/app-open";
 import { memories, relationships } from "@/db/schema/index";
 import { getCharacterId, getStrings } from "@/product";
 import { deleteMemory } from "./actions";
@@ -15,6 +18,7 @@ export default async function Me() {
   const user = await getCurrentUser();
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const db = getDb();
+  await maybeRecordAppOpen(db, user, clockNow(), await headers());
   const [rel] = await db
     .select({ id: relationships.id })
     .from(relationships)

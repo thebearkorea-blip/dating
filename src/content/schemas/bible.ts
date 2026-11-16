@@ -6,6 +6,8 @@ export const bibleSchema = z
     name: z.string().min(1),
     age: z.number().int(),
     group_id: z.string().min(1),
+    /** 캐릭터별 서사 시작일(ISO, KST). 있으면 이 날이 D-180. 없으면 전역 growth_state.currentRelDay */
+    story_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     position: z.array(z.string()),
     personality_direction: z.enum(["warm", "playful", "cool"]),
     members: z.array(

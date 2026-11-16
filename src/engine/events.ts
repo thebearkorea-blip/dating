@@ -17,25 +17,29 @@ export const EVENT_KINDS = [
   "breakup",
   "reconcile",
   "account_deleted",
+  "app_open",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 
 const DAY_MS = 86_400_000;
 
-/** once: "ever"는 사용자당 1회, "day"는 KST 하루 1회. 없으면 매번 기록. 기록했으면 true. */
+/** once: "ever"는 사용자당 1회, "day"는 하루 1회(기본 KST, opts.tz가 있으면 그 시간대). 없으면 매번 기록. 기록했으면 true. */
 export async function recordEvent(
   db: Db,
   userId: string | null,
   kind: EventKind,
-  opts: { meta?: Record<string, unknown>; once?: "ever" | "day"; now?: Date } = {},
+  opts: { meta?: Record<string, unknown>; once?: "ever" | "day"; now?: Date; tz?: string } = {},
 ): Promise<boolean> {
   try {
     const now = opts.now ?? new Date();
     if (opts.once && userId) {
       const conds = [eq(events.userId, userId), eq(events.kind, kind)];
       if (opts.once === "day") {
-        const day = kstParts(now).date;
-        conds.push(sql`to_char(${events.at} at time zone 'Asia/Seoul', 'YYYY-MM-DD') = ${day}`);
+        const tz = opts.tz ?? "Asia/Seoul";
+        const day = opts.tz ? new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(now) : kstParts(now).date;
+        // 36시간 밖은 어떤 시간대에서도 다른 날이라 범위로 먼저 좁힌다.
+        conds.push(sql`${events.at} > ${new Date(now.getTime() - 36 * 3_600_000)}`);
+        conds.push(sql`to_char(${events.at} at time zone ${tz}, 'YYYY-MM-DD') = ${day}`);
       }
       const [hit] = await db.select({ id: events.id }).from(events).where(and(...conds)).limit(1);
       if (hit) return false;

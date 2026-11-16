@@ -76,7 +76,7 @@ describe("rateMessage(core)", () => {
   });
 });
 
-describe("이벤트 11종", () => {
+describe("이벤트 12종", () => {
   it("각 흐름이 이벤트를 남긴다", async () => {
     // first_message
     await send("hello", at(0));
@@ -111,7 +111,7 @@ describe("이벤트 11종", () => {
       expect(count(k), k).toBe(1);
     }
     expect((await db.select().from(events).where(eq(events.kind, "invite_link_open"))).length).toBeGreaterThanOrEqual(1);
-    expect(EVENT_KINDS).toHaveLength(11);
+    expect(EVENT_KINDS).toHaveLength(12);
   });
 });
 

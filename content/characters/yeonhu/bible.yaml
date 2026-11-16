@@ -4,6 +4,7 @@
 id: yeonhu
 name: 주연후
 age: 34
+story_start: "2026-12-01"   # 출시일에 맞춰 변경(이 날이 D-180). 자리표시 값
 group_id: nakdal            # 스키마상 필수. 그룹이 아니라 소속사 1인 라인(world/group-yeonhu.yaml). 아이돌 그룹 아님
 position: [배우]
 personality_direction: warm

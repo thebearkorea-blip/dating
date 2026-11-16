@@ -31,6 +31,8 @@ export interface Activity {
   photoTags?: string[];
   /** 오늘 적용된 이벤트/비트 id */
   tags: string[];
+  /** 이 활동을 고른 상대일(단계별 문구 선택용) */
+  relDay?: number;
 }
 
 const KST_OFFSET_MS = 9 * 3600 * 1000;
@@ -200,6 +202,7 @@ export function activityAt(
     canInitiate,
     ...(!beat && block.photo_tags ? { photoTags: block.photo_tags } : {}),
     tags,
+    relDay: growth.relDay,
   };
 }
 

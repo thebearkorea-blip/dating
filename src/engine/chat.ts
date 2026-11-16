@@ -25,7 +25,7 @@ import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
-import { activityAt, formatNowKst, hash32, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
+import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
 import { seenAtFor } from "./typing.js";
 import { judgeModeOf, ruleReaction } from "./judge.js";
 import { isQuotable, maybeRecordCharReaction, moveCharReaction, replyContextBlock, replyContextLines } from "./reactions.js";
@@ -81,9 +81,25 @@ export function loadGroup(groupId: string): Group | undefined {
   return groupCache.get(groupId);
 }
 
-export async function relDayOf(db: Db): Promise<number> {
+/** story_start(KST 날짜)부터의 상대일: 시작일 = D-180. 시작 전은 -180으로 고정(준비기 첫날). */
+export function relDayFromStoryStart(storyStart: string, now: Date): number {
+  const start = Date.parse(`${storyStart}T00:00:00Z`) / 86400000;
+  return Math.max(-180, Math.floor(kstParts(now).dayIndex - start) - 180);
+}
+
+/** 캐릭터의 오늘 상대일. 상대일 소비처(일정·타임라인 비트·/him D-day·선톡)는 모두 이 함수를 거친다.
+ * bible.story_start가 있으면 그 날짜 기준, 없으면 전역 growth_state.currentRelDay. */
+export async function relDayFor(db: Db, characterId: string, now: Date = clockNow()): Promise<number> {
+  const [c] = await db.select({ bible: characters.bible }).from(characters).where(eq(characters.id, characterId)).limit(1);
+  const storyStart = c ? bibleSchema.parse(c.bible).story_start : undefined;
+  if (storyStart) return relDayFromStoryStart(storyStart, now);
   const [g] = await db.select({ d: growthState.currentRelDay }).from(growthState).where(eq(growthState.id, 1)).limit(1);
   return g?.d ?? DEFAULT_REL_DAY;
+}
+
+/** 현재 제품 캐릭터의 상대일(현재 시각). */
+export function relDayOf(db: Db, now?: Date): Promise<number> {
+  return relDayFor(db, getCharacterId(), now);
 }
 
 export async function loadCharacter(db: Db) {
@@ -102,12 +118,18 @@ export async function loadCharacter(db: Db) {
 /** 지금 그의 활동(바쁨·답장 지연 범위). */
 export async function currentActivity(db: Db, stage: number, now: Date): Promise<Activity> {
   const { engine } = await loadCharacter(db);
-  return activityAt(engine, now, { relDay: await relDayOf(db), stage });
+  return activityAt(engine, now, { relDay: await relDayOf(db, now), stage });
+}
+
+/** relDay가 속한 단계의 문구, 없으면 평문(busy3~free). */
+export function phaseActivityLines<T extends { phases?: { from_rel_day: number; to_rel_day: number }[] }>(base: T, relDay?: number) {
+  const hit = relDay === undefined ? undefined : base.phases?.find((p) => relDay >= p.from_rel_day && relDay <= p.to_rel_day);
+  return (hit ?? base) as Omit<T, "phases">;
 }
 
 /** 화면 상단 한 줄. 숫자·내부 값 없이 응답 가능 시간감만. 문장은 캐릭터 lines.yaml activity(제품 화면 언어). */
 export function activityLine(a: Activity): string {
-  const l = forLang(characterLines().activity, getLang());
+  const l = phaseActivityLines(forLang(characterLines().activity, getLang()), a.relDay);
   if (a.busy >= 3) return l.busy3;
   if (a.busy === 2) return l.busy2;
   if (a.busy === 1) return l.busy1;
@@ -409,7 +431,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       canon,
       activity,
       nowKst: formatNowKst(now),
-      upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage }),
+      upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db, now), stage }),
       stage,
       memories: await selectMemories(db, rel.id, text),
       profile: profileText(rel.profile),

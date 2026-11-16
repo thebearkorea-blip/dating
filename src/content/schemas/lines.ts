@@ -12,8 +12,7 @@ const pools = z
   .strict()
   .refine((p) => LINE_LANGS.some((l) => p[l]), { message: "언어 풀이 하나 이상 필요" });
 
-const activity = z
-  .object({
+const activityFlat = {
     /** busy 3: 손을 뗄 수 없음 */
     busy3: z.string().min(1),
     /** busy 2: 답장이 느림 */
@@ -22,8 +21,15 @@ const activity = z
     busy1: z.string().min(1),
     /** busy 0: 한가함 */
     free: z.string().min(1),
-  })
-  .strict();
+};
+
+/** 단계별 문구: rel_day가 [from_rel_day, to_rel_day](양 끝 포함)일 때 평문 대신 쓴다(schedule.yaml phases와 같은 범위). */
+const activityPhase = z
+  .object({ from_rel_day: z.number().int(), to_rel_day: z.number().int(), ...activityFlat })
+  .strict()
+  .refine((p) => p.from_rel_day <= p.to_rel_day, { message: "from_rel_day must be <= to_rel_day" });
+
+const activity = z.object({ ...activityFlat, phases: z.array(activityPhase).optional() }).strict();
 
 /** 화면·푸시에 보이는 프로필 문구(언어별). 이름·한 줄 소개·소속사·포지션. */
 const profile = z

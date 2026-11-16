@@ -178,7 +178,7 @@ export const HEAVY_RUN_DAYS = 3;
 /** busy=3 기간이 어제 끝났는가: 어제까지 연속 HEAVY_RUN_DAYS일 이상 바쁜 날이었고 오늘은 아니다. */
 export async function busy3EndedYesterday(db: Db, stage: number, now: Date): Promise<boolean> {
   const { engine } = await loadCharacter(db);
-  const relDay = await relDayOf(db);
+  const relDay = await relDayOf(db, now);
   const dayStart = Math.floor(now.getTime() / 60000) * 60000 - kstParts(now).minutes * 60000;
   const heavy = (offset: number): boolean => {
     let sum = 0;
@@ -228,7 +228,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
     canon,
     activity,
     nowKst: formatNowKst(now),
-    upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db), stage: rel.stage }),
+    upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db, now), stage: rel.stage }),
     stage: rel.stage,
     memories: memory ? [memory] : [],
   });
