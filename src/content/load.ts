@@ -8,6 +8,7 @@ import {
   diaryFrontmatterSchema,
   groupSchema,
   guardsSchema,
+  linesSchema,
   photoRowSchema,
   postRowSchema,
   scheduleSchema,
@@ -106,6 +107,7 @@ export function validateContentDir(root: string): ContentReport {
       if (!existsSync(join(dir, "bible.yaml"))) continue; // 후보 사진만 있는 캐릭터 폴더는 건너뛴다
       checkFile(root, join(dir, "bible.yaml"), "yaml", bibleSchema, report);
       checkFile(root, join(dir, "schedule.yaml"), "yaml", scheduleSchema, report);
+      checkFile(root, join(dir, "lines.yaml"), "yaml", linesSchema, report);
       checkFile(root, join(dir, "photos/manifest.jsonl"), "jsonl", photoRowSchema, report);
       checkFile(root, join(dir, "sns/posts.jsonl"), "jsonl", postRowSchema, report);
       const diaryDir = join(dir, "diary");

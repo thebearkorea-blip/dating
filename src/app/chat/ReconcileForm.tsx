@@ -2,14 +2,16 @@
 import { useState, useTransition } from "react";
 import { sendApology } from "./actions";
 
-/** 이별 뒤 화면(앱 목소리). 시기가 아니면 날짜 없이 "아직"만 보인다. */
-export function ReconcileForm({ open }: { open: boolean }) {
+export type ReconcileStrings = { notYet: string; prompt: string; label: string; send: string };
+
+/** 이별 뒤 화면(앱 목소리). 시기가 아니면 날짜 없이 "아직"만 보인다. 문구는 서버가 src/product 사전에서 넘긴다. */
+export function ReconcileForm({ open, strings }: { open: boolean; strings: ReconcileStrings }) {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
   if (!open) {
     return (
       <p className="p-4 text-sm">
-        Not yet. This conversation has ended for now.
+        {strings.notYet}
       </p>
     );
   }
@@ -26,10 +28,10 @@ export function ReconcileForm({ open }: { open: boolean }) {
         });
       }}
     >
-      <p className="text-sm">Want to reach out again? Write what you want to say to him.</p>
+      <p className="text-sm">{strings.prompt}</p>
       <textarea
         name="apology"
-        aria-label="apology"
+        aria-label={strings.label}
         className="field"
         rows={4}
         maxLength={1000}
@@ -38,7 +40,7 @@ export function ReconcileForm({ open }: { open: boolean }) {
         onChange={(e) => setText(e.target.value)}
       />
       <button type="submit" className="btn" disabled={pending} suppressHydrationWarning>
-        Send
+        {strings.send}
       </button>
     </form>
   );

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { memories, relationships } from "@/db/schema/index";
+import { getCharacterId, getStrings } from "@/product";
 import { deleteMemory } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function Me() {
   const [rel] = await db
     .select({ id: relationships.id })
     .from(relationships)
-    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")))
+    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, getCharacterId())))
     .limit(1);
   if (!rel) redirect("/onboarding");
   const rows = await db
@@ -25,16 +26,17 @@ export default async function Me() {
     .from(memories)
     .where(and(eq(memories.relId, rel.id), eq(memories.userVisible, true), isNull(memories.deletedAt)))
     .orderBy(desc(memories.learnedAt));
+  const str = getStrings();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">What I remember about you</h1>
+        <h1 className="text-lg font-semibold">{str["me.title"]}</h1>
         <Link href="/chat" className="text-sm underline">
-          Back
+          {str["header.back"]}
         </Link>
       </header>
-      {rows.length === 0 ? <p className="text-[var(--color-ink-soft)]">Nothing yet. Tell me more about you.</p> : null}
+      {rows.length === 0 ? <p className="text-[var(--color-ink-soft)]">{str["me.empty"]}</p> : null}
       <ul className="flex flex-col gap-2">
         {rows.map((m) => (
           <li key={m.id} className="flex items-start justify-between gap-3 rounded-[var(--radius-control)] bg-[var(--color-surface)] px-4 py-3">
@@ -42,7 +44,7 @@ export default async function Me() {
             <form action={deleteMemory}>
               <input type="hidden" name="id" value={m.id} />
               <button type="submit" className="text-sm underline">
-                Forget
+                {str["me.forget"]}
               </button>
             </form>
           </li>

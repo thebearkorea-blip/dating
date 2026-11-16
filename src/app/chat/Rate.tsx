@@ -2,8 +2,10 @@
 import { useState, useTransition } from "react";
 import { rateMessage } from "./actions";
 
-// 베타 테스터에게만 렌더된다(page.tsx가 is_beta일 때만 마운트).
-export function Rate({ msgId, initial }: { msgId: string; initial: 1 | -1 | null }) {
+export type RateStrings = { good: string; bad: string; saved: string; note: string; save: string };
+
+// 베타 테스터에게만 렌더된다(page.tsx가 is_beta일 때만 마운트). 문구는 src/product 사전(chatListStrings)에서 온다.
+export function Rate({ msgId, initial, strings }: { msgId: string; initial: 1 | -1 | null; strings: RateStrings }) {
   const [score, setScore] = useState<1 | -1 | null>(initial);
   const [note, setNote] = useState("");
   const [open, setOpen] = useState(false);
@@ -21,7 +23,7 @@ export function Rate({ msgId, initial }: { msgId: string; initial: 1 | -1 | null
           <button
             key={s}
             type="button"
-            aria-label={s === 1 ? "good" : "bad"}
+            aria-label={s === 1 ? strings.good : strings.bad}
             aria-pressed={score === s}
             disabled={pending}
             className={score === s ? "font-bold underline" : ""}
@@ -34,20 +36,20 @@ export function Rate({ msgId, initial }: { msgId: string; initial: 1 | -1 | null
             {s === 1 ? "👍" : "👎"}
           </button>
         ))}
-        {saved ? <span>saved</span> : null}
+        {saved ? <span>{strings.saved}</span> : null}
       </span>
       {open && score ? (
         <span className="flex gap-1">
           <input
-            aria-label="note"
+            aria-label={strings.note}
             className="field"
             maxLength={500}
             value={note}
-            placeholder="note"
+            placeholder={strings.note}
             onChange={(e) => setNote(e.target.value)}
           />
           <button type="button" className="btn" disabled={pending} onClick={() => save(score, note)}>
-            Save
+            {strings.save}
           </button>
         </span>
       ) : null}

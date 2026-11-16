@@ -6,7 +6,8 @@ import type { Db } from "../db/client";
 import { messages, relationships } from "../db/schema/index";
 import { applyDailyDecay } from "../engine/affection.js";
 import { silenceDays } from "../engine/catch-up.js";
-import { CHARACTER_ID, loadCharacter } from "../engine/chat.js";
+import { getCharacterId } from "../product/index.js";
+import { loadCharacter } from "../engine/chat.js";
 import { maybeFreezeProfile } from "../engine/profile.js";
 import { tickSulkDaily } from "../engine/sulk.js";
 
@@ -24,7 +25,7 @@ export async function runDailyAffection(deps: { db: Db; now?: Date }): Promise<D
   const rels = await db
     .select({ id: relationships.id, startedAt: relationships.startedAt, sulk: relationships.sulkState })
     .from(relationships)
-    .where(and(eq(relationships.characterId, CHARACTER_ID), isNull(relationships.endedAt)));
+    .where(and(eq(relationships.characterId, getCharacterId()), isNull(relationships.endedAt)));
   if (rels.length === 0) return out;
   const { bible } = await loadCharacter(db);
   out.relationships = rels.length;

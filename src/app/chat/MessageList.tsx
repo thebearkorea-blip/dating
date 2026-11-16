@@ -41,6 +41,12 @@ export interface ChatListStrings {
   quotePhoto?: string;
   quoteYou?: string;
   quoteHim?: string;
+  // 베타 평가(Rate)
+  rateGood?: string;
+  rateBad?: string;
+  rateSaved?: string;
+  rateNote?: string;
+  rateSave?: string;
 }
 
 export const DEFAULT_STRINGS: Required<ChatListStrings> = {
@@ -71,6 +77,11 @@ export const DEFAULT_STRINGS: Required<ChatListStrings> = {
   quotePhoto: "Photo",
   quoteYou: "You",
   quoteHim: "Him",
+  rateGood: "good",
+  rateBad: "bad",
+  rateSaved: "saved",
+  rateNote: "note",
+  rateSave: "Save",
 };
 
 /** 인용 답장 대상(입력창 위 띠·낙관적 말풍선). DTO의 replyTo와 같은 모양. */
@@ -634,7 +645,7 @@ export function MessageList(props: MessageListProps) {
                       />
                       {props.isBeta && m.sender === "char" ? (
                         <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                          <Rate msgId={m.id} initial={props.ratings?.[m.id] ?? null} />
+                          <Rate msgId={m.id} initial={props.ratings?.[m.id] ?? null} strings={{ good: s.rateGood, bad: s.rateBad, saved: s.rateSaved, note: s.rateNote, save: s.rateSave }} />
                         </div>
                       ) : null}
                     </div>

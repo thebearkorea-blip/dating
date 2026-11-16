@@ -8,6 +8,7 @@ import { getDb } from "@/db/client";
 import { characters, memories, platformIdentities, relationships, users } from "@/db/schema/index";
 import { recordEvent } from "@/engine/events";
 import { ageGate } from "@/policy/age-gate";
+import { getCharacterId } from "@/product";
 import { CITIES } from "./cities";
 import { INVITE_COOKIE } from "./invite-cookie";
 
@@ -52,8 +53,9 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
 
   if (gate.kind === "preparing") redirect("/onboarding/preparing");
 
-  const [ihan] = await db.select({ id: characters.id }).from(characters).where(eq(characters.id, "ihan")).limit(1);
-  if (!ihan) redirect("/onboarding?error=no_content");
+  const characterId = getCharacterId();
+  const [character] = await db.select({ id: characters.id }).from(characters).where(eq(characters.id, characterId)).limit(1);
+  if (!character) redirect("/onboarding?error=no_content");
 
   const jar = await cookies();
   const token = jar.get(INVITE_COOKIE)?.value;
@@ -61,7 +63,7 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
   await db.transaction(async (tx) => {
     const [rel] = await tx
       .insert(relationships)
-      .values({ userId: user.id, characterId: "ihan", mode: "romance", startedAt: new Date(), stage: 1, affection: 0 })
+      .values({ userId: user.id, characterId, mode: "romance", startedAt: new Date(), stage: 1, affection: 0 })
       .onConflictDoNothing()
       .returning();
     if (!rel || !token) return;

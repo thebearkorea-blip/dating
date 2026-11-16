@@ -7,7 +7,8 @@ import { splitFrontmatter } from "../content/schemas/diary.js";
 import type { CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
 import { canonFacts, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
-import { currentActivity, CHARACTER_ID, loadCharacter, relDayOf } from "../engine/chat.js";
+import { getCharacterId } from "../product/index.js";
+import { currentActivity, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
 import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
@@ -111,7 +112,7 @@ export function decideProactive(i: ProactiveInput): ProactiveCandidate | null {
 
 /** 최근 일기 1편(오늘 KST 이하 날짜 중 가장 늦은 것) 본문 앞부분. 없으면 null. */
 export function recentDiary(now: Date, root = CONTENT_ROOT): string | null {
-  const dir = join(root, "characters", CHARACTER_ID, "diary");
+  const dir = join(root, "characters", getCharacterId(), "diary");
   if (!existsSync(dir)) return null;
   const today = kstParts(now).date;
   const f = readdirSync(dir)
@@ -189,7 +190,7 @@ export async function busy3EndedYesterday(db: Db, stage: number, now: Date): Pro
 
 /** 보상 이벤트 장면: scenes trigger=after_busy3_period 중 결정적 1개. 해당 없으면 null. */
 async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: string[] } | null> {
-  const scenes = scenesByTrigger(CHARACTER_ID, "after_busy3_period").filter((s) => s.stageMin <= rel.stage);
+  const scenes = scenesByTrigger(getCharacterId(), "after_busy3_period").filter((s) => s.stageMin <= rel.stage);
   if (scenes.length === 0) return null;
   const [recent] = await db
     .select({ id: messages.id })
@@ -263,7 +264,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   if (hash32(`${rel.id}:${today}:${now.getUTCHours()}:photo`) / 0x100000000 < (Number.isFinite(rate) ? rate : 0.3)) {
     mediaId = await pickPhoto(db, {
       relId: rel.id,
-      characterId: CHARACTER_ID,
+      characterId: getCharacterId(),
       situation: activity.activity,
       photoTags: activity.photoTags,
       timeOfDay: timeOfDayOf(kstParts(now).minutes),
@@ -296,7 +297,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     })
     .from(relationships)
     .innerJoin(users, eq(users.id, relationships.userId))
-    .where(and(eq(relationships.characterId, CHARACTER_ID), isNull(relationships.endedAt)));
+    .where(and(eq(relationships.characterId, getCharacterId()), isNull(relationships.endedAt)));
   if (rels.length === 0) return result;
   const { bible } = await loadCharacter(db);
   result.relationships = rels.length;
@@ -340,7 +341,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     const reward = await rewardFor(db, rel, now);
     if (reward) {
       // 보상 이벤트: 장면 대본 그대로(LLM 없음). {{photo}}는 사진이 있으면 그 말풍선에 붙이고 없으면 지운다.
-      const photo = await pickPhoto(db, { relId: rel.id, characterId: CHARACTER_ID, situation: activity.activity, photoTags: activity.photoTags, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
+      const photo = await pickPhoto(db, { relId: rel.id, characterId: getCharacterId(), situation: activity.activity, photoTags: activity.photoTags, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
       let first = "";
       for (const [i, raw] of reward.bubbles.entries()) {
         const text = raw.replace(/\{\{photo\}\}/g, "").replace(/ {2,}/g, " ").trim();

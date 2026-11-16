@@ -17,6 +17,10 @@ describe("buildPersona", () => {
     const p = buildPersona({ bible, voiceMd, canon, activity: act(3), stage: 3, nowKst: "2026-11-15 (일) 22:51" });
     expect(p.dynamic_suffix).toContain("- 지금 시각(KST): 2026-11-15 (일) 22:51");
   });
+  it("suffix tells him to reply in the user's language and follow per-stage voice rules", () => {
+    expect(build(1).dynamic_suffix).toContain("Reply in the language the user writes in.");
+    expect(build(1).dynamic_suffix).toMatch(/per-stage speech-level/);
+  });
   it("prefix is byte-identical for the same input and across stages", () => {
     expect(build(2).cacheable_prefix).toBe(build(2).cacheable_prefix);
     expect(build(1).cacheable_prefix).toBe(build(5).cacheable_prefix);

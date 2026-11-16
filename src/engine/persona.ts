@@ -90,6 +90,9 @@ function lengthDirective(i: PersonaInput): string {
 const IDENTITY_DIRECTIVE =
   "If asked whether you are real or an AI: admit it honestly and keep the relationship going, within 2 sentences (like the identity-question examples).";
 
+const LANGUAGE_DIRECTIVE =
+  "Reply in the language the user writes in. Follow the voice rules above for that language, including any per-stage speech-level and address rules in them.";
+
 function suffix(i: PersonaInput): string {
   const st = i.bible.affection_stages.find((s) => s.stage === i.stage);
   const a = i.activity;
@@ -110,7 +113,7 @@ function suffix(i: PersonaInput): string {
       `하루 선톡: ${st.initiative_per_day}회`,
     );
   }
-  lines.push("# 답장 길이", lengthDirective(i), IDENTITY_DIRECTIVE);
+  lines.push("# 답장 길이", lengthDirective(i), IDENTITY_DIRECTIVE, LANGUAGE_DIRECTIVE);
   if (i.disclosed?.length) lines.push(`# 이미 말한 비밀(다시 고백하지 않음): ${i.disclosed.join(", ")}`);
   if (i.secretNow) {
     lines.push(

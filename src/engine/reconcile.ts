@@ -6,7 +6,8 @@ import { messages, relationships } from "../db/schema/index";
 import { judgeJson, judgeModeOf, type JudgeLlm, type JudgeMode } from "./judge.js";
 import { sendBubbles } from "./breakup.js";
 import { recordEvent } from "./events.js";
-import { CHARACTER_ID, loadCharacter } from "./chat.js";
+import { getCharacterId } from "../product/index.js";
+import { loadCharacter } from "./chat.js";
 import { scenesByTrigger } from "./scenes.js";
 
 const DAY_MS = 86400000;
@@ -47,7 +48,7 @@ export async function handleReconcile(deps: ReconcileDeps, userId: string, rawTe
   const [rel] = await db
     .select({ id: relationships.id })
     .from(relationships)
-    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID)))
+    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, getCharacterId())))
     .limit(1);
   if (!rel) throw new Error("관계 없음");
   const status = await reconcileStatus(db, rel.id, now);
@@ -56,7 +57,7 @@ export async function handleReconcile(deps: ReconcileDeps, userId: string, rawTe
   if (!text) return "empty";
   await db.insert(messages).values({ relId: rel.id, at: now, deliverAt: now, sender: "user", text });
   const ok = await isSincere(text, { mode: deps.memoryMode, llm: deps.llm });
-  const scene = scenesByTrigger(CHARACTER_ID, ok ? "apology_accepted" : "apology_declined")[0];
+  const scene = scenesByTrigger(getCharacterId(), ok ? "apology_accepted" : "apology_declined")[0];
   if (scene) await sendBubbles(db, rel.id, scene.bubbles, now);
   if (ok) {
     await db

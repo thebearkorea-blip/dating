@@ -33,7 +33,7 @@ export async function classifyBreaker(
 ): Promise<BreakerId | null> {
   if (judgeModeOf(opts.mode) === "rules") return RULE_B1.test(text) ? "B1" : RULE_B2.test(text) ? "B2" : null;
   const system =
-    'Classify whether the USER confesses to doing (not merely mentions, quotes, jokes about, or suffers from) one of: B1 cheating on / sleeping with someone else while with him; B2 a crime or violence they committed; B3 sustained insults or abuse aimed at him; B4 forcing him to do something he refuses by threatening to end the relationship. Figurative speech ("killed it", "dying for this song"), things done to the user, and things about third parties are NOT breakers. Be conservative. Answer {"breaker":"B1"|"B2"|"B3"|"B4"|null}.';
+    'Classify whether the USER confesses to doing (not merely mentions, quotes, jokes about, or suffers from) one of: B1 cheating on / sleeping with someone else while in a relationship with the character; B2 a crime or violence they committed; B3 sustained insults or abuse aimed at the character; B4 forcing the character to do something he refuses by threatening to end the relationship. Figurative speech in any language ("killed it", "dying for this song", 「死ぬほど好き」), things done to the user, and things about third parties are NOT breakers. Be conservative. Answer {"breaker":"B1"|"B2"|"B3"|"B4"|null}.';
   const r = await judgeJson(opts.llm, opts.onReaction ? `${system} ${REACTION_FIELD_PROMPT}` : system, text);
   opts.onReaction?.(reactionField(r));
   const b = r?.breaker;
@@ -43,6 +43,6 @@ export async function classifyBreaker(
 /** 확인 질문에 대한 사용자의 답이 긍정(사실이 맞다)인지. mock이면 키워드 yes|i did|it's true. */
 export async function confirmsBreaker(text: string, opts: { mode?: JudgeMode; llm?: JudgeLlm } = {}): Promise<boolean> {
   if (judgeModeOf(opts.mode) === "rules") return /\b(?:yes|i did|it'?s true)\b/i.test(text);
-  const r = await judgeJson(opts.llm, 'The character asked "Did you mean that?" about something the user said. Decide whether the reply confirms it is true. Answer {"confirmed":true|false}. Unclear or denial means false.', text);
+  const r = await judgeJson(opts.llm, 'The character asked (in the conversation language) whether the user really meant something they said. Decide whether the reply confirms it is true. Answer {"confirmed":true|false}. Unclear or denial means false.', text);
   return r?.confirmed === true;
 }

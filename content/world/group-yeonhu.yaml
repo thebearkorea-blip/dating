@@ -1,0 +1,70 @@
+# 일본판 ver2 연후 라인의 세계관 원본. 스키마(groupSchema)가 그룹 구조를 강제하므로 "소속사 1인 라인"을 그룹 1개로 표현한다. 아이돌 그룹이 아니다.
+# bible.yaml의 group_id: nakdal 과 짝지어진다(load-content, chat.ts loadGroup가 world/group*.yaml 을 모두 읽는다).
+# 모든 고유명사는 가상. 실존 소속사·방송사·작품과 겹치지 않는다(검색 확인 2026-11-17, docs 참조).
+id: nakdal
+name: 매니지먼트 낮달
+concept: >-
+  소속사 라인(그룹 아님). 배우 6명의 작은 소속사 매니지먼트 낮달 소속 배우 주연후의 첫 주연작 《겨울눈》(『冬芽』, 채널 윤슬 금토 22시, 12부작) 방영까지의 D-180~0.
+company:
+  id: nakdal-mgmt
+  name: 매니지먼트 낮달
+  note: 배우 6명의 작은 소속사(가상). 방송사는 채널 윤슬(가상). 키다리 같은 실존 기획사명은 쓰지 않는다.
+t0: null                # 방영일(첫 방송) 미정. timeline-yeonhu.yaml의 rel_day 기준점(D-0 = 첫 방송)
+debut_window_months: [6, 6]   # 가정: 주연 확정(D-180)에서 첫 방송까지 6개월
+language_of_content: ja-setting_ja
+members:
+  - id: yeonhu
+    name: 주연후
+    name_en: Ju Yeonhu (チュ・ヨヌ)
+    age: 34
+    role: protagonist
+    position: [배우]
+    relation: 주인공. 연극 출신 무명·조연 12년, 첫 주연작 《겨울눈》 확정(D-180). 앱은 그의 편지함.
+    voice: 길게 듣고 짧게 답한다. 마른 유머와 자기 낮춤. 진심은 편지의 추신에.
+    status: debuted
+    archetype: "늦게 핀 사람의 인내 (연극 출신 배우)"
+    look: "adult male, no photos in this product"
+    vibe: "채점하지 않는 사람, 말보다 글"
+  - id: dosukhwan
+    name: 도석환
+    name_en: Do Seokhwan
+    age: 45
+    role: supporting
+    position: [매니저]
+    relation: 12년 매니저(실장). 잔소리와 운전, 연후보다 먼저 운다.
+    voice: 잔소리 많은 투박한 말투.
+  - id: pyo-inyoung
+    name: 표인영
+    name_en: Pyo Inyoung
+    age: 52
+    role: supporting
+    position: [감독]
+    relation: 《겨울눈》 연출. 칭찬이 드물고 「もう一回」뿐.
+    voice: 짧고 건조한 지시문.
+  - id: tak-seogyeong
+    name: 탁서경
+    name_en: Tak Seogyeong
+    age: 44
+    role: supporting
+    position: [배우]
+    relation: 상대역 선배, 기혼·유아 있음. 철저한 프로, 연기 스승 격. 열애설·질투 비트 금지.
+    voice: 차분하고 단정한 존댓말.
+  - id: ju-eunhu
+    name: 주은후
+    name_en: Ju Eunhu
+    age: 29
+    role: supporting
+    position: [간호사]
+    relation: 여동생, 속초 간호사. 편지 일을 아는 유일한 가족.
+    voice: 빠른 반말, 놀림.
+  - id: nam-gitae
+    name: 남기태
+    name_en: Nam Gitae
+    age: 34
+    role: supporting
+    position: [국수집 주인]
+    relation: 극단 동기. 국수집 「세 번째 골목」 주인. 연극을 그만둔 사람.
+    voice: 무심하고 따뜻한 짧은 말.
+notes:
+  - 이 파일은 validate-content.ts의 검증 대상이 아니다(world/group.yaml만 검증). groupSchema로 별도 확인했다.
+  - 대화 언어는 일본어. 한국어는 voice.md 조건에서만.

@@ -1,50 +1,62 @@
-// 무료 한도 소진 시 LLM 없이 나가는 "그의 사정" 문장 풀. 이한 bible(연습·일정·멤버) 기반, 캐릭터 목소리.
+// LLM 없이 나가는 "그의 사정" 문장 풀. 문장은 캐릭터 콘텐츠(content/characters/<id>/lines.yaml)에 있다.
 // 한도·결제·사과 표현을 쓰지 않는다(C5·VOICE-app-system). 출시 전 검수 대상.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse as parseYaml } from "yaml";
+import { LINE_LANGS, linesSchema, type Lines } from "../content/schemas/lines.js";
+import { getCharacterId, getLang } from "../product/index.js";
 import { hash32 } from "./schedule.js";
 
-export const BUSY_OVERLAY_LINES = [
-  "I just got called in for a schedule, I have to go. Talk later?",
-  "Dohyun hyung is rounding everyone up for the practice room. I'll find you after.",
-  "Rui is dragging me to a fitting right now. Phone's going in my bag, catch you later.",
-  "They moved rehearsal earlier and I haven't even warmed up. I'll text when I can.",
-  "Vocal lesson in five minutes. Go easy on me, I'll be back tonight.",
-] as const;
+export type Lang = "ko" | "en" | "ja";
 
-/** LLM 호출이 실패했을 때(서버 사정) 나가는 문장 풀. 그의 사정으로 읽히게, 앱 목소리·사과·한도 표현 없이. */
-export const UNAVAILABLE_LINES = [
-  "My phone's acting up again… can I text you properly in a bit?",
-  "Signal in this building is terrible. I'll write back once I'm somewhere better.",
-  "My battery's about to die and I left my charger at the practice room. Talk soon?",
-] as const;
-
-export const BUSY_OVERLAY_LINES_KO = [
-  "지금 스케줄 호출 와서 가봐야 해요. 이따 얘기해요?",
-  "도현이 형이 다 연습실로 모으고 있어요. 끝나고 찾을게요.",
-  "루이가 지금 피팅한다고 끌고 가요. 폰 가방에 넣을게요, 이따 봐요.",
-  "리허설이 앞당겨졌는데 아직 몸도 못 풀었어요. 되는 대로 문자할게요.",
-  "5분 뒤에 보컬 레슨이에요. 살살 해줘요, 오늘 밤에 돌아올게요.",
-] as const;
-
-export const UNAVAILABLE_LINES_KO = [
-  "폰이 또 말썽이네요… 조금 있다 제대로 답할게요.",
-  "이 건물 신호가 진짜 안 좋아요. 좀 나은 데 가서 답장할게요.",
-  "배터리 거의 다 됐는데 충전기를 연습실에 두고 왔어요. 이따 얘기해요?",
-] as const;
-
-export type Lang = "ko" | "en";
-
-/** 한글(가-힣)이 하나라도 있으면 "ko". */
-export function langOf(text: string): Lang {
-  return /[가-힣]/.test(text) ? "ko" : "en";
+const linesCache = new Map<string, Lines>();
+/** 캐릭터 고정 문장(1회 캐시). 기본: 현재 제품의 캐릭터. */
+export function characterLines(characterId: string = getCharacterId(), root = "content"): Lines {
+  const key = `${root}:${characterId}`;
+  let l = linesCache.get(key);
+  if (!l) {
+    l = linesSchema.parse(parseYaml(readFileSync(join(root, "characters", characterId, "lines.yaml"), "utf8")));
+    linesCache.set(key, l);
+  }
+  return l;
 }
 
-export function pickUnavailable(seed: string, lang: Lang = "en"): string {
-  const pool = lang === "ko" ? UNAVAILABLE_LINES_KO : UNAVAILABLE_LINES;
+/** 언어별 값에서 lang → 제품 기본 언어 → 첫 언어 순으로 고른다. */
+export function forLang<T>(byLang: Partial<Record<Lang, T>>, lang: Lang): T {
+  const v = byLang[lang] ?? byLang[getLang()] ?? LINE_LANGS.map((l) => byLang[l]).find((x) => x !== undefined);
+  if (v === undefined) throw new Error("언어 풀 없음");
+  return v;
+}
+
+/** 한글(가-힣)이 있으면 "ko", 가나가 있으면 "ja", 둘 다 없으면 제품 기본 언어(us "en", jp "ja"). */
+export function langOf(text: string, fallback: Lang = getLang()): Lang {
+  if (/[가-힣]/.test(text)) return "ko";
+  if (/[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(text)) return "ja";
+  return fallback;
+}
+
+function pick(pool: readonly string[], seed: string): string {
   return pool[hash32(seed) % pool.length] as string;
+}
+
+export function pickUnavailable(seed: string, lang: Lang = "en", characterId?: string): string {
+  return pick(forLang(characterLines(characterId).unavailable, lang), seed);
 }
 
 /** seed가 같으면 같은 문장. */
-export function pickBusyOverlay(seed: string, lang: Lang = "en"): string {
-  const pool = lang === "ko" ? BUSY_OVERLAY_LINES_KO : BUSY_OVERLAY_LINES;
-  return pool[hash32(seed) % pool.length] as string;
+export function pickBusyOverlay(seed: string, lang: Lang = "en", characterId?: string): string {
+  return pick(forLang(characterLines(characterId).busy_overlay, lang), seed);
+}
+
+/** 출력 가드 폴백 풀(언어별). */
+export function fallbackPool(lang: Lang, characterId?: string): readonly string[] {
+  return forLang(characterLines(characterId).fallback, lang);
+}
+
+/** 한도를 쓰지 않은 답장 문장 전부(한도 소진 오버레이·LLM 실패 문장, 모든 언어). 연속 메시지 환불 판정용. */
+export function freeLines(characterId?: string): Set<string> {
+  const l = characterLines(characterId);
+  const out = new Set<string>();
+  for (const pools of [l.busy_overlay, l.unavailable]) for (const lang of LINE_LANGS) for (const s of pools[lang] ?? []) out.add(s);
+  return out;
 }

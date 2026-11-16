@@ -11,7 +11,7 @@ import { characters } from "@/db/schema/index";
 import { relDayOf } from "@/engine/chat";
 import { findOwnedRelationship } from "@/engine/chat-view";
 import { himActivity, loadSentPhotos } from "@/engine/him-view";
-import { fmt, getStrings } from "@/product";
+import { fmt, getCharacterId, getStrings } from "@/product";
 import { PhotoGrid } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 /** bible.md §1 표의 '소속' 칸 첫 구절을 한 줄 소개로 쓴다. 못 찾으면 빈 문자열. */
 function tagline(): string {
   try {
-    const md = readFileSync(join(process.cwd(), "content/characters/ihan/bible.md"), "utf8");
+    const md = readFileSync(join(process.cwd(), "content/characters", getCharacterId(), "bible.md"), "utf8");
     const row = md.split("\n").find((l) => l.startsWith("| 소속 |"));
     const cell = row?.split("|")[2] ?? "";
     return (cell.split(",")[0] ?? "").replace(/\([^)]*\)/g, "").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
@@ -32,7 +32,7 @@ function tagline(): string {
 export default async function Him() {
   const user = await getCurrentUser();
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
-  const [c] = await getDb().select().from(characters).where(eq(characters.id, "ihan")).limit(1);
+  const [c] = await getDb().select().from(characters).where(eq(characters.id, getCharacterId())).limit(1);
   if (!c) redirect("/chat");
   const str = getStrings();
   const now = clockNow();

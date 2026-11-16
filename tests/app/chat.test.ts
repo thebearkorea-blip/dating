@@ -7,14 +7,20 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadContent } from "../../src/db/load-content.js";
 import * as schema from "../../src/db/schema/index.js";
-import { BUSY_OVERLAY_LINES, UNAVAILABLE_LINES } from "../../src/engine/busy-overlay.js";
+import { characterLines } from "../../src/engine/busy-overlay.js";
 import { handleUserMessage, nextDeliverAt, selectMemories } from "../../src/engine/chat.js";
 import { extractMemories } from "../../src/jobs/memory-extract.js";
-import { FALLBACK_LINES, guardOutput } from "../../src/policy/output-guard.js";
+import { SAFETY_SCRIPTS } from "../../src/policy/input-guard.js";
+import { guardOutput } from "../../src/policy/output-guard.js";
 import { loadGuards } from "../../src/policy/rules.js";
 import type { LlmRequest, LlmResponse } from "../../src/llm/index.js";
 
 const { memories, messages, relationships, reviewFindings, users } = schema;
+// 미국판(기본 PRODUCT=us) 이한의 영어 풀(content/characters/ihan/lines.yaml).
+const IHAN = characterLines("ihan");
+const BUSY_OVERLAY_LINES = IHAN.busy_overlay.en!;
+const UNAVAILABLE_LINES = IHAN.unavailable.en!;
+const FALLBACK_LINES = IHAN.fallback.en!;
 const db = drizzle(new PGlite(), { schema });
 const rules = loadGuards("content/policy/guards.yaml");
 const T0 = new Date("2026-12-01T03:00:00Z");
@@ -94,9 +100,20 @@ describe("한도", () => {
     expect(llm).toHaveBeenCalledTimes(6);
   });
 
-  it("오버레이 문장은 출력 가드를 통과한다", () => {
-    for (const l of [...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES, ...FALLBACK_LINES]) {
-      expect(guardOutput(l, rules).findings).toEqual([]);
+  it("오버레이 문장은 출력 가드를 통과한다(lines.yaml이 있는 모든 캐릭터·언어)", () => {
+    const ids = readdirSync("content/characters").filter((id) => {
+      try {
+        return statSync(join("content/characters", id, "lines.yaml")).isFile();
+      } catch {
+        return false;
+      }
+    });
+    expect(ids).toContain("ihan");
+    for (const id of ids) {
+      const l = characterLines(id);
+      for (const pools of [l.busy_overlay, l.unavailable, l.fallback]) {
+        for (const line of Object.values(pools).flat()) expect(guardOutput(line, rules).findings, `${id}: ${line}`).toEqual([]);
+      }
     }
   });
 });
@@ -158,6 +175,17 @@ describe("가드", () => {
     expect((await chars())).toHaveLength(1);
     const f = await db.select().from(reviewFindings).where(eq(reviewFindings.relId, relId));
     expect(f.some((x) => x.ruleId === "A9-crisis-input-regex")).toBe(true);
+    expect((await chars())[0]!.text).toBe(SAFETY_SCRIPTS.en);
+  });
+
+  it("일본어 위기 문장도 LLM 0회 + 일본어 안전 대본(상담 창구 번호 포함)", async () => {
+    llm.mockClear();
+    await send("もう死にたい", 0);
+    expect(llm).not.toHaveBeenCalled();
+    const rows = await chars();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.text).toBe(SAFETY_SCRIPTS.ja);
+    expect(rows[0]!.text).toContain("0120-279-338");
   });
 
   it("출력 block이면 재생성 1회 후 폴백 문장", async () => {
@@ -247,6 +275,34 @@ describe("기억", () => {
     await db.insert(memories).values({ relId, fact: "I play guitar every sunday", learnedAt: at(-1000) });
     expect(await selectMemories(db, relId, "guitar sunday plans")).toContain("I play guitar every sunday");
     expect(await selectMemories(db, relId, "only guitar")).not.toContain("I play guitar every sunday");
+  });
+
+  it("일본어(띄어쓰기 없음)는 문자 2-gram 2개 이상 겹치면 오래된 기억을 주입한다(J4d)", async () => {
+    for (let i = 0; i < 12; i++) {
+      await db.insert(memories).values({ relId, fact: `filler fact ${i}`, learnedAt: at(i) });
+    }
+    await db.insert(memories).values({ relId, fact: "毎週日曜日に図書館で働いている", learnedAt: at(-1000) });
+    await db.insert(memories).values({ relId, fact: "猫を二匹飼っている", learnedAt: at(-1001) });
+    const picked = await selectMemories(db, relId, "今週の日曜日も図書館に行くよ");
+    expect(picked).toContain("毎週日曜日に図書館で働いている");
+    expect(picked).not.toContain("猫を二匹飼っている");
+    // 히라가나 문법 조각만 겹치면 주입하지 않는다.
+    expect(await selectMemories(db, relId, "している、ている")).not.toContain("猫を二匹飼っている");
+  });
+
+  it("기억 추출 llm 프롬프트는 영어 고정이 아니라 사용자 대화 언어로 저장하라고 한다(J4d)", async () => {
+    const seen: LlmRequest[] = [];
+    const fake = async (req: LlmRequest): Promise<LlmResponse> => {
+      seen.push(req);
+      return { text: '{"facts":["犬の名前はモモ"]}', model: req.model };
+    };
+    await db.insert(messages).values({ relId, sender: "user", text: "うちの犬の名前はモモだよ", at: at(-5) });
+    await extractMemories(db, relId, at(0), { mode: "llm", llm: fake });
+    const sys = seen.find((r) => r.messages[0]!.content.includes("durable personal facts"))!.messages[0]!.content;
+    expect(sys).not.toMatch(/English sentence/);
+    expect(sys).toMatch(/same language the user writes in/);
+    const live = await db.select().from(memories).where(eq(memories.relId, relId));
+    expect(live.map((m) => m.fact)).toContain("犬の名前はモモ");
   });
 });
 

@@ -11,7 +11,7 @@ function b64ToBytes(s: string): Uint8Array<ArrayBuffer> {
 }
 
 /** 푸시 구독 토글. 공개키가 없거나 브라우저가 Push를 지원하지 않으면 비활성. */
-export function PushToggle({ publicKey }: { publicKey: string }) {
+export function PushToggle({ publicKey, label, unavailableLabel }: { publicKey: string; label: string; unavailableLabel: string }) {
   const [on, setOn] = useState(false);
   const [busy, setBusy] = useState(false);
   const supported = typeof navigator !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && publicKey !== "";
@@ -45,7 +45,10 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
   return (
     <label className="flex items-center gap-2">
       <input type="checkbox" checked={on} disabled={!supported || busy} onChange={() => void toggle()} />
-      <span>Notifications{supported ? "" : " (not available in this browser)"}</span>
+      <span>
+        {label}
+        {supported ? "" : unavailableLabel}
+      </span>
     </label>
   );
 }

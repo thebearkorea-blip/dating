@@ -100,7 +100,10 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ a
       >
         <div className="max-h-[50%] flex-none overflow-y-auto">
           <AppVoice screen="reconcile">
-            <ReconcileForm open={status === "open"} />
+            <ReconcileForm
+              open={status === "open"}
+              strings={{ notYet: str["reconcile.notYet"], prompt: str["reconcile.prompt"], label: str["reconcile.label"], send: str["reconcile.send"] }}
+            />
           </AppVoice>
         </div>
       </ChatClient>

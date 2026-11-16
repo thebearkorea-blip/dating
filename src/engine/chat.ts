@@ -12,14 +12,14 @@ import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmRespons
 import { trackedLlm } from "../llm/tracked.js";
 import { extractMemories, memoryEvery, memoryFirstAfter, SESSION_GAP_MS } from "../jobs/memory-extract.js";
 import { detectBreakers } from "../policy/breakers.js";
-import { guardInput, SAFETY_SCRIPT } from "../policy/input-guard.js";
+import { guardInput, isSafetyScript, SAFETY_SCRIPTS, safetyScriptFor } from "../policy/input-guard.js";
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
 import { recordEvent } from "./events.js";
 import { scenesByTrigger } from "./scenes.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
-import { BUSY_OVERLAY_LINES, BUSY_OVERLAY_LINES_KO, langOf, pickBusyOverlay, pickUnavailable, UNAVAILABLE_LINES, UNAVAILABLE_LINES_KO } from "./busy-overlay.js";
+import { characterLines, fallbackPool, forLang, freeLines, langOf, pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
@@ -30,8 +30,8 @@ import { judgeModeOf, ruleReaction } from "./judge.js";
 import { isQuotable, maybeRecordCharReaction, moveCharReaction, replyContextBlock, replyContextLines } from "./reactions.js";
 import { peekSecret, recordDisclosure } from "./secrets.js";
 import { onUserMessageSulk, sulkDirective } from "./sulk.js";
+import { getCharacterId, getLang } from "../product/index.js";
 
-export const CHARACTER_ID = "ihan";
 const CONTENT_ROOT = "content";
 /** 성장 상태가 아직 없을 때의 상대일(데뷔 전). */
 const DEFAULT_REL_DAY = -150;
@@ -80,7 +80,7 @@ export async function relDayOf(db: Db): Promise<number> {
 }
 
 export async function loadCharacter(db: Db) {
-  const [c] = await db.select().from(characters).where(eq(characters.id, CHARACTER_ID)).limit(1);
+  const [c] = await db.select().from(characters).where(eq(characters.id, getCharacterId())).limit(1);
   if (!c) throw new Error("캐릭터 데이터 없음: load-content를 먼저 실행하세요");
   const bible = bibleSchema.parse(c.bible);
   const engine: EngineCharacter = {
@@ -98,21 +98,38 @@ export async function currentActivity(db: Db, stage: number, now: Date): Promise
   return activityAt(engine, now, { relDay: await relDayOf(db), stage });
 }
 
-/** 화면 상단 한 줄. 숫자·내부 값 없이 응답 가능 시간감만. */
+/** 화면 상단 한 줄. 숫자·내부 값 없이 응답 가능 시간감만. 문장은 캐릭터 lines.yaml activity(제품 화면 언어). */
 export function activityLine(a: Activity): string {
-  if (a.busy >= 3) return "He's tied up right now — replies may take a while";
-  if (a.busy === 2) return "He's in the middle of practice — replies may be slow";
-  if (a.busy === 1) return "He's got a few things going on, but he'll get back to you";
-  return "He's free for now";
+  const l = forLang(characterLines().activity, getLang());
+  if (a.busy >= 3) return l.busy3;
+  if (a.busy === 2) return l.busy2;
+  if (a.busy === 1) return l.busy1;
+  return l.free;
 }
 
 const WORD = /[\p{L}\p{N}]+/gu;
 const STOP = new Set(["the", "and", "you", "for", "that", "with", "have", "are", "was", "not", "but", "this", "what", "just", "like", "from", "your", "about", "they", "can", "his", "her", "its", "had", "has", "did", "does", "will", "would", "there", "been", "were", "into", "then", "than", "them"]);
+/** 띄어쓰기 없는 문자(한자·가나). 이런 토큰은 단어 대신 문자 2-gram으로 비교한다. */
+const CJK = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+/** 2-gram에 한자·가타카나가 하나는 있어야 센다(「ている」 같은 히라가나 문법 조각 제외). */
+const CJK_KEY = /[\p{Script=Han}\p{Script=Katakana}]/u;
 function words(s: string): Set<string> {
-  return new Set((s.toLowerCase().match(WORD) ?? []).filter((w) => w.length >= 3 && !STOP.has(w)));
+  const out = new Set<string>();
+  for (const w of s.toLowerCase().match(WORD) ?? []) {
+    if (!CJK.test(w)) {
+      if (w.length >= 3 && !STOP.has(w)) out.add(w);
+      continue;
+    }
+    const chars = [...w];
+    for (let i = 0; i + 1 < chars.length; i++) {
+      const g = `${chars[i]}${chars[i + 1]}`;
+      if (CJK_KEY.test(g)) out.add(g);
+    }
+  }
+  return out;
 }
 
-/** 최근 10건 + 사용자 메시지와 단어 2개 이상 겹치는 기억. 삭제된 기억은 제외. */
+/** 최근 10건 + 사용자 메시지와 단어(일본어 등은 문자 2-gram) 2개 이상 겹치는 기억. 삭제된 기억은 제외. */
 export async function selectMemories(db: Db, relId: string, userText: string): Promise<string[]> {
   const rows = await db
     .select({ fact: memories.fact })
@@ -184,7 +201,7 @@ export async function recordUserMessage(deps: ChatDeps, userId: string, rawText:
   const [rel] = await db
     .select({ id: relationships.id, endedAt: relationships.endedAt })
     .from(relationships)
-    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID)))
+    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, getCharacterId())))
     .limit(1);
   if (!rel) throw new Error("관계 없음: 온보딩 필요");
   // 이별 뒤에는 대화를 받지 않는다(재시작은 reconcile 화면).
@@ -212,8 +229,8 @@ const LIVE_WINDOW_MIN = 10;
  * 안전 대본·이별 확인 질문/장면은 origin이 같아도 지우지 않는다.
  */
 async function dropPendingReplies(db: Db, userId: string, relId: string, now: Date): Promise<void> {
-  const keep = new Set<string>([SAFETY_SCRIPT]);
-  for (const s of scenesByTrigger(CHARACTER_ID, "breaker_confirmed")) {
+  const keep = new Set<string>(Object.values(SAFETY_SCRIPTS));
+  for (const s of scenesByTrigger(getCharacterId(), "breaker_confirmed")) {
     if (s.confirmLine) keep.add(s.confirmLine);
     for (const b of s.bubbles) keep.add(b);
   }
@@ -228,7 +245,7 @@ async function dropPendingReplies(db: Db, userId: string, relId: string, now: Da
   await db.update(reviewFindings).set({ messageId: null }).where(inArray(reviewFindings.messageId, ids));
   await db.delete(messages).where(inArray(messages.id, ids));
   // 한도를 쓰지 않은 답장: 한도 소진 오버레이, LLM 실패 문장(이미 환불됨).
-  const free = new Set<string>([...BUSY_OVERLAY_LINES, ...UNAVAILABLE_LINES, ...BUSY_OVERLAY_LINES_KO, ...UNAVAILABLE_LINES_KO]);
+  const free = freeLines();
   for (const r of rows) if (!free.has(r.text)) await refundQuota(db, userId);
 }
 
@@ -287,7 +304,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       .returning({ id: messages.id });
     await markSeen(replyText, deliverAt);
     // 그의 반응(W11): 위기 대본에는 달지 않는다.
-    if (replyText !== SAFETY_SCRIPT) {
+    if (!isSafetyScript(replyText)) {
       await maybeRecordCharReaction(db, { userId, relId: rel.id, userMsgId: userMsg.id, judged, busy: activity.busy, delayMs: deliverAt.getTime() - now.getTime() });
     }
     return m?.id ?? null;
@@ -357,7 +374,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
   const input = guardInput(text, rules);
   await logFindings(db, rel.id, userMsg.id, input.findings);
   // 이별 전이(확인 질문 → 이별 장면). 위기 신호는 안전 대본이 먼저라 분류하지 않는다.
-  const turn = input.blocked ? "none" : await breakerTurn(db, CHARACTER_ID, rel, text, now, {
+  const turn = input.blocked ? "none" : await breakerTurn(db, getCharacterId(), rel, text, now, {
         mode: deps.memoryMode,
         llm: judgeLlm,
         onReaction: (e) => {
@@ -366,7 +383,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       });
   if (input.blocked) {
     // 위기 신호: LLM을 거치지 않는 고정 대본. 지연 없이 즉시, 한도는 쓰지 않는다.
-    await saveReply(SAFETY_SCRIPT, nextCharacterAt(now, 0));
+    await saveReply(safetyScriptFor(text), nextCharacterAt(now, 0));
   } else if (turn === "asked" || turn === "ended") {
     // 확인 질문·이별 장면은 breakerTurn이 저장했다. 일반 답장·한도 소비 없음.
   } else if (!(await consumeQuota(db, userId, now))) {
@@ -411,6 +428,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
         () => nonEmptyText(() => chatLlm({ model: CHAT_MODEL, maxTokens: 1024, temperature: 0.8, messages: [{ role: "system", content: system }, ...turns] })),
         rules,
         `${userMsg.id}:fallback`,
+        fallbackPool(langOf(text)),
       );
       if (await superseded()) {
         // 더 새 메시지의 답장이 이 답장을 대신한다. 한도는 되돌린다.

@@ -9,8 +9,8 @@ export function getProduct(): Product {
   return process.env.PRODUCT === "jp" ? "jp" : "us";
 }
 
-/** 제품별 캐릭터 id. jp 캐릭터 콘텐츠는 아직 없다(자리표시자). */
-export const CHARACTER_IDS: Record<Product, string> = { us: "ihan", jp: "jp-char" };
+/** 제품별 캐릭터 id. */
+export const CHARACTER_IDS: Record<Product, string> = { us: "ihan", jp: "yeonhu" };
 export function getCharacterId(p: Product = getProduct()): string {
   return CHARACTER_IDS[p];
 }
@@ -105,6 +105,11 @@ export function chatListStrings(name: string, p: Product = getProduct()) {
     quotePhoto: s["quote.photo"],
     quoteYou: s["quote.you"],
     quoteHim: name,
+    rateGood: s["rate.good"],
+    rateBad: s["rate.bad"],
+    rateSaved: s["rate.saved"],
+    rateNote: s["rate.note"],
+    rateSave: s["rate.save"],
   };
 }
 

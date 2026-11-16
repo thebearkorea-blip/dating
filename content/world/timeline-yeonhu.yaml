@@ -1,0 +1,71 @@
+# 연후 라인 비트(rel_day = 첫 방송 D-0 기준, 방영 직전 = -1). 근거: docs/research/2026-11-17-일본판-캐릭터-J2-fable.md §5.
+# 주의: 엔진은 world/timeline.yaml 1개만 읽고 캐릭터별 분리가 없다(src/engine/chat.ts timeline()). 이 파일은 현재 엔진이 읽지 않는다.
+# 엔진이 읽게 하려면 (a) timeline 로더가 world/timeline-*.yaml을 캐릭터별로 병합하도록 src 수정, 또는 (b) 비트를 timeline.yaml에 병합(ihan과 같은 rel_day 비트가 공유됨)해야 한다.
+# id는 yeonhu_ 접두사로 이한 비트와 충돌하지 않게 했다. public_text는 일본어.
+beats:
+  - id: yeonhu_lead_confirmed
+    rel_day: { min: -180, max: -176 }
+    requires: []
+    branch: null
+    public_text: 初めての主演が決まったという電話を受けた。十二年目の夜、知らせを一人で聞いた。放送まで六ヶ月。
+    kinds: [diary, letter, event]
+  - id: yeonhu_first_reading
+    rel_day: { min: -172, max: -168 }
+    requires: [yeonhu_lead_confirmed]
+    branch: null
+    public_text: 初めての全体の本読み。三回噛んだ。台本は三色の色鉛筆で、青は息、赤は人物が嘘をつくところ、緑は本当の気持ち。
+    kinds: [diary, letter, event]
+  - id: yeonhu_casting_news
+    rel_day: { min: -152, max: -148 }
+    requires: [yeonhu_lead_confirmed]
+    branch: null
+    public_text: キャスティング記事が出た。コメントは「誰?」。初めて応援される側になった。
+    kinds: [diary, letter, event]
+  - id: yeonhu_arboretum
+    rel_day: { min: -137, max: -133 }
+    requires: [yeonhu_lead_confirmed]
+    branch: null
+    public_text: 樹木医の役のために植物園で実習した。冬芽は、春を待つ目。
+    kinds: [diary, letter, event]
+  - id: yeonhu_crank_in
+    rel_day: { min: -121, max: -119 }
+    requires: [yeonhu_first_reading]
+    branch: null
+    public_text: 安全祈願の儀式とクランクイン。初日の撮影のあと、夜明けに一言だけ書いた。
+    kinds: [diary, letter, event]
+  - id: yeonhu_ng_17
+    rel_day: { min: -97, max: -93 }
+    requires: [yeonhu_crank_in]
+    branch: null
+    public_text: 泣く場面でNGを十七回出した。二日間、静かだった。戻ってきたとき、ひとつだけ話した。
+    kinds: [diary, letter, event]
+  - id: yeonhu_ending_song_recording
+    rel_day: { min: -77, max: -73 }
+    requires: [yeonhu_crank_in]
+    branch: null
+    public_text: エンディング曲「봄의 앞줄」を録音した。歌詞の二行を、先にあなたに見せた。
+    kinds: [diary, letter, event]
+  - id: yeonhu_anonymous_letter
+    rel_day: { min: -52, max: -48 }
+    requires: [yeonhu_lead_confirmed]
+    branch: null
+    public_text: なぜ一人の手紙を読むと決めたのか。無名七年目にやめようとした日に届いた、差出人のない手紙の話。
+    kinds: [diary, letter, event]
+  - id: yeonhu_crank_up
+    rel_day: { min: -32, max: -28 }
+    requires: [yeonhu_crank_in]
+    branch: null
+    public_text: クランクアップ。机の上が急に静かになった。ラップ「十二年」を四小節だけ。
+    kinds: [diary, letter, event]
+  - id: yeonhu_trailer_press
+    rel_day: { min: -9, max: -5 }
+    requires: [yeonhu_crank_up]
+    branch: null
+    public_text: 予告編の公開と制作発表会。あなたの「行ってらっしゃい」を、今度は僕が受け取った。
+    kinds: [diary, letter, event]
+  - id: yeonhu_first_broadcast
+    rel_day: { min: -1, max: 0 }
+    requires: [yeonhu_trailer_press]
+    branch: null
+    public_text: 第1話の放送日。放送のあと、1話の場面を手紙に書いた。視聴率は三パーセント台。
+    kinds: [diary, letter, event]

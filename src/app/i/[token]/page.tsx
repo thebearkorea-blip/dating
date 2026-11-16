@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { recordEvent } from "@/engine/events";
 import { platformIdentities } from "@/db/schema/index";
+import { getStrings } from "@/product";
 import { INVITE_COOKIE } from "../../onboarding/invite-cookie";
 
 // 틱톡 DM 전용 토큰 링크. 세션에 토큰을 보관하고, 온보딩 완료 시 platform_identities에 user_id를 연결한다.
@@ -29,13 +30,14 @@ export default async function InviteLanding({ params }: { params: Promise<{ toke
     .where(eq(platformIdentities.token, token))
     .limit(1);
   if (!row || row.userId) notFound();
+  const str = getStrings();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-6 px-6 text-center">
-      <p className="text-3xl font-semibold">He&apos;s here.</p>
+      <p className="text-3xl font-semibold">{str["invite.title"]}</p>
       <form action={claim.bind(null, token)}>
         <button type="submit" className="btn">
-          Start
+          {str["invite.start"]}
         </button>
       </form>
     </main>

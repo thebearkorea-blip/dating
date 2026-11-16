@@ -3,7 +3,8 @@
 import { and, asc, desc, eq, gt, inArray, isNotNull, lte, or, sql, type SQL } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { messages, reactions, relationships } from "../db/schema/index";
-import { activityLine, CHARACTER_ID, currentActivity, nextDeliverAt } from "./chat.js";
+import { getCharacterId } from "../product/index.js";
+import { activityLine, currentActivity, nextDeliverAt } from "./chat.js";
 import { typingStartDelayMs, typingWindowMs } from "./typing.js";
 
 export { seenAtFor, typingStartDelayMs, typingWindowMs } from "./typing.js";
@@ -79,7 +80,7 @@ export async function findOwnedRelationship(db: Db, userId: string, relId?: stri
   const [rel] = await db
     .select({ id: relationships.id, stage: relationships.stage })
     .from(relationships)
-    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, CHARACTER_ID), ...(relId ? [eq(relationships.id, relId)] : [])))
+    .where(and(eq(relationships.userId, userId), eq(relationships.characterId, getCharacterId()), ...(relId ? [eq(relationships.id, relId)] : [])))
     .limit(1);
   return rel ?? null;
 }

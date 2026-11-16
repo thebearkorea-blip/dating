@@ -1,6 +1,7 @@
 // /admin 집계. 서버 컴포넌트가 부르는 읽기 전용 쿼리(숫자는 여기서만 만든다).
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
+import { getCharacterId } from "../product";
 import { entitlements, events, llmUsage, messages, ratings, relationships, reviewFindings, users } from "../db/schema/index";
 
 // ---- 퍼널 ----
@@ -156,7 +157,7 @@ export async function userRows(db: Db, limit = 200) {
     })
     .from(users)
     .leftJoin(entitlements, eq(entitlements.userId, users.id))
-    .leftJoin(relationships, and(eq(relationships.userId, users.id), eq(relationships.characterId, "ihan")))
+    .leftJoin(relationships, and(eq(relationships.userId, users.id), eq(relationships.characterId, getCharacterId())))
     .orderBy(desc(users.createdAt))
     .limit(limit);
   // 최근 활동 순(활동 없는 사용자는 뒤).

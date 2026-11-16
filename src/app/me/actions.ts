@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { memories, relationships } from "@/db/schema/index";
+import { getCharacterId } from "@/product";
 
 export async function deleteMemory(formData: FormData): Promise<void> {
   const user = await getCurrentUser();
@@ -13,7 +14,7 @@ export async function deleteMemory(formData: FormData): Promise<void> {
   const [rel] = await db
     .select({ id: relationships.id })
     .from(relationships)
-    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")))
+    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, getCharacterId())))
     .limit(1);
   if (!rel) return;
   await db

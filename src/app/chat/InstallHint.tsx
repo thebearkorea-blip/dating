@@ -2,13 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+/** 문구는 서버가 src/product 사전(install.*)에서 넘긴다. */
 type Strings = { installHintTitle: string; installHintBody: string; installHintDismiss: string };
-
-const DEFAULTS: Strings = {
-  installHintTitle: "Add to Home Screen",
-  installHintBody: "Tap Share, then Add to Home Screen to get his messages.",
-  installHintDismiss: "Not now",
-};
 
 const VISITS_KEY = "chatVisits";
 const HIDE_UNTIL_KEY = "installHintHideUntil";
@@ -22,9 +17,8 @@ function isIosSafariBrowser() {
   return ios && safari && !standalone;
 }
 
-export function InstallHint({ strings }: { strings?: Partial<Strings> }) {
+export function InstallHint({ strings: s }: { strings: Strings }) {
   const [show, setShow] = useState(false);
-  const s = { ...DEFAULTS, ...strings };
 
   useEffect(() => {
     try {

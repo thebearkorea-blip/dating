@@ -7,6 +7,7 @@ import { getDb } from "@/db/client";
 import { getBillingProvider } from "@/billing/index";
 import { deleteAccount as wipeAccount, deleteAllConversations as wipeConversations } from "@/engine/data-deletion";
 import { pushSubscriptions, relationships, users } from "@/db/schema/index";
+import { getCharacterId } from "@/product";
 
 function validTz(tz: string): boolean {
   try {
@@ -32,7 +33,7 @@ export async function saveSettings(formData: FormData): Promise<void> {
   if (HM.test(start) && HM.test(end) && start !== end) set.pushWindow = { start, end };
   if (Number.isInteger(max) && max >= 0 && max <= 4) set.pushMax = max;
   if (Object.keys(set).length > 0) {
-    await db.update(relationships).set(set).where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")));
+    await db.update(relationships).set(set).where(and(eq(relationships.userId, user.id), eq(relationships.characterId, getCharacterId())));
   }
   revalidatePath("/settings");
 }

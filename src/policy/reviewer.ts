@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
 import { complete, estimateCostUsd, hasLlmKey, JUDGE_MODEL } from "../llm/index.js";
+import { getCharacterId } from "../product/index.js";
 import { loadGuards, runStage1, type Finding, type GuardRule } from "./rules.js";
 
 export interface Verdict {
@@ -83,7 +84,7 @@ export async function review(text: string, opts: ReviewOptions = {}): Promise<Ve
   const root = opts.root ?? process.cwd();
   const rules = opts.rules ?? loadGuards(resolve(root, "content/policy/guards.yaml"));
   const findings = runStage1(text, rules);
-  const character = opts.characterId ?? "ihan";
+  const character = opts.characterId ?? getCharacterId();
   const never = bibleNever(root, character);
   const canon = opts.canon ?? characterCanon(root, character);
   const meta = { character, neverRules: { md: never.md, yaml: never.yaml }, canonCount: Math.min(canon.length, 30) };

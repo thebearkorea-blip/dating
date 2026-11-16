@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/auth/index";
 import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
+import { fmt, getCharacterId, getStrings } from "@/product";
 import { AppVoice } from "../_components/AppVoice";
 import { cancelSubscription, deleteAccount, deleteAllConversations, saveSettings, startCheckout } from "./actions";
 import { ConfirmDelete } from "./ConfirmDelete";
@@ -20,93 +21,97 @@ export default async function Settings() {
   const [rel] = await getDb()
     .select({ pushWindow: relationships.pushWindow, pushMax: relationships.pushMax })
     .from(relationships)
-    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, "ihan")))
+    .where(and(eq(relationships.userId, user.id), eq(relationships.characterId, getCharacterId())))
     .limit(1);
   if (!rel) redirect("/onboarding");
   const plan = await getPlanView(getDb(), user.id, new Date());
   const w = (rel.pushWindow as { start?: string; end?: string } | null) ?? {};
+  const str = getStrings();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
       <header className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Settings</h1>
+        <h1 className="text-lg font-semibold">{str["header.settings"]}</h1>
         <Link href="/chat" className="text-sm underline">
-          Back
+          {str["header.back"]}
         </Link>
       </header>
       <AppVoice screen="settings">
-        <p>Payments never affect his growth.</p>
+        <p>{str["billing.noGrowth"]}</p>
         {plan.plan === "paid" ? (
           <p>
-            Plan: Paid
-            {plan.periodEnd ? ` · ${plan.cancelAtPeriodEnd ? "ends" : "renews"} ${plan.periodEnd.toISOString().slice(0, 10)}` : ""}
+            {plan.periodEnd
+              ? fmt(str[plan.cancelAtPeriodEnd ? "settings.planPaidEnds" : "settings.planPaidRenews"], { date: plan.periodEnd.toISOString().slice(0, 10) })
+              : str["settings.planPaid"]}
           </p>
         ) : (
-          <p>Plan: Free</p>
+          <p>{str["settings.planFree"]}</p>
         )}
-        <p>$10 / month · 100 messages a day · photos</p>
+        <p>
+          {str["billing.price"]} · {str["billing.features"]}
+        </p>
         {plan.plan === "paid" ? (
           plan.cancelAtPeriodEnd ? null : (
             <form action={cancelSubscription}>
               <button type="submit" className="btn">
-                Cancel
+                {str["billing.cancel"]}
               </button>
             </form>
           )
         ) : (
           <form action={startCheckout}>
             <button type="submit" className="btn">
-              Subscribe
+              {str["billing.subscribe"]}
             </button>
           </form>
         )}
       </AppVoice>
-      <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY ?? ""} />
+      <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY ?? ""} label={str["settings.notifications"]} unavailableLabel={str["settings.notificationsUnavailable"]} />
       <form action={saveSettings} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span>Time zone</span>
+          <span>{str["settings.timeZone"]}</span>
           <input name="tz" defaultValue={user.tz ?? "Asia/Seoul"} className="field" />
         </label>
         <div className="flex gap-3">
           <label className="flex flex-1 flex-col gap-1">
-            <span>Messages from</span>
+            <span>{str["settings.messagesFrom"]}</span>
             <input name="start" type="time" defaultValue={w.start ?? "09:00"} className="field" />
           </label>
           <label className="flex flex-1 flex-col gap-1">
-            <span>until</span>
+            <span>{str["settings.until"]}</span>
             <input name="end" type="time" defaultValue={w.end ?? "23:00"} className="field" />
           </label>
         </div>
         <label className="flex flex-col gap-1">
-          <span>Max messages from him per day</span>
+          <span>{str["settings.maxPerDay"]}</span>
           <input name="pushMax" type="number" min={0} max={4} defaultValue={rel.pushMax ?? 2} className="field" />
         </label>
         <button type="submit" className="btn">
-          Save
+          {str["settings.save"]}
         </button>
       </form>
       <AppVoice screen="settings">
-        <p>Your data is yours. Deleting conversations keeps your relationship but starts it over.</p>
-        <ConfirmDelete action={deleteAllConversations} label="Delete all conversations" confirmLabel="Really delete conversations" />
-        <ConfirmDelete action={deleteAccount} label="Delete account" confirmLabel="Really delete account" />
+        <p>{str["settings.dataNote"]}</p>
+        <ConfirmDelete action={deleteAllConversations} label={str["settings.deleteConversations"]} confirmLabel={str["settings.deleteConversationsConfirm"]} keepLabel={str["settings.keep"]} />
+        <ConfirmDelete action={deleteAccount} label={str["settings.deleteAccount"]} confirmLabel={str["settings.deleteAccountConfirm"]} keepLabel={str["settings.keep"]} />
         <SignOutButton redirectUrl="/">
           <button type="button" className="btn">
-            Sign out
+            {str["settings.signOut"]}
           </button>
         </SignOutButton>
         <p>
           <Link href="/privacy" className="underline">
-            Privacy notice
+            {str["privacy.title"]}
           </Link>
         </p>
       </AppVoice>
       <section id="ai-notice" className="flex flex-col gap-1">
         <AppVoice screen="ai_notice">
-          <p>He is an AI character.</p>
+          <p>{str["ai.notice"]}</p>
         </AppVoice>
       </section>
       <a href="#ai-notice" className="text-sm underline">
-        Show the AI notice again
+        {str["settings.showAiNotice"]}
       </a>
     </main>
   );
