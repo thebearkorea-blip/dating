@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { activityAt, dailySeed, kstParts, upcomingBlocks } from "../../src/engine/schedule.js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parse } from "yaml";
+import { bibleSchema, scheduleSchema, timelineSchema } from "../../src/content/schemas/index.js";
+import { activityAt, blockAt, dailySeed, isSleepBlock, kstParts, upcomingBlocks, type EngineCharacter } from "../../src/engine/schedule.js";
 import { character, timeline } from "./helpers.js";
 
 const g = { relDay: -150, stage: 2 };
@@ -85,5 +89,59 @@ describe("upcomingBlocks", () => {
       expect(b.startKst).toMatch(/^\d{2}:00$/);
     }
     expect(blocks.some((b) => b.dayLabel === "내일")).toBe(true);
+  });
+});
+
+// 취침 판정은 isSleepBlock과 같은 규칙: 연후는 00:30에 자므로 "24:00" 시작만 보면 새벽 불면 선톡이 막힌다.
+describe("취침 블록 불면 선톡", () => {
+  const C = join(import.meta.dirname, "../../content");
+  const y = (p: string): unknown => parse(readFileSync(join(C, p), "utf8"));
+  const yBible = bibleSchema.parse(y("characters/yeonhu/bible.yaml"));
+  const yeonhu: EngineCharacter = {
+    id: yBible.id,
+    schedule: scheduleSchema.parse(y("characters/yeonhu/schedule.yaml")),
+    timeline: timelineSchema.parse(y("world/timeline-yeonhu.yaml")),
+    affectionStages: yBible.affection_stages,
+  };
+  const rel = -150;
+  // KST hh:mm의 UTC 시각(KST = UTC+9)
+  const kst = (d: number, hh: number, mm: number) => new Date(Date.UTC(2026, 0, d, hh - 9, mm));
+
+  function scan(c: EngineCharacter, hh: number, mm: number) {
+    let insomniaDays = 0;
+    let plainDays = 0;
+    for (let d = 1; d <= 120; d++) {
+      const t = kst(d, hh, mm);
+      if (!isSleepBlock(blockAt(c.schedule, t, rel))) continue;
+      const s3 = activityAt(c, t, { relDay: rel, stage: 3 });
+      const s2 = activityAt(c, t, { relDay: rel, stage: 2 });
+      if (s3.tags.includes("insomnia")) {
+        insomniaDays++;
+        expect(s3.canInitiate).toBe(true);
+        expect(s2.canInitiate).toBe(false); // 단계 3 미만은 불면이어도 선톡 없음
+      } else {
+        plainDays++;
+        expect(s3.canInitiate).toBe(false);
+      }
+    }
+    return { insomniaDays, plainDays };
+  }
+
+  it("연후 00:45 KST: 취침 중이라 선톡 불가, 불면 이벤트(단계 3+)면 가능", () => {
+    const r = scan(yeonhu, 0, 45);
+    expect(r.plainDays).toBeGreaterThan(0);
+    expect(r.insomniaDays).toBeGreaterThan(0);
+  });
+
+  it("연후 07:00 KST: 취침 중이라 선톡 불가, 불면 이벤트(단계 3+)면 가능", () => {
+    const r = scan(yeonhu, 7, 0);
+    expect(r.plainDays).toBeGreaterThan(0);
+    expect(r.insomniaDays).toBeGreaterThan(0);
+  });
+
+  it("이한은 그대로: 24:00 시작 취침 블록(00:30)에서 같은 규칙", () => {
+    const r = scan(character, 0, 30);
+    expect(r.plainDays).toBeGreaterThan(0);
+    expect(r.insomniaDays).toBeGreaterThan(0);
   });
 });

@@ -1,11 +1,9 @@
 // 채팅 한 턴의 핵심 로직. DB·LLM·시각을 주입받아 단위 테스트가 가능하다(Server Action은 얇은 껍데기).
 // 숨김 컬럼은 읽지도 싣지도 않는다(선택 컬럼만).
-import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { now as clockNow } from "../clock";
 import { join } from "node:path";
 import { and, asc, count, desc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
-import { parse as parseYaml } from "yaml";
-import { bibleSchema, groupSchema, scheduleSchema, timelineSchema, type CanonRow, type Group } from "../content/schemas/index.js";
+import { bibleSchema, scheduleSchema, type CanonRow, type Group } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
 import { canonFacts, characters, disclosures, growthState, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
 import { complete, CHAT_MODEL, type LlmMessage, type LlmRequest, type LlmResponse } from "../llm/index.js";
@@ -26,9 +24,10 @@ import { characterLines, fallbackPool, forLang, freeLines, langOf, pickBusyOverl
 import { silenceDays } from "./catch-up.js";
 import { withLedger } from "./ledger.js";
 import { buildPersona } from "./persona.js";
+import { assemblePersonaInput, loadGroupFile, loadTimelineFile } from "./persona-input.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
-import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity, type EngineCharacter } from "./schedule.js";
+import { activityAt, hash32, kstParts, type Activity, type EngineCharacter } from "./schedule.js";
 import { seenAtFor } from "./typing.js";
 import { judgeModeOf, ruleReaction, ruleUrgent } from "./judge.js";
 import { isQuotable, maybeRecordCharReaction, moveCharReaction, replyContextBlock, replyContextLines } from "./reactions.js";
@@ -63,8 +62,7 @@ const timelineCache = new Map<string, EngineCharacter["timeline"]>();
 function timeline(characterId: string): EngineCharacter["timeline"] {
   let t = timelineCache.get(characterId);
   if (!t) {
-    const own = join(CONTENT_ROOT, "world", `timeline-${characterId}.yaml`);
-    t = timelineSchema.parse(parseYaml(readFileSync(existsSync(own) ? own : join(CONTENT_ROOT, "world/timeline.yaml"), "utf8")));
+    t = loadTimelineFile(CONTENT_ROOT, characterId);
     timelineCache.set(characterId, t);
   }
   return t;
@@ -74,12 +72,7 @@ const groupCache = new Map<string, Group | undefined>();
 /** content/world/group*.yaml 중 id가 groupId인 그룹(1회 캐시). 없으면 undefined. */
 export function loadGroup(groupId: string): Group | undefined {
   if (!groupCache.has(groupId)) {
-    const dir = join(CONTENT_ROOT, "world");
-    const found = readdirSync(dir)
-      .filter((f) => /^group.*\.yaml$/.test(f))
-      .map((f) => groupSchema.parse(parseYaml(readFileSync(join(dir, f), "utf8"))))
-      .find((g) => g.id === groupId);
-    groupCache.set(groupId, found);
+    groupCache.set(groupId, loadGroupFile(CONTENT_ROOT, groupId));
   }
   return groupCache.get(groupId);
 }
@@ -444,21 +437,26 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     const canon = (await db.select().from(canonFacts).where(eq(canonFacts.character, getCharacterId())).orderBy(asc(canonFacts.at))).map(
       (r): CanonRow => ({ at: r.at, character: r.character, fact: r.fact, source: r.source as CanonRow["source"], ...(r.eventId ? { event_id: r.eventId } : {}) }),
     );
-    const persona = buildPersona({
-      bible,
-      group,
-      voiceMd,
-      canon,
-      activity,
-      nowKst: formatNowKst(now),
-      upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db, now), stage }),
-      stage,
-      memories: await selectMemories(db, rel.id, text),
-      profile: profileText(rel.profile),
-      sulk: sulkDirective(sulk),
-      secretNow,
-      disclosed: (await db.select({ id: disclosures.secretId }).from(disclosures).where(eq(disclosures.relId, rel.id))).map((d) => d.id),
-    });
+    const persona = buildPersona(
+      assemblePersonaInput({
+        bible,
+        group,
+        voiceMd,
+        canon,
+        engine,
+        activity,
+        now,
+        relDay: await relDayOf(db, now),
+        stage,
+        extra: {
+          memories: await selectMemories(db, rel.id, text),
+          profile: profileText(rel.profile),
+          sulk: sulkDirective(sulk),
+          secretNow,
+          disclosed: (await db.select({ id: disclosures.secretId }).from(disclosures).where(eq(disclosures.relId, rel.id))).map((d) => d.id),
+        },
+      }),
+    );
     const history = await db
       .select({ sender: messages.sender, text: messages.text })
       .from(messages)

@@ -13,11 +13,12 @@ import { currentActivity, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
 import { eventContext } from "../engine/ledger.js";
 import { buildPersona } from "../engine/persona.js";
+import { assemblePersonaInput } from "../engine/persona-input.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
 import { pendingUserDayScene } from "../engine/first-week.js";
 import { scenesByTrigger } from "../engine/scenes.js";
 import { isSulking } from "../engine/sulk.js";
-import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity } from "../engine/schedule.js";
+import { activityAt, hash32, kstParts, type Activity } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, type LlmRequest, type LlmResponse } from "../llm/index.js";
 import { trackedLlm } from "../llm/tracked.js";
 import { guardOutput } from "../policy/output-guard.js";
@@ -235,17 +236,20 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   const memory = mems.length ? (mems[hash32(`${rel.id}:${today}:mem`) % mems.length] as { fact: string }).fact : null;
   const diary = recentDiary(now);
 
-  const persona = buildPersona({
-    bible,
-    group,
-    voiceMd,
-    canon,
-    activity,
-    nowKst: formatNowKst(now),
-    upcoming: upcomingBlocks(engine, now, { relDay: await relDayOf(db, now), stage: rel.stage }),
-    stage: rel.stage,
-    memories: memory ? [memory] : [],
-  });
+  const persona = buildPersona(
+    assemblePersonaInput({
+      bible,
+      group,
+      voiceMd,
+      canon,
+      engine,
+      activity,
+      now,
+      relDay: await relDayOf(db, now),
+      stage: rel.stage,
+      extra: { memories: memory ? [memory] : [] },
+    }),
+  );
   const material = proactiveMaterial(activity, diary, memory);
   const instruction = [
     "[Private note, not from the user] You are texting them first, unprompted. Write only the message you send: one or two short sentences in your own voice.",

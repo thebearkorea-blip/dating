@@ -117,7 +117,7 @@ export function dayBlocks(schedule: Schedule, dayIndex: number, relDay: number):
   return weekTemplateAt(schedule, relDay)[key];
 }
 
-/** 취침 블록인가: 자정 시작("24:00-") 또는 활동명이 "취침"으로 시작(연후처럼 00:30에 자는 일정). 원장 일정 검사용. */
+/** 취침 블록인가: 자정 시작("24:00-") 또는 활동명이 "취침"으로 시작(연후처럼 00:30에 자는 일정). 원장 일정 검사·불면 선톡 판정용. */
 export const isSleepBlock = (b: { time: string; activity: string }): boolean => b.time.startsWith("24:00") || /^취침/.test(b.activity.trim());
 
 /** 달의 마지막 금요일이 속한 월~일 주인지 */
@@ -205,7 +205,7 @@ export function activityAt(
   const mult = character.schedule.reply_delay_multiplier[String(busy)] ?? 1;
   const replyDelayRange = { min: stage.reply_delay.min_min * mult, max: stage.reply_delay.max_min * mult };
 
-  const asleep = block.time.startsWith("24:00");
+  const asleep = isSleepBlock(block);
   const insomnia = asleep && events.some((e) => e.id === "insomnia") && growth.stage >= 3;
   const canInitiate = insomnia || (busy < 3 && stage.initiative_per_day > 0 && block.initiative_ok);
 

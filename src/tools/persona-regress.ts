@@ -1,21 +1,19 @@
 // 페르소나 회귀 묶음(몰입 1차 M5). 사용법:
 //   node --import tsx src/tools/persona-regress.ts --character <ihan|yeonhu> [--limit n] [--dry-run]
 // 실모델 호출은 --dry-run 없이만 일어난다. 배포 전 필수 절차: docs/ops/persona-regression.md
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parse as parseYaml } from "yaml";
 import {
   bibleSchema,
   canonRowSchema,
-  groupSchema,
   scheduleSchema,
-  timelineSchema,
   type CanonRow,
-  type Group,
 } from "../content/schemas/index.js";
 import { buildPersona } from "../engine/persona.js";
-import { activityAt, formatNowKst, kstParts, upcomingBlocks, type EngineCharacter } from "../engine/schedule.js";
+import { assemblePersonaInput, loadGroupFile, loadTimelineFile } from "../engine/persona-input.js";
+import { activityAt, kstParts, type EngineCharacter } from "../engine/schedule.js";
 import { CHAT_MODEL, complete, estimateCostUsd, hasLlmKey, JUDGE_MODEL } from "../llm/index.js";
 import type { GuardRule } from "../policy/rules.js";
 import { review as defaultReview, type Verdict } from "../policy/reviewer.js";
@@ -358,13 +356,8 @@ export function buildFreshPersona(root: string, characterId: string, now: Date =
   const bible = bibleSchema.parse(yaml(`${dir}/bible.yaml`));
   const voiceMd = readFileSync(join(content, dir, "voice.md"), "utf8");
   const schedule = scheduleSchema.parse(yaml(`${dir}/schedule.yaml`));
-  const ownTimeline = `world/timeline-${characterId}.yaml`;
-  const timeline = timelineSchema.parse(yaml(existsSync(join(content, ownTimeline)) ? ownTimeline : "world/timeline.yaml"));
-  const worldDir = join(content, "world");
-  const group: Group | undefined = readdirSync(worldDir)
-    .filter((f) => /^group.*\.yaml$/.test(f))
-    .map((f) => groupSchema.parse(parseYaml(readFileSync(join(worldDir, f), "utf8"))))
-    .find((g) => g.id === bible.group_id);
+  const timeline = loadTimelineFile(content, characterId);
+  const group = loadGroupFile(content, bible.group_id);
   const canonPath = join(content, "world/canon.jsonl");
   const canon: CanonRow[] = existsSync(canonPath)
     ? readFileSync(canonPath, "utf8")
@@ -381,16 +374,7 @@ export function buildFreshPersona(root: string, characterId: string, now: Date =
   const stage = 1;
   const engine: EngineCharacter = { id: bible.id, schedule, timeline, affectionStages: bible.affection_stages };
   const activity = activityAt(engine, worldTime, { relDay, stage });
-  return buildPersona({
-    bible,
-    group,
-    voiceMd,
-    canon,
-    activity,
-    nowKst: formatNowKst(worldTime),
-    upcoming: upcomingBlocks(engine, worldTime, { relDay, stage }),
-    stage,
-  });
+  return buildPersona(assemblePersonaInput({ bible, group, voiceMd, canon, engine, activity, now: worldTime, relDay, stage }));
 }
 
 // ---- 5. 실행 · 보고서 --------------------------------------------------------------------------
