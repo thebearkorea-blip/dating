@@ -4,6 +4,8 @@ export const en = {
   "app.name": "ONDAY",
   // 캐릭터 DB 행이 없을 때(jp 콘텐츠 준비 전) 쓰는 이름
   "character.fallbackName": "Ihan",
+  // 헤더·프로필에 보일 이름. 빈 문자열이면 DB의 캐릭터 이름(us는 기존 표시 그대로)
+  "character.displayName": "",
   // 헤더
   "header.openProfile": "View {name}'s profile",
   "header.memories": "Memories",
@@ -129,14 +131,14 @@ export const en = {
   "invite.title": "He's here.",
   "invite.start": "Start",
   // 온보딩
-  "onboarding.error.invalid": "모든 칸을 채우고 동의에 체크해 주세요.",
-  "onboarding.error.underage": "죄송하지만 이용할 수 없는 연령이에요.",
-  "onboarding.error.no_content": "개발 환경에 캐릭터 데이터가 없어요. load-content를 먼저 실행하세요.",
+  "onboarding.error.invalid": "Please fill in every field and check the box to agree.",
+  "onboarding.error.underage": "Sorry, you can't use this service at your age.",
+  "onboarding.error.no_content": "This environment has no character data. Run load-content first.",
   "onboarding.name": "What should he call you?",
   "onboarding.city": "City",
   "onboarding.birthYear": "Birth year",
   "onboarding.continue": "Continue",
-  "onboarding.preparing": "이 연령을 위한 모드는 준비 중이에요. 준비되면 알려 드릴게요.",
+  "onboarding.preparing": "A mode for your age is still in the works. We'll let you know when it's ready.",
   "city.seoul": "Seoul",
   "city.tokyo": "Tokyo",
   "city.london": "London",
@@ -149,7 +151,7 @@ export const en = {
   "me.empty": "Nothing yet. Tell me more about you.",
   "me.forget": "Forget",
   // 지역 차단
-  "geo.blocked": "아직 이 지역에서는 이용할 수 없어요.",
+  "geo.blocked": "This service isn't available in your region yet.",
   // 베타 평가
   "rate.good": "good",
   "rate.bad": "bad",

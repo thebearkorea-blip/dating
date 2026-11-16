@@ -1,18 +1,17 @@
 # STATUS — 지금 어디까지 했나 (빈 줄 제외 15줄, 항목당 한 줄. 배포 이력은 `docs/deploy-log.md`)
 
 ## 진행 중 (상태: 설계·구현·배포·확인대기 — 3줄이면 새 작업은 백로그 기록만)
-- 앱 ④⑤ 확인대기 `docs/work-plans/2026-11-13-앱④-선톡-사진-푸시.md`·`앱⑤-애정도-토라짐-이별.md` — 로컬 ①~⑦ 구현 완료, Neon·Clerk 연결, 첫 배포됨(`deploy-log.md`). 프로덕션 `https://onday-blush.vercel.app`: Clerk 로그인·채팅 실답장 확인(F5 키·F6 thinking 완화), 사진 Blob 58장 호스팅, env(`AI_GATEWAY_API_KEY`·`VAPID_*`·`CRON_SECRET`) 완료. 선톡+사진 생성·`/api/media` 302 확인(11-15 09:30 KST 도착 예정). F6 닫힘(답장 정상·재시도 없음). 선톡 스케줄러(GitHub Actions 15분) 가동. u3·F7·지연 0·시각 표시·Q4·Q5 배포(11-15). 남은 것: 푸시 알림 1회(Chrome 알림 허용), 테스트 계정 한도(Subscribe), Clerk 프로덕션 인스턴스(상용화 전)
-- W5 사진 `docs/work-plans/2026-11-13-W5-얼굴고정-사진.md` — 확인대기. LoRA 이한 v1·v2·은찬 학습 완료, 얼굴 없는 컷 84장 flux-2-pro 재생성(83 통과), 실사진·스톡 도구(`ingest-photos`·`stock-fetch`) 완료. 이한 LoRA v1·아이돌 셀카 문구 확정, 얼굴 컷 42장 재생성 완료(Neon 54행). 이솔 LoRA v1 24장 → 폐기 13장을 눈 문구·scale 0.85로 재생성(F3 수정). 남은 것: 이솔 13장 육안 확인(아래 1), 아기 컷은 사용자가 직접 편집해 업로드
-- 채팅 화면 고도화 `docs/work-plans/2026-11-17-채팅화면-고도화.md` — 설계. 남은 것: Fable 검토 → W1~W7 구현 → iPhone 확인
-  (첫 캐릭터 설계서는 매일 게시 운영으로 보고 진행 중에서 뺌: 남은 것 = 11-22~ 큐 재생성, 검수자 W1c, 이솔 계정, 조카 일기)
+- 앱 ④⑤ `docs/work-plans/2026-11-13-앱④-선톡-사진-푸시.md`·`앱⑤-애정도-토라짐-이별.md` — 확인대기. 남은 것: 푸시 1회(Chrome 알림 허용), Clerk 프로덕션 인스턴스(상용화 전)
+- 채팅 화면 고도화 `docs/work-plans/2026-11-17-채팅화면-고도화.md` — 구현. W1~W11 코드 완료(테스트·빌드 통과, 로컬 커밋). 남은 것: 로컬 실화면 §4 확인 → 운영 DB 0007 적용·배포(사용자 OK) → iPhone 확인
+- 일본판 ver2 `docs/work-plans/2026-11-17-일본판-ver2.md` [목표 밖] — 구현. 주연후 콘텐츠(J3)·엔진(J4) 완료, J4g(캐릭터별 타임라인·일정 단계·첫 7일 장면) 진행. 사진 제외
 
 ## 막힌 것 / 사람 확인 필요
-- **사용자**: ① Chrome 알림 허용(푸시 구독) ② 이솔 계정(인스타·틱톡, 인증 코드 필요) ③ **얼굴 없는 일상 컷(음식·일상·신발·옷)은 AI 포기 → 직접 찍은 사진을 `.data/photos/own/<ihan|isol>/`에 `상황__01.jpg`로 넣기**(상황 목록 `sns-rules.md` §8-3)
-- 레퍼런스 조사는 **"레퍼런스" 세션**이 담당(이 세션은 결정·규칙 반영만). **사용자 확인 대기**: 쇼츠 1차 실험(Kling motion-control·i2v 12클립 약 $10, 사용자 촬영 영상 1~2개 필요) 실행 여부 — 결정 "쇼츠 영상 제작 경로"
-- 로컬 실행: `REPLY_DELAY_SCALE=0.01 NODE_USE_ENV_PROXY=1 npx next dev --webpack -p 3100` → `/dev-login`. DB 스크립트는 dev 서버 끄고(Neon은 샌드박스 밖에서만 WebSocket 연결됨). 테스트 통과
-- Vercel CLI 로그인·배포는 **샌드박스 밖**에서(샌드박스가 `~/Library/Application Support/com.vercel.cli` 쓰기 거부 → 로그아웃됨). 로컬 Gateway 인증은 `.data/tmp/env.gw`(API 키). 푸시 절차: `git branch -f main HEAD && git push origin main && git push origin HEAD:claude/project-thread-k2h0lt`(GitHub 기본 브랜치가 후자)
+- **사용자 OK 필요**: ① 운영 Neon에 0007(reply_to·seen_at·reactions) 적용 + 배포 ② 일본판 Vercel 프로젝트·Neon DB·Clerk 인스턴스 생성(계정·비용) ③ 일본판 가격 월 1,480엔
+- **사용자 요청**: 일본어 원어민 검수자 1명(출시 전 필수 — 대사·lines.yaml·화면 문구), 일본 상담 전화번호 재확인(よりそい 0120-279-338, いのちの電話 0570-783-556)
+- 기존: 이솔 13장 육안 확인·이솔 계정, 얼굴 없는 일상 컷은 직접 찍은 사진 `.data/photos/own/<id>/`
+- 로컬 주의: `.env.local`의 `DATABASE_URL`은 운영 Neon. 화면 확인은 `DATABASE_URL= ` 로 PGlite 사용. CLI 배포·Neon 연결은 샌드박스 밖
 
 ## 다음 할 일
-1. 사용자: 이솔 13장 시트 `consistency/candid-test/sheet-isol-eyes-13.jpg`·`review/isol-face` 확인(삭제 = 폐기) · 아기 사진 직접 편집 후 `.data/photos/own/ihan/`에 업로드 · 이솔 계정 생성
-2. 메인: 11-15 09:30 선톡·푸시 수신 확인 → 11-15 13:05 게시(산책 당번) → 11-22~28 큐 재생성 → 쇼츠 1차 실험(사용자 OK 대기)
-3. 메인: 쇼츠 1차 실험(사용자 OK + 촬영 영상 받은 뒤) · 큐 `series` 필드 · 실사진·스톡 1차 수집(Pixabay 키 받은 뒤) · 인물 교체 도구화
+1. 메인: J4g 뒤 로컬 실화면 확인(us·jp, 체크리스트 18 + 다크 5 + 대비) → 결과 기록·커밋
+2. 메인: 몰입 설계 1~4(약속 추적·삶 원장·부재 중 삶·대화 리듬) 작업계획서 + 7일 재방문율 계측
+3. 사용자 OK 뒤: 미리보기 배포 → iPhone(Safari·홈 화면) 확인 → 운영 배포

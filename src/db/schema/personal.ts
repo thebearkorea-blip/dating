@@ -85,8 +85,8 @@ export const messages = personal.table(
     text: text("text").notNull(),
     mediaId: text("media_id"),
     ttsUrl: text("tts_url"),
-    origin: text("origin"), // reply | proactive | catchup
-    tag: text("tag"), // promise | reward (선톡 분류용, 화면에 싣지 않음)
+    origin: text("origin"), // reply | proactive | catchup | scene
+    tag: text("tag"), // promise | reward | scene:<id> (선톡 분류용, 화면에 싣지 않음)
     /** 이 시각 전에는 화면에 내보내지 않는다(사람다운 답장 지연). 사용자 메시지는 at과 같다. */
     deliverAt: timestamp("deliver_at", { withTimezone: true }).notNull().defaultNow(),
     /** 인용 답장 대상. 대상이 지워지면 null. */

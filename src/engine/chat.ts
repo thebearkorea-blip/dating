@@ -1,6 +1,6 @@
 // 채팅 한 턴의 핵심 로직. DB·LLM·시각을 주입받아 단위 테스트가 가능하다(Server Action은 얇은 껍데기).
 // 숨김 컬럼은 읽지도 싣지도 않는다(선택 컬럼만).
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { now as clockNow } from "../clock";
 import { join } from "node:path";
 import { and, asc, count, desc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
@@ -17,6 +17,7 @@ import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
 import { recordEvent } from "./events.js";
+import { pendingUserDayScene } from "./first-week.js";
 import { scenesByTrigger } from "./scenes.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
 import { characterLines, fallbackPool, forLang, freeLines, langOf, pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
@@ -54,10 +55,16 @@ function defaultRules(): GuardRule[] {
   return guardsCache;
 }
 
-let timelineCache: EngineCharacter["timeline"] | undefined;
-function timeline(): EngineCharacter["timeline"] {
-  timelineCache ??= timelineSchema.parse(parseYaml(readFileSync(join(CONTENT_ROOT, "world/timeline.yaml"), "utf8")));
-  return timelineCache;
+const timelineCache = new Map<string, EngineCharacter["timeline"]>();
+/** content/world/timeline-<characterId>.yaml이 있으면 그것, 없으면 timeline.yaml(1회 캐시). */
+function timeline(characterId: string): EngineCharacter["timeline"] {
+  let t = timelineCache.get(characterId);
+  if (!t) {
+    const own = join(CONTENT_ROOT, "world", `timeline-${characterId}.yaml`);
+    t = timelineSchema.parse(parseYaml(readFileSync(existsSync(own) ? own : join(CONTENT_ROOT, "world/timeline.yaml"), "utf8")));
+    timelineCache.set(characterId, t);
+  }
+  return t;
 }
 
 const groupCache = new Map<string, Group | undefined>();
@@ -86,7 +93,7 @@ export async function loadCharacter(db: Db) {
   const engine: EngineCharacter = {
     id: c.id,
     schedule: scheduleSchema.parse(c.schedule),
-    timeline: timeline(),
+    timeline: timeline(c.id),
     affectionStages: bible.affection_stages,
   };
   return { bible, voiceMd: c.voiceMd, engine, group: loadGroup(bible.group_id) };
@@ -296,11 +303,11 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     return !!latest && latest.id !== userMsgId;
   };
 
-  const saveReply = async (replyText: string, deliverAt: Date) => {
+  const saveReply = async (replyText: string, deliverAt: Date, tag: string | null = null) => {
     if (!replyText.trim()) return null; // 빈 텍스트는 저장하지 않는다(빈 말풍선 방지)
     const [m] = await db
       .insert(messages)
-      .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: replyText, origin: "reply" })
+      .values({ relId: rel.id, at: deliverAt, deliverAt, sender: "char", text: replyText, origin: "reply", tag })
       .returning({ id: messages.id });
     await markSeen(replyText, deliverAt);
     // 그의 반응(W11): 위기 대본에는 달지 않는다.
@@ -392,7 +399,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
   } else {
     const [u] = await db.select({ tz: users.tz }).from(users).where(eq(users.id, userId)).limit(1);
     const secretNow = await peekSecret(db, rel.id, bible, now, u?.tz ?? null, text);
-    const canon = (await db.select().from(canonFacts).orderBy(asc(canonFacts.at))).map(
+    const canon = (await db.select().from(canonFacts).where(eq(canonFacts.character, getCharacterId())).orderBy(asc(canonFacts.at))).map(
       (r): CanonRow => ({ at: r.at, character: r.character, fact: r.fact, source: r.source as CanonRow["source"], ...(r.eventId ? { event_id: r.eventId } : {}) }),
     );
     const persona = buildPersona({
@@ -421,7 +428,13 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
       .map((m) => ({ role: m.sender === "user" ? ("user" as const) : ("assistant" as const), content: m.text }));
     while (turns[0]?.role === "assistant") turns.shift();
     // 그의 마지막 답장 이후 반응·인용(W9·W10). 반응만으로는 답장을 만들지 않는다(여기서 문맥으로만).
-    const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now));
+    // 첫 7일 장면표: 오늘 보낼 장면이 남아 있으면 이번 답장이 그 장면을 바탕으로 한다(답한 뒤 자연스럽게, 대본 그대로 읽지 않는다).
+    const daily = await pendingUserDayScene(db, { id: rel.id, userId, stage, startedAt: rel.startedAt }, getCharacterId(), now);
+    const dailyBlock =
+      daily && daily.bubbles.length > 0
+        ? `\n\n[Private note, not from the user] You planned to bring this up today. First answer what they just said, then work it in naturally in your own words, briefly. Do not quote it, and never mention this note:\n${daily.bubbles.join("\n")}`
+        : "";
+    const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now)) + dailyBlock;
     try {
       const reply = await generateGuardedReply(
         // F6: thinking 블록이 토큰을 먼저 쓰므로 여유를 둔다. 길이는 persona 지시로 제한
@@ -434,7 +447,7 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
         // 더 새 메시지의 답장이 이 답장을 대신한다. 한도는 되돌린다.
         await refundQuota(db, userId);
       } else {
-        const replyId = await saveReply(reply.text, deliverAt);
+        const replyId = await saveReply(reply.text, deliverAt, dailyBlock && daily ? daily.tag : null);
         await logFindings(db, rel.id, replyId, reply.findings);
         if (secretNow) await recordDisclosure(db, rel.id, secretNow.id);
       }

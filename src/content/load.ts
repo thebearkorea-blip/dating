@@ -94,8 +94,10 @@ export function validateContentDir(root: string): ContentReport {
     report.issues.push({ file: root, message: "directory not found" });
     return report;
   }
-  checkFile(root, join(root, "world/group.yaml"), "yaml", groupSchema, report);
-  checkFile(root, join(root, "world/timeline.yaml"), "yaml", timelineSchema, report);
+  const worldDir = join(root, "world");
+  const worldFiles = existsSync(worldDir) ? readdirSync(worldDir).sort() : [];
+  for (const f of worldFiles.filter((n) => /^group(-.+)?\.yaml$/.test(n))) checkFile(root, join(worldDir, f), "yaml", groupSchema, report);
+  for (const f of worldFiles.filter((n) => /^timeline(-.+)?\.yaml$/.test(n))) checkFile(root, join(worldDir, f), "yaml", timelineSchema, report);
   checkFile(root, join(root, "world/canon.jsonl"), "jsonl", canonRowSchema, report);
   checkFile(root, join(root, "policy/guards.yaml"), "yaml", guardsSchema, report);
 

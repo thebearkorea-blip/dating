@@ -13,21 +13,35 @@ const block = z
 
 const day = z.array(block);
 
+const weekTemplate = z
+  .object({
+    weekday: day,
+    mon: day,
+    tue: day,
+    wed: day,
+    thu: day,
+    fri: day,
+    sat: day,
+    sun: day,
+  })
+  .strict();
+
+/** 단계별 주간 템플릿. rel_day가 [from_rel_day, to_rel_day](양 끝 포함)일 때 week_template 대신 쓴다. */
+const phase = z
+  .object({
+    from_rel_day: z.number().int(),
+    to_rel_day: z.number().int(),
+    week_template: weekTemplate,
+  })
+  .strict()
+  .refine((p) => p.from_rel_day <= p.to_rel_day, { message: "from_rel_day must be <= to_rel_day" });
+
 export const scheduleSchema = z
   .object({
     timezone: z.string().min(1),
-    week_template: z
-      .object({
-        weekday: day,
-        mon: day,
-        tue: day,
-        wed: day,
-        thu: day,
-        fri: day,
-        sat: day,
-        sun: day,
-      })
-      .strict(),
+    /** 기본 템플릿(phases에 해당하는 단계가 없을 때). */
+    week_template: weekTemplate,
+    phases: z.array(phase).optional(),
     reply_delay_multiplier: z.record(z.string(), z.number().positive()),
     random_events: z.array(
       z

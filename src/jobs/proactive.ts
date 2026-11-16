@@ -7,11 +7,12 @@ import { splitFrontmatter } from "../content/schemas/diary.js";
 import type { CanonRow } from "../content/schemas/index.js";
 import type { Db } from "../db/client";
 import { canonFacts, memories, messages, relationships, reviewFindings, users } from "../db/schema/index";
-import { getCharacterId } from "../product/index.js";
+import { characterName, getCharacterId } from "../product/index.js";
 import { currentActivity, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
 import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
+import { pendingUserDayScene } from "../engine/first-week.js";
 import { scenesByTrigger } from "../engine/scenes.js";
 import { isSulking } from "../engine/sulk.js";
 import { activityAt, formatNowKst, hash32, kstParts, upcomingBlocks, type Activity } from "../engine/schedule.js";
@@ -189,7 +190,7 @@ export async function busy3EndedYesterday(db: Db, stage: number, now: Date): Pro
 }
 
 /** 보상 이벤트 장면: scenes trigger=after_busy3_period 중 결정적 1개. 해당 없으면 null. */
-async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: string[] } | null> {
+async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: string[]; tag: string } | null> {
   const scenes = scenesByTrigger(getCharacterId(), "after_busy3_period").filter((s) => s.stageMin <= rel.stage);
   if (scenes.length === 0) return null;
   const [recent] = await db
@@ -198,7 +199,8 @@ async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: str
     .where(and(eq(messages.relId, rel.id), eq(messages.tag, "reward"), gte(messages.at, new Date(now.getTime() - 3 * DAY_MS))))
     .limit(1);
   if (recent || !(await busy3EndedYesterday(db, rel.stage, now))) return null;
-  return scenes[hash32(`${rel.id}:${kstParts(now).date}:reward`) % scenes.length] ?? null;
+  const picked = scenes[hash32(`${rel.id}:${kstParts(now).date}:reward`) % scenes.length];
+  return picked ? { bubbles: picked.bubbles, tag: "reward" } : null;
 }
 
 async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | { skip: SkipInfo }> {
@@ -206,7 +208,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
   const llm = trackedLlm(db, "proactive", { relId: rel.id, userId: rel.userId, now }, deps.llm ?? complete);
   const rules = deps.rules ?? (guardsCache ??= loadGuards(join(CONTENT_ROOT, "policy/guards.yaml")));
   const { bible, voiceMd, group, engine } = await loadCharacter(db);
-  const canon = (await db.select().from(canonFacts).orderBy(asc(canonFacts.at))).map(
+  const canon = (await db.select().from(canonFacts).where(eq(canonFacts.character, getCharacterId())).orderBy(asc(canonFacts.at))).map(
     (r): CanonRow => ({ at: r.at, character: r.character, fact: r.fact, source: r.source as CanonRow["source"], ...(r.eventId ? { event_id: r.eventId } : {}) }),
   );
   const today = kstParts(now).date;
@@ -338,7 +340,9 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     }
     say(rel.id, `candidate: cap=${decision.cand.cap} silenceDays=${decision.cand.silenceDays} todayCount=${decision.cand.todayCount}`);
     result.candidates++;
-    const reward = await rewardFor(db, rel, now);
+    // 첫 7일 장면표(user_day_N)가 보상 이벤트보다 먼저다. 둘 다 장면 대본 그대로(LLM 없음).
+    const daily = await pendingUserDayScene(db, rel, getCharacterId(), now);
+    const reward = daily && daily.bubbles.length > 0 ? { bubbles: daily.bubbles, tag: daily.tag } : await rewardFor(db, rel, now);
     if (reward) {
       // 보상 이벤트: 장면 대본 그대로(LLM 없음). {{photo}}는 사진이 있으면 그 말풍선에 붙이고 없으면 지운다.
       const photo = await pickPhoto(db, { relId: rel.id, characterId: getCharacterId(), situation: activity.activity, photoTags: activity.photoTags, timeOfDay: timeOfDayOf(kstParts(now).minutes), seed: `${rel.id}:${kstParts(now).date}:reward` });
@@ -348,12 +352,12 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
         if (!text) continue;
         first ||= text;
         const when = new Date(now.getTime() + i * 4000);
-        await db.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text, mediaId: raw.includes("{{photo}}") ? photo : null, origin: "proactive", tag: "reward" });
+        await db.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text, mediaId: raw.includes("{{photo}}") ? photo : null, origin: "proactive", tag: reward.tag });
       }
       result.saved++;
       say(rel.id, "saved: reward");
       try {
-        result.pushed += await push(db, rel.userId, { title: bible.name, body: first.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
+        result.pushed += await push(db, rel.userId, { title: characterName(bible.name), body: first.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
       } catch {
         // 푸시 실패는 선톡 저장에 영향이 없다.
       }
@@ -379,7 +383,7 @@ export async function runProactiveTick(deps: ProactiveDeps): Promise<TickResult>
     result.saved++;
     say(rel.id, "saved: generated");
     try {
-      result.pushed += await push(db, rel.userId, { title: bible.name, body: gen.text.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
+      result.pushed += await push(db, rel.userId, { title: characterName(bible.name), body: gen.text.slice(0, 120), url: "/chat", relId: rel.id, tag: "rel-" + rel.id });
     } catch {
       // 푸시 실패는 선톡 저장에 영향이 없다.
     }

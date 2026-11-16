@@ -113,6 +113,11 @@ function isMonthlyEvalWeek(dayIndex: number): boolean {
   return dayIndex >= monday && dayIndex <= monday + 6;
 }
 
+/** rel_day에 해당하는 단계의 주간 템플릿. 단계가 없거나 해당 없으면 기본 week_template. */
+function weekTemplateAt(schedule: Schedule, relDay: number): Schedule["week_template"] {
+  return schedule.phases?.find((p) => relDay >= p.from_rel_day && relDay <= p.to_rel_day)?.week_template ?? schedule.week_template;
+}
+
 type EventDef = Schedule["random_events"][number];
 
 /** 오늘 걸려 있는 이벤트. 과거 LOOKBACK_DAYS일부터 순서대로 굴려 쿨다운을 적용한다. */
@@ -151,7 +156,7 @@ export function activityAt(
   const ns = seed ?? character.id;
   const kst = kstParts(worldTime);
   const key = DAY_KEYS[kst.weekday] as (typeof DAY_KEYS)[number];
-  const block = findBlock(character.schedule.week_template[key], kst.minutes);
+  const block = findBlock(weekTemplateAt(character.schedule, growth.relDay)[key], kst.minutes);
 
   const events = activeEvents(ns, character.schedule.random_events, kst.dayIndex);
   const beat = character.timeline.beats.find(

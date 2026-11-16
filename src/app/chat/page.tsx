@@ -12,7 +12,7 @@ import { maybeDay3Return } from "@/engine/events";
 import { characters, ratings, relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
 import { DevBanner } from "../_components/DevBanner";
-import { chatFormat, chatListStrings, getCharacterId, getProduct, getStrings, fmt, replyStripStrings, safeTz } from "@/product";
+import { characterName, chatFormat, chatListStrings, getCharacterId, getProduct, getStrings, fmt, replyStripStrings, safeTz } from "@/product";
 import { ChatClient } from "./ChatClient";
 import { ChatViewport } from "./Composer";
 import { ReconcileForm } from "./ReconcileForm";
@@ -52,7 +52,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ a
   const tz = safeTz(user.tz);
   const status = await reconcileStatus(db, rel.id, now);
   const [ch] = await db.select({ name: characters.name }).from(characters).where(eq(characters.id, characterId)).limit(1);
-  const name = ch?.name || str["character.fallbackName"];
+  const name = characterName(ch?.name);
 
   const iconProps = { width: 22, height: 22, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true } as const;
   const iconBtn = "flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-ink-soft)] hover:text-[var(--color-ink)]";

@@ -1,10 +1,10 @@
 # 주연후 주간 일정 (일본판 ver2 초안 2026-11-17). 설계: docs/research/2026-11-17-일본판-캐릭터-J2-fable.md §1
 # 모든 시각은 한국 표준시(KST, UTC+9) = 일본 표준시(JST)와 시차 0. 사진 없는 캐릭터라 photo_tags 없음.
 # busy: 0 한가함 / 1 가벼움 / 2 바쁨(답장 늦고 짧음) / 3 불가(촬영·리딩 중, 지연 길게, 선톡 없음)
-# 주의: 스키마(scheduleSchema)는 week_template 1개만 허용한다. 아래 week_template은 **준비기(D-180~121)** 기준이고,
-# 촬영기(D-120~31)·홍보기(D-30~0)는 exception_rules의 단계 규칙이 덮어쓴다(timeline 비트와 같은 방식). 엔진이 단계별 템플릿을 읽지는 못한다.
+# 단계: 아래 week_template은 기본(해당 단계가 없을 때)이자 **준비기(D-180~121)** 템플릿이다. phases가 준비기·촬영기(D-120~31)·홍보기(D-30~0)별
+# 주간 템플릿을 고른다(엔진이 현재 rel_day로 선택, 범위 양 끝 포함). D-180 이전·D+1 이후는 기본 week_template.
 timezone: Asia/Seoul
-week_template:
+week_template: &prep
   weekday: &weekday
     - {time: "07:30-09:00", activity: 기상·아침밥·남산 둘레길 산책과 발성, busy: 1, initiative_ok: true, note: 아침 선톡 기본 시점은 08:00-08:30}
     - {time: "09:00-12:00", activity: 대본 분석·일본어 공부(의성어 메모), busy: 2, initiative_ok: true}
@@ -48,6 +48,97 @@ week_template:
     - {time: "18:00-21:00", activity: 저녁·다음 주 일정 확인, busy: 1, initiative_ok: true}
     - {time: "21:00-24:00", activity: 일요일 밤 편지 쓰기(연필 초안 → 옮겨 적기), busy: 1, initiative_ok: true, note: 주간 편지 발송 시점은 22:00-23:30}
     - {time: "00:00-08:00", activity: 취침, busy: 3, initiative_ok: false}
+
+phases:
+  - from_rel_day: -180
+    to_rel_day: -121
+    week_template: *prep
+  # 촬영기: 화·수 낮 촬영, 목·금 밤 야간 촬영(주 2회, 22:00-05:00), 야간 촬영 다음 날 오전은 취침. 월요일 휴일·일요일 밤 편지는 준비기와 같다.
+  # 하루 안에서 0:00-24:00을 끊어 적는다(자정 넘는 야간 촬영은 다음 날 00:00-05:00에 이어 적음). 대기 중 한마디 선톡은 점심·저녁 busy 2 구간.
+  - from_rel_day: -120
+    to_rel_day: -31
+    week_template:
+      weekday: &shoot_day
+        - {time: "00:00-06:30", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "06:30-08:00", activity: 기상·아침밥·현장 이동, busy: 1, initiative_ok: true, note: 콜타임이 불규칙해 아침 선톡은 짧게}
+        - {time: "08:00-12:30", activity: 촬영(콜타임 불규칙), busy: 3, initiative_ok: false}
+        - {time: "12:30-13:30", activity: 현장 점심·대기, busy: 2, initiative_ok: true, note: 대기 중 짧은 한마디 한 줄만}
+        - {time: "13:30-19:00", activity: 촬영, busy: 3, initiative_ok: false}
+        - {time: "19:00-21:00", activity: 저녁·귀가 이동, busy: 1, initiative_ok: true}
+        - {time: "21:00-23:30", activity: 다음 날 대본 확인·편지 초안, busy: 1, initiative_ok: true}
+        - {time: "23:30-24:00", activity: 취침 준비, busy: 0, initiative_ok: true}
+      mon:
+        - {time: "08:30-10:00", activity: 휴일 아침·늦은 아침밥, busy: 0, initiative_ok: true}
+        - {time: "10:00-13:00", activity: 헌책방·동네 목욕탕·남산 산책, busy: 1, initiative_ok: true}
+        - {time: "13:00-18:00", activity: 휴일 오후(세탁·장보기·일본어 복습·낮잠), busy: 0, initiative_ok: true}
+        - {time: "18:00-21:00", activity: 저녁·가족(속초 어머니·주은후) 통화, busy: 1, initiative_ok: true}
+        - {time: "21:00-24:00", activity: 쉬는 날 밤·편지 초안, busy: 0, initiative_ok: true}
+        - {time: "00:00-08:30", activity: 취침, busy: 3, initiative_ok: false}
+      tue: *shoot_day
+      wed: *shoot_day
+      thu:
+        - {time: "00:00-07:30", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "07:30-10:00", activity: 기상·아침밥·남산 둘레길, busy: 1, initiative_ok: true}
+        - {time: "10:00-17:00", activity: 대본 확인·휴식·낮잠(밤 촬영 대비), busy: 1, initiative_ok: true}
+        - {time: "17:00-19:30", activity: 저녁·현장 이동, busy: 1, initiative_ok: true}
+        - {time: "19:30-22:00", activity: 현장 대기·분장, busy: 2, initiative_ok: true, note: 대기 중 짧은 한마디 한 줄만}
+        - {time: "22:00-24:00", activity: 야간 촬영, busy: 3, initiative_ok: false}
+      fri:
+        - {time: "00:00-05:00", activity: 야간 촬영(이어서), busy: 3, initiative_ok: false, note: 촬영이 끝난 새벽 한 줄은 예외 가능}
+        - {time: "05:00-13:00", activity: 귀가·취침(야간 촬영 다음 날 오전), busy: 3, initiative_ok: false}
+        - {time: "13:00-15:00", activity: 늦은 점심·휴식, busy: 0, initiative_ok: true}
+        - {time: "15:00-19:30", activity: 촬영, busy: 3, initiative_ok: false}
+        - {time: "19:30-22:00", activity: 현장 대기·분장, busy: 2, initiative_ok: true}
+        - {time: "22:00-24:00", activity: 야간 촬영, busy: 3, initiative_ok: false}
+      sat:
+        - {time: "00:00-05:00", activity: 야간 촬영(이어서), busy: 3, initiative_ok: false}
+        - {time: "05:00-13:00", activity: 귀가·취침(야간 촬영 다음 날 오전), busy: 3, initiative_ok: false}
+        - {time: "13:00-19:00", activity: 자유 시간(헌책방·장보기), busy: 0, initiative_ok: true}
+        - {time: "19:00-24:00", activity: 저녁·편지 정리, busy: 1, initiative_ok: true}
+      sun:
+        - {time: "00:00-08:30", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "08:30-10:00", activity: 늦은 아침·단팥빵과 보리차, busy: 0, initiative_ok: true}
+        - {time: "10:00-14:00", activity: 산책·대본 복습·일본어, busy: 1, initiative_ok: true}
+        - {time: "14:00-18:00", activity: 자유 시간(비 오는 날 버스 맨 뒷자리), busy: 0, initiative_ok: true}
+        - {time: "18:00-21:00", activity: 저녁·다음 주 촬영 일정 확인, busy: 1, initiative_ok: true}
+        - {time: "21:00-24:00", activity: 일요일 밤 편지 쓰기(연필 초안 → 옮겨 적기), busy: 1, initiative_ok: true, note: 주간 편지 발송 시점은 22:00-23:30}
+  # 홍보기: 평일 낮 후시녹음·인터뷰·화보(busy 3), 제작발표회(D-7 전후)와 첫 방송(D-0) 밤 22:00-23:30 busy 3은 timeline 비트가 덮어쓴다.
+  - from_rel_day: -30
+    to_rel_day: 0
+    week_template:
+      weekday: &promo_day
+        - {time: "00:00-07:30", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "07:30-09:30", activity: 기상·아침밥·이동, busy: 1, initiative_ok: true}
+        - {time: "09:30-13:00", activity: 후시녹음(대사 다시 입히기), busy: 3, initiative_ok: false}
+        - {time: "13:00-14:00", activity: 점심, busy: 0, initiative_ok: true}
+        - {time: "14:00-18:00", activity: 인터뷰·화보·예고편 일정, busy: 3, initiative_ok: false}
+        - {time: "18:00-21:00", activity: 저녁·이동, busy: 1, initiative_ok: true}
+        - {time: "21:00-23:30", activity: 편지 쓰기·정리(연필로 먼저), busy: 1, initiative_ok: true}
+        - {time: "23:30-24:00", activity: 하루 마무리, busy: 0, initiative_ok: true}
+      mon:
+        - {time: "08:30-10:00", activity: 휴일 아침·늦은 아침밥, busy: 0, initiative_ok: true}
+        - {time: "10:00-13:00", activity: 헌책방·동네 목욕탕·남산 산책, busy: 1, initiative_ok: true}
+        - {time: "13:00-18:00", activity: 휴일 오후(세탁·장보기·낮잠), busy: 0, initiative_ok: true}
+        - {time: "18:00-21:00", activity: 저녁·가족(속초 어머니·주은후) 통화, busy: 1, initiative_ok: true}
+        - {time: "21:00-24:00", activity: 쉬는 날 밤·편지 초안, busy: 0, initiative_ok: true}
+        - {time: "00:00-08:30", activity: 취침, busy: 3, initiative_ok: false}
+      tue: *promo_day
+      wed: *promo_day
+      thu: *promo_day
+      fri: *promo_day
+      sat:
+        - {time: "00:00-09:00", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "09:00-12:00", activity: 늦은 아침·산책, busy: 0, initiative_ok: true}
+        - {time: "12:00-17:00", activity: 인터뷰·방송 홍보 일정(주말 일정이 있는 주), busy: 2, initiative_ok: true}
+        - {time: "17:00-22:00", activity: 저녁·친구·국수집 「세 번째 골목」, busy: 1, initiative_ok: true}
+        - {time: "22:00-24:00", activity: 개인 시간·편지 정리, busy: 0, initiative_ok: true}
+      sun:
+        - {time: "00:00-08:30", activity: 취침, busy: 3, initiative_ok: false}
+        - {time: "08:30-10:00", activity: 늦은 아침·단팥빵과 보리차, busy: 0, initiative_ok: true}
+        - {time: "10:00-14:00", activity: 산책·대본 복습, busy: 1, initiative_ok: true}
+        - {time: "14:00-18:00", activity: 자유 시간, busy: 0, initiative_ok: true}
+        - {time: "18:00-21:00", activity: 저녁·다음 주 일정 확인, busy: 1, initiative_ok: true}
+        - {time: "21:00-24:00", activity: 일요일 밤 편지 쓰기(연필 초안 → 옮겨 적기), busy: 1, initiative_ok: true, note: 주간 편지 발송 시점은 22:00-23:30}
 
 reply_delay_multiplier:
   0: 1.0
@@ -100,9 +191,7 @@ random_events:
 exception_rules:
   - 월요일은 휴일(전 단계 공통). 촬영기에도 월요일은 촬영하지 않으며 busy 0~1.
   - 일요일 밤은 편지(22:00-23:30 발송). 같은 주에 선톡이 이미 연속 2회 이상 나갔어도 편지는 별개로 나간다. 편지 외 연속 선톡은 하지 않는다.
-  - "준비기(D-180~121): week_template을 그대로 쓴다. 리딩·수목원 실습 13:00-18:00은 busy 3."
-  - "촬영기(D-120~31): 콜타임이 불규칙하다. 평일 낮은 촬영(busy 3, 선톡 없음)이 기본이고, 야간 촬영은 주 2회(22:00-05:00, busy 3). 대기 중에는 짧은 한마디를 먼저 보낼 수 있다(busy 2로 취급, 한 줄). 야간 촬영 다음 날 오전은 취침."
-  - "홍보기(D-30~0): 후시녹음(busy 3), 예고편 공개, 제작발표회(D-7 전후), 첫 방송(D-0). 방영일 밤 22:00~23:30은 방송 시간이라 busy 3. 방송 뒤 한마디 선톡(23:30 이후)."
+  - "단계별 템플릿은 phases가 고른다: 준비기(D-180~121) 리딩·수목원 실습, 촬영기(D-120~31) 콜타임 불규칙·야간 촬영 주 2회, 홍보기(D-30~0) 후시녹음·예고편·제작발표회. 방영일 밤 22:00~23:30은 busy 3(비트가 덮어씀), 방송 뒤 한마디 선톡은 23:30 이후."
   - timeline-yeonhu.yaml 비트가 있는 날은 week_template을 덮어쓴다. 비트가 요구하는 busy가 우선.
   - busy 3 구간에는 선톡을 보내지 않는다. 답장은 막지 않는다(늦게·짧게).
   - 새벽(취침 시간)은 기본 선톡 없음. insomnia 이벤트(단계 3 이상)나 야간 촬영 뒤 한 줄만 예외.

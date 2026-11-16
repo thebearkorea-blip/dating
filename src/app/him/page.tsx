@@ -11,7 +11,7 @@ import { characters } from "@/db/schema/index";
 import { relDayOf } from "@/engine/chat";
 import { findOwnedRelationship } from "@/engine/chat-view";
 import { himActivity, loadSentPhotos } from "@/engine/him-view";
-import { fmt, getCharacterId, getStrings } from "@/product";
+import { characterName, fmt, getCharacterId, getStrings } from "@/product";
 import { PhotoGrid } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ export default async function Him() {
   const [c] = await getDb().select().from(characters).where(eq(characters.id, getCharacterId())).limit(1);
   if (!c) redirect("/chat");
   const str = getStrings();
+  const name = characterName(c.name);
   const now = clockNow();
   const rel = await findOwnedRelationship(getDb(), user.id);
   const photos = rel ? await loadSentPhotos(getDb(), rel.id, now) : [];
@@ -56,11 +57,11 @@ export default async function Him() {
         aria-hidden="true"
         className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-4xl font-semibold text-[var(--color-bubble-his-ink)]"
       >
-        {c.name.slice(0, 1)}
+        {name.slice(0, 1)}
       </div>
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">{c.name}</h2>
+          <h2 className="text-xl font-semibold">{name}</h2>
           <span data-profile-meta="ai-character" className="rounded-[var(--radius-control)] border border-[var(--color-line)] px-2 py-0.5 text-xs text-[var(--color-ink-soft)]">
             {str["him.aiTag"]}
           </span>
@@ -82,9 +83,9 @@ export default async function Him() {
         </dl>
       </section>
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">{fmt(str["him.photos"], { name: c.name })}</h2>
+        <h2 className="text-sm font-semibold">{fmt(str["him.photos"], { name })}</h2>
         {photos.length > 0 ? (
-          <PhotoGrid mediaIds={photos.map((p) => p.mediaId)} alt={fmt(str["photo.alt"], { name: c.name })} closeLabel={str["photo.close"]} />
+          <PhotoGrid mediaIds={photos.map((p) => p.mediaId)} alt={fmt(str["photo.alt"], { name })} closeLabel={str["photo.close"]} />
         ) : (
           <p className="text-sm text-[var(--color-ink-soft)]">{str["him.noPhotos"]}</p>
         )}

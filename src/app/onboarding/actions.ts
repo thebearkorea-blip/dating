@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
-import { characters, memories, platformIdentities, relationships, users } from "@/db/schema/index";
+import { characters, memories, messages, platformIdentities, relationships, users } from "@/db/schema/index";
 import { recordEvent } from "@/engine/events";
+import { fillScene, firstOpenScene, sceneTag } from "@/engine/first-week";
 import { ageGate } from "@/policy/age-gate";
 import { getCharacterId } from "@/product";
 import { CITIES } from "./cities";
@@ -66,14 +67,26 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
       .values({ userId: user.id, characterId, mode: "romance", startedAt: new Date(), stage: 1, affection: 0 })
       .onConflictDoNothing()
       .returning();
-    if (!rel || !token) return;
-    const [identity] = await tx
-      .update(platformIdentities)
-      .set({ userId: user.id, claimedAt: new Date() })
-      .where(and(eq(platformIdentities.token, token), isNull(platformIdentities.userId)))
-      .returning();
-    if (identity?.seedMemory) {
-      await tx.insert(memories).values({ relId: rel.id, fact: identity.seedMemory });
+    if (!rel) return;
+    let seedMemory: string | null = null;
+    if (token) {
+      const [identity] = await tx
+        .update(platformIdentities)
+        .set({ userId: user.id, claimedAt: new Date() })
+        .where(and(eq(platformIdentities.token, token), isNull(platformIdentities.userId)))
+        .returning();
+      seedMemory = identity?.seedMemory ?? null;
+      if (seedMemory) await tx.insert(memories).values({ relId: rel.id, fact: seedMemory });
+    }
+    // 첫 접속 장면(first_open_*): 직접 가입은 direct, 초대 링크는 via_link. 대본이 없으면 아무것도 보내지 않는다.
+    const scene = firstOpenScene(characterId, !!token);
+    if (scene) {
+      const texts = fillScene(scene.bubbles, { user_name: name, seed_memory: seedMemory });
+      const start = Date.now();
+      for (const [i, text] of texts.entries()) {
+        const when = new Date(start + i * 4000);
+        await tx.insert(messages).values({ relId: rel.id, at: when, deliverAt: when, sender: "char", text, origin: "scene", tag: sceneTag(scene) });
+      }
     }
   });
 
