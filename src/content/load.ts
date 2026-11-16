@@ -8,13 +8,18 @@ import {
   diaryFrontmatterSchema,
   groupSchema,
   guardsSchema,
+  ledgerEventSchema,
   linesSchema,
+  namesAllowSchema,
   photoRowSchema,
   postRowSchema,
   scheduleSchema,
   splitFrontmatter,
   timelineSchema,
 } from "./schemas/index.js";
+import type { LedgerEvent, NamesAllow } from "./schemas/index.js";
+import { allowedNames, allowListFindings, pretendHumanFindings, weekFileFindings } from "../engine/ledger-check.js";
+import { isoWeekMonday } from "../engine/ledger.js";
 
 export interface ContentIssue {
   file: string;
@@ -87,6 +92,21 @@ export function validateDiaryText(text: string, fileDate: string): string[] {
   return r.data.date === fileDate ? [] : [`date(${r.data.date})가 파일명(${fileDate})과 다름`];
 }
 
+/** characters/<id>/ledger/<YYYY-Www>.jsonl 한 파일: 스키마 + id·주 범위 + 허용 목록 + 사람인 척. 일정 일치는 상대일이 필요해 생성 도구만 본다. */
+export function validateLedgerText(text: string, characterId: string, week: string, allow: NamesAllow | null): string[] {
+  const out = validateJsonlText(text, ledgerEventSchema);
+  if (out.length > 0) return out;
+  const events = text
+    .split("\n")
+    .filter((l) => l.trim() !== "")
+    .map((l) => ledgerEventSchema.parse(JSON.parse(l)) as LedgerEvent);
+  out.push(...weekFileFindings(events, characterId, week, isoWeekMonday(week)));
+  if (!allow?.characters[characterId]) out.push(`world/names-allow.yaml에 ${characterId} 항목 없음`);
+  const allowed = allow ? allowedNames(allow, characterId) : [];
+  for (const e of events) for (const r of [...allowListFindings(e, allowed), ...pretendHumanFindings(e)]) out.push(`${e.id}: ${r}`);
+  return out;
+}
+
 /** content 폴더(world/·characters/<id>/·policy/)의 존재하는 파일을 전부 검증한다. */
 export function validateContentDir(root: string): ContentReport {
   const report: ContentReport = { checked: [], issues: [] };
@@ -100,6 +120,14 @@ export function validateContentDir(root: string): ContentReport {
   for (const f of worldFiles.filter((n) => /^timeline(-.+)?\.yaml$/.test(n))) checkFile(root, join(worldDir, f), "yaml", timelineSchema, report);
   checkFile(root, join(root, "world/canon.jsonl"), "jsonl", canonRowSchema, report);
   checkFile(root, join(root, "policy/guards.yaml"), "yaml", guardsSchema, report);
+  const allowPath = join(root, "world/names-allow.yaml");
+  checkFile(root, allowPath, "yaml", namesAllowSchema, report);
+  let allow: NamesAllow | null = null;
+  try {
+    if (existsSync(allowPath)) allow = namesAllowSchema.parse(parseYaml(readFileSync(allowPath, "utf8")));
+  } catch {
+    // 오류는 위 checkFile이 이미 보고했다
+  }
 
   const charsDir = join(root, "characters");
   if (existsSync(charsDir)) {
@@ -112,6 +140,18 @@ export function validateContentDir(root: string): ContentReport {
       checkFile(root, join(dir, "lines.yaml"), "yaml", linesSchema, report);
       checkFile(root, join(dir, "photos/manifest.jsonl"), "jsonl", photoRowSchema, report);
       checkFile(root, join(dir, "sns/posts.jsonl"), "jsonl", postRowSchema, report);
+      const ledgerDir = join(dir, "ledger");
+      if (existsSync(ledgerDir)) {
+        for (const f of readdirSync(ledgerDir).sort()) {
+          const m = /^(\d{4}-W\d{2})\.jsonl$/.exec(f);
+          if (!m) continue;
+          const path = join(ledgerDir, f);
+          report.checked.push(relative(root, path));
+          for (const message of validateLedgerText(readFileSync(path, "utf8"), id, m[1] as string, allow)) {
+            report.issues.push({ file: relative(root, path), message });
+          }
+        }
+      }
       const diaryDir = join(dir, "diary");
       if (existsSync(diaryDir)) {
         for (const f of readdirSync(diaryDir)) {

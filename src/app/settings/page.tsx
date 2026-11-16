@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/auth/index";
 import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
-import { fmt, getCharacterId, getStrings } from "@/product";
+import { fmt, getCharacterId, getProduct, getStrings } from "@/product";
 import { AppVoice } from "../_components/AppVoice";
 import { cancelSubscription, deleteAccount, deleteAllConversations, saveSettings, startCheckout } from "./actions";
 import { ConfirmDelete } from "./ConfirmDelete";
@@ -104,6 +104,16 @@ export default async function Settings() {
             {str["privacy.title"]}
           </Link>
         </p>
+        {getProduct() === "jp" ? (
+          <p className="flex flex-col gap-1">
+            <Link href="/legal/tokushoho" className="underline">
+              {str["legal.tokushoho"]}
+            </Link>
+            <Link href="/legal/terms" className="underline">
+              {str["legal.terms"]}
+            </Link>
+          </p>
+        ) : null}
       </AppVoice>
       <section id="ai-notice" className="flex flex-col gap-1">
         <AppVoice screen="ai_notice">

@@ -16,7 +16,7 @@ import { guardInput, isSafetyScript, SAFETY_SCRIPTS, safetyScriptFor } from "../
 import { generateGuardedReply } from "../policy/output-guard.js";
 import { loadGuards, type Finding, type GuardRule } from "../policy/rules.js";
 import { applyUserMessage } from "./affection.js";
-import { ABSENCE_MS, absenceBlock, diaryEntriesBetween, gapEvents, pickGapEvent } from "./absence.js";
+import { ABSENCE_MS, absenceBlock, diaryEntriesBetween, gapEvents, gapLedger, pickGapEvent } from "./absence.js";
 import { BUBBLE_CONT_TAG, splitBubbles } from "./bubbles.js";
 import { recordEvent } from "./events.js";
 import { pendingUserDayScene } from "./first-week.js";
@@ -24,6 +24,7 @@ import { scenesByTrigger } from "./scenes.js";
 import { breakerTurn, nextCharacterAt } from "./breakup.js";
 import { characterLines, fallbackPool, forLang, freeLines, langOf, pickBusyOverlay, pickUnavailable } from "./busy-overlay.js";
 import { silenceDays } from "./catch-up.js";
+import { withLedger } from "./ledger.js";
 import { buildPersona } from "./persona.js";
 import { maybeFreezeProfile, profileText } from "./profile.js";
 import { consumeQuota, refundQuota } from "./quota.js";
@@ -117,10 +118,10 @@ export async function loadCharacter(db: Db) {
   return { bible, voiceMd: c.voiceMd, engine, group: loadGroup(bible.group_id) };
 }
 
-/** 지금 그의 활동(바쁨·답장 지연 범위). */
+/** 지금 그의 활동(바쁨·답장 지연 범위) + 지금을 덮는 삶 원장 사건(있으면). persona·화면 한 줄·선톡이 모두 이것을 거쳐 같은 사건을 본다. */
 export async function currentActivity(db: Db, stage: number, now: Date): Promise<Activity> {
   const { engine } = await loadCharacter(db);
-  return activityAt(engine, now, { relDay: await relDayOf(db, now), stage });
+  return withLedger(activityAt(engine, now, { relDay: await relDayOf(db, now), stage }), getCharacterId(), now);
 }
 
 /** relDay가 속한 단계의 문구, 없으면 평문(busy3~free). */
@@ -131,6 +132,8 @@ export function phaseActivityLines<T extends { phases?: { from_rel_day: number; 
 
 /** 화면 상단 한 줄. 숫자·내부 값 없이 응답 가능 시간감만. 문장은 캐릭터 lines.yaml activity(제품 화면 언어). */
 export function activityLine(a: Activity): string {
+  // 지금을 덮는 원장 사건이 있으면 그 요약(제품 언어로 쓰여 있다).
+  if (a.ledgerEvent) return a.ledgerEvent.summary;
   const l = phaseActivityLines(forLang(characterLines().activity, getLang()), a.relDay);
   if (a.busy >= 3) return l.busy3;
   if (a.busy === 2) return l.busy2;
@@ -477,7 +480,8 @@ export async function generateReplyFor(deps: ChatDeps, userId: string, relId: st
     let absence = "";
     if (prev && userMsg.at.getTime() - prev.at.getTime() >= ABSENCE_MS) {
       const diary = diaryEntriesBetween(getCharacterId(), kstParts(prev.at).date, kstParts(userMsg.at).date);
-      const events = gapEvents(engine, prev.at, userMsg.at, await relDayOf(db, userMsg.at), stage, diary);
+      const ledger = gapLedger(getCharacterId(), prev.at, userMsg.at);
+      const events = gapEvents(engine, prev.at, userMsg.at, await relDayOf(db, userMsg.at), stage, diary, ledger);
       absence = absenceBlock(pickGapEvent(events, `${userMsg.id}:gap`), userMsg.at.getTime() - prev.at.getTime());
     }
     const system = persona.system + replyContextBlock(await replyContextLines(db, rel.id, userMsg.at, now)) + dailyBlock + absence;

@@ -1,5 +1,5 @@
 // 생활 일정 엔진. 순수 함수: 파일·네트워크 접근 없음. 같은 입력 → 같은 출력.
-import type { Bible, Schedule, Timeline } from "../content/schemas/index.js";
+import type { Bible, LedgerEvent, Schedule, Timeline } from "../content/schemas/index.js";
 
 export interface EngineCharacter {
   id: string;
@@ -33,6 +33,8 @@ export interface Activity {
   tags: string[];
   /** 이 활동을 고른 상대일(단계별 문구 선택용) */
   relDay?: number;
+  /** 지금을 덮는 삶 원장 사건(M3, ledger.ts eventAt). 원장이 없으면 없다 */
+  ledgerEvent?: LedgerEvent;
 }
 
 const KST_OFFSET_MS = 9 * 3600 * 1000;
@@ -102,6 +104,21 @@ function findBlock(blocks: Block[], minutes: number): Block {
   }
   return blocks[blocks.length - 1] as Block;
 }
+
+/** worldTime(KST)의 일정 블록(rel_day 단계 반영). 원장 일정 검사용. */
+export function blockAt(schedule: Schedule, worldTime: Date, relDay: number): Block {
+  const kst = kstParts(worldTime);
+  return findBlock(weekTemplateAt(schedule, relDay)[DAY_KEYS[kst.weekday] as (typeof DAY_KEYS)[number]], kst.minutes);
+}
+
+/** KST 날짜 일련번호 dayIndex의 일정 블록 목록(rel_day 단계 반영). 원장 생성용. */
+export function dayBlocks(schedule: Schedule, dayIndex: number, relDay: number): Block[] {
+  const key = DAY_KEYS[new Date(dayIndex * DAY_MS).getUTCDay()] as (typeof DAY_KEYS)[number];
+  return weekTemplateAt(schedule, relDay)[key];
+}
+
+/** 취침 블록인가: 자정 시작("24:00-") 또는 활동명이 "취침"으로 시작(연후처럼 00:30에 자는 일정). 원장 일정 검사용. */
+export const isSleepBlock = (b: { time: string; activity: string }): boolean => b.time.startsWith("24:00") || /^취침/.test(b.activity.trim());
 
 /** 달의 마지막 금요일이 속한 월~일 주인지 */
 function isMonthlyEvalWeek(dayIndex: number): boolean {

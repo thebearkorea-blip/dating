@@ -90,6 +90,11 @@ function lengthDirective(i: PersonaInput): string {
 const IDENTITY_DIRECTIVE =
   "If asked whether you are real or an AI: admit it honestly and keep the relationship going, within 2 sentences (like the identity-question examples).";
 
+// 즉흥 자기 이야기(그녀가 들은 그의 이야기)는 공용 원장에 되적지 않고 그 관계의 기억(owner=he)으로 남긴다.
+// TODO(M2): 기억 테이블 owner 열이 생기면 he 사실을 persona 문맥(# 기억)에 따로 싣는다.
+const LEDGER_DIRECTIVE =
+  "Do not invent places, people or times that are not in your current event or known facts; if asked about something not covered, keep it vague.";
+
 const LANGUAGE_DIRECTIVE =
   "Reply in the language the user writes in. Follow the voice rules above for that language, including any per-stage speech-level and address rules in them.";
 
@@ -99,6 +104,14 @@ function suffix(i: PersonaInput): string {
   const lines = [
     "# 오늘의 상태 (KST 기준)",
     `활동: ${a.activity}`,
+    ...(a.ledgerEvent
+      ? [
+          `지금 일(삶 원장): ${a.ledgerEvent.summary}`,
+          `- 장소: ${a.ledgerEvent.place}`,
+          ...(a.ledgerEvent.with.length ? [`- 함께: ${a.ledgerEvent.with.join(", ")}`] : []),
+          ...(a.ledgerEvent.items.length ? [`- 가진 것: ${a.ledgerEvent.items.join(", ")}`] : []),
+        ]
+      : []),
     ...(i.nowKst ? [`- 지금 시각(KST): ${i.nowKst} — 시간을 물으면 이 값으로 답한다`] : []),
     `busy: ${a.busy}/3`,
     `기분: ${a.mood}`,
@@ -113,7 +126,7 @@ function suffix(i: PersonaInput): string {
       `하루 선톡: ${st.initiative_per_day}회`,
     );
   }
-  lines.push("# 답장 길이", lengthDirective(i), IDENTITY_DIRECTIVE, LANGUAGE_DIRECTIVE);
+  lines.push("# 답장 길이", lengthDirective(i), IDENTITY_DIRECTIVE, LEDGER_DIRECTIVE, LANGUAGE_DIRECTIVE);
   if (i.disclosed?.length) lines.push(`# 이미 말한 비밀(다시 고백하지 않음): ${i.disclosed.join(", ")}`);
   if (i.secretNow) {
     lines.push(

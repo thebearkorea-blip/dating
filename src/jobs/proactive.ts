@@ -11,6 +11,7 @@ import { characterName } from "../engine/character-profile.js";
 import { getCharacterId } from "../product/index.js";
 import { currentActivity, loadCharacter, relDayOf } from "../engine/chat.js";
 import { decayCap, silenceDays } from "../engine/catch-up.js";
+import { eventContext } from "../engine/ledger.js";
 import { buildPersona } from "../engine/persona.js";
 import { pickPhoto, timeOfDayOf } from "../engine/photo-pick.js";
 import { pendingUserDayScene } from "../engine/first-week.js";
@@ -208,6 +209,15 @@ async function rewardFor(db: Db, rel: RelRow, now: Date): Promise<{ bubbles: str
   return picked ? { bubbles: picked.bubbles, tag: "reward" } : null;
 }
 
+/** 선톡 소재 줄. 지금을 덮는 원장 사건(오늘의 사건)이 있으면 일정 활동 대신 그것(persona·화면 한 줄과 같은 사건). */
+export function proactiveMaterial(activity: Activity, diary: string | null, memory: string | null): string[] {
+  return [
+    activity.ledgerEvent ? `- What you are doing right now: ${eventContext(activity.ledgerEvent)}` : `- What you are doing today: ${activity.activity}`,
+    diary ? `- A line from your recent diary: ${diary}` : null,
+    memory ? `- Something you remember about them: ${memory}` : null,
+  ].filter((x): x is string => x !== null);
+}
+
 async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Activity, now: Date): Promise<{ text: string; mediaId: string | null } | { skip: SkipInfo }> {
   const { db } = deps;
   const llm = trackedLlm(db, "proactive", { relId: rel.id, userId: rel.userId, now }, deps.llm ?? complete);
@@ -236,11 +246,7 @@ async function generateProactive(deps: ProactiveDeps, rel: RelRow, activity: Act
     stage: rel.stage,
     memories: memory ? [memory] : [],
   });
-  const material = [
-    `- What you are doing today: ${activity.activity}`,
-    diary ? `- A line from your recent diary: ${diary}` : null,
-    memory ? `- Something you remember about them: ${memory}` : null,
-  ].filter(Boolean);
+  const material = proactiveMaterial(activity, diary, memory);
   const instruction = [
     "[Private note, not from the user] You are texting them first, unprompted. Write only the message you send: one or two short sentences in your own voice.",
     "Draw on at most one of these, naturally:",

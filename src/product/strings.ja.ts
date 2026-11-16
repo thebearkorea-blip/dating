@@ -75,6 +75,8 @@ export const ja: Strings = {
   "billing.subscribe": "登録する",
   "billing.cancel": "解約する",
   "paywall.notNow": "今はしない",
+  "legal.tokushoho": "特定商取引法に基づく表記",
+  "legal.terms": "利用規約",
   "settings.planPaid": "プラン：有料",
   "settings.planPaidEnds": "プラン：有料 · {date}に終了",
   "settings.planPaidRenews": "プラン：有料 · {date}に更新",

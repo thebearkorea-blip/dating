@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { getStrings } from "@/product";
+import { getProduct, getStrings } from "@/product";
+import { PrivacyJa } from "../legal/PrivacyJa";
 import { AppVoice } from "../_components/AppVoice";
 
 export default function Privacy() {
+  if (getProduct() === "jp") return <PrivacyJa />;
   const str = getStrings();
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { AppVoice } from "../_components/AppVoice";
-import { getStrings } from "@/product";
+import { getProduct, getStrings } from "@/product";
 import { startCheckout } from "../settings/actions";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +28,19 @@ export default async function Paywall() {
       <Link href="/chat" className="text-sm underline">
         {str["paywall.notNow"]}
       </Link>
+      {getProduct() === "jp" ? (
+        <p className="flex flex-col gap-1 text-sm">
+          <Link href="/legal/tokushoho" className="underline">
+            {str["legal.tokushoho"]}
+          </Link>
+          <Link href="/legal/terms" className="underline">
+            {str["legal.terms"]}
+          </Link>
+          <Link href="/privacy" className="underline">
+            {str["privacy.title"]}
+          </Link>
+        </p>
+      ) : null}
     </main>
   );
 }

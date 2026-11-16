@@ -89,6 +89,8 @@ export const en = {
   "billing.subscribe": "Subscribe",
   "billing.cancel": "Cancel",
   "paywall.notNow": "Not now",
+  "legal.tokushoho": "Legal notice (Japan)",
+  "legal.terms": "Terms of service (Japan)",
   // 설정
   "settings.planPaid": "Plan: Paid",
   "settings.planPaidEnds": "Plan: Paid · ends {date}",

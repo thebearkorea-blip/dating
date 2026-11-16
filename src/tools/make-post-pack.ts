@@ -1,5 +1,7 @@
 // 사용법: node --import tsx src/tools/make-post-pack.ts --character ihan --date 2026-11-17 [--platform tiktok|instagram|all] [--all-dates] [--dry-run]
 // 큐(content/characters/<c>/sns/queue.jsonl)에서 수동 게시용 "게시 팩"을 .data/sns/<c>/<date>/<platform>/ 에 만든다.
+// 큐 소재(M3): 큐 행을 새로 쓸 때는 삶 원장의 public 사건만 쓴다 — src/engine/ledger.ts publicEventsBetween / publicEventAt(채팅과 같은 사건).
+// 비공개 사건(public: false)은 1:1 채팅에만 쓴다. 이 도구 자체는 큐를 읽기만 한다.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

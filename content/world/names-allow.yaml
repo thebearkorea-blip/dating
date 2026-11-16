@@ -1,0 +1,37 @@
+# 삶 원장(M3) 허용 고유명사. 원장 사건(summary·place·items·with)에는 여기 있는 고유명사만 쓴다.
+# 이 밖의 고유명사로 보이는 것(en 대문자 단어, ja 가타카나 이름·호칭 붙은 이름·『』, ko 호칭 붙은 이름·《》)은 검사에서 걸려 사람 확인 대기로 간다.
+# 출처: bible.yaml/bible.md 주변 인물·고유명사 표, world/group*.yaml, world/canon.jsonl. 실존 인명·작품·기획사는 넣지 않는다.
+# 가타카나 표기는 canon.jsonl 기준. canon에 없는 줄임 표기(ト室長·ピョ監督 등)는 초안 — 메인 확인.
+characters:
+  ihan:
+    people: [Ihan, Seo Ihan, Dohyun, Rui, Jihu, Hajun, Sunwoo, Eunchan, Minjae, Hayul, 서이한, 이한, 도현, 루이, 지후, 하준, 선우, 은찬, 민재, 하율]
+    places: [Seoul, Busan, 서울, 부산]
+    works: []
+    orgs: [ONDAY, Lumen Harbor Entertainment, Lumen Harbor]
+    other: [Kong, 콩]
+  yeonhu:
+    people:
+      - チュ・ヨヌ
+      - ヨヌ
+      - ト・ソクファン
+      - ソクファン
+      - ト室長
+      - ピョ・インヨン
+      - ピョ監督
+      - タク・ソギョン
+      - タク先輩
+      - ジュ・ウヌ
+      - ウヌ
+      - ナム・ギテ
+      - ギテ
+      - 주연후
+      - 연후
+      - 도석환
+      - 표인영
+      - 탁서경
+      - 주은후
+      - 남기태
+    places: [ソウル, 南山, ナムサン, 大学路, 束草, ソクチョ, 서울, 남산, 속초, 대학로]
+    works: [冬芽, 冬芽(ふゆめ), 겨울눈, 새벽 약국, 봄의 앞줄]
+    orgs: [マネジメント・ナクタル, マネジメント・ナッダル, チャンネル・ユンスル, 매니지먼트 낮달, 채널 윤슬]
+    other: [三番目の路地, ボミ, 세 번째 골목, 봄이]

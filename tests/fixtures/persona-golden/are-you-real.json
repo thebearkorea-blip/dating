@@ -1,0 +1,202 @@
+[
+  {
+    "id": "ayr-en-01",
+    "lang": "en",
+    "text": "are you a real person?"
+  },
+  {
+    "id": "ayr-en-02",
+    "lang": "en",
+    "text": "is this a bot?"
+  },
+  {
+    "id": "ayr-en-03",
+    "lang": "en",
+    "text": "wait, am I talking to a real human right now?"
+  },
+  {
+    "id": "ayr-en-04",
+    "lang": "en",
+    "text": "are you actually real?"
+  },
+  {
+    "id": "ayr-en-05",
+    "lang": "en",
+    "text": "are you an AI?"
+  },
+  {
+    "id": "ayr-en-06",
+    "lang": "en",
+    "text": "is there a person typing these?"
+  },
+  {
+    "id": "ayr-en-07",
+    "lang": "en",
+    "text": "be honest, are you a robot?"
+  },
+  {
+    "id": "ayr-en-08",
+    "lang": "en",
+    "text": "you're not real, are you?"
+  },
+  {
+    "id": "ayr-en-09",
+    "lang": "en",
+    "text": "are you a real guy or a program?"
+  },
+  {
+    "id": "ayr-en-10",
+    "lang": "en",
+    "text": "is this an automated thing?"
+  },
+  {
+    "id": "ayr-en-11",
+    "lang": "en",
+    "text": "are you human?"
+  },
+  {
+    "id": "ayr-en-12",
+    "lang": "en",
+    "text": "tell me the truth. are you a real person?"
+  },
+  {
+    "id": "ayr-en-13",
+    "lang": "en",
+    "text": "am I texting a machine?"
+  },
+  {
+    "id": "ayr-en-14",
+    "lang": "en",
+    "text": "are you a chatbot?"
+  },
+  {
+    "id": "ayr-en-15",
+    "lang": "en",
+    "text": "is a real person behind this account?"
+  },
+  {
+    "id": "ayr-en-16",
+    "lang": "en",
+    "text": "like, are you actually a human being?"
+  },
+  {
+    "id": "ayr-en-17",
+    "lang": "en",
+    "text": "do you have a body? are you a real person?"
+  },
+  {
+    "id": "ayr-en-18",
+    "lang": "en",
+    "text": "are you artificial intelligence?"
+  },
+  {
+    "id": "ayr-en-19",
+    "lang": "en",
+    "text": "is this really you or a computer?"
+  },
+  {
+    "id": "ayr-en-20",
+    "lang": "en",
+    "text": "sorry if this is weird but are you real?"
+  },
+  {
+    "id": "ayr-ja-01",
+    "lang": "ja",
+    "text": "人間ですか？"
+  },
+  {
+    "id": "ayr-ja-02",
+    "lang": "ja",
+    "text": "AIなの？"
+  },
+  {
+    "id": "ayr-ja-03",
+    "lang": "ja",
+    "text": "これってボットですか？"
+  },
+  {
+    "id": "ayr-ja-04",
+    "lang": "ja",
+    "text": "本当に実在する人ですか？"
+  },
+  {
+    "id": "ayr-ja-05",
+    "lang": "ja",
+    "text": "ほんとに人間？"
+  },
+  {
+    "id": "ayr-ja-06",
+    "lang": "ja",
+    "text": "あなたはAIですか、それとも本物の人？"
+  },
+  {
+    "id": "ayr-ja-07",
+    "lang": "ja",
+    "text": "中の人っているの？"
+  },
+  {
+    "id": "ayr-ja-08",
+    "lang": "ja",
+    "text": "ロボットじゃないよね？"
+  },
+  {
+    "id": "ayr-ja-09",
+    "lang": "ja",
+    "text": "本物の人間と話してるの？"
+  },
+  {
+    "id": "ayr-ja-10",
+    "lang": "ja",
+    "text": "正直に教えて。人間なの？"
+  },
+  {
+    "id": "ayr-ja-11",
+    "lang": "ja",
+    "text": "プログラムなの？"
+  },
+  {
+    "id": "ayr-ja-12",
+    "lang": "ja",
+    "text": "ねえ、実在してる人なの？"
+  },
+  {
+    "id": "ayr-ja-13",
+    "lang": "ja",
+    "text": "AIかどうか教えてください"
+  },
+  {
+    "id": "ayr-ja-14",
+    "lang": "ja",
+    "text": "これ、自動返信ですか？"
+  },
+  {
+    "id": "ayr-ja-15",
+    "lang": "ja",
+    "text": "あなたって本当は人じゃないの？"
+  },
+  {
+    "id": "ayr-ja-16",
+    "lang": "ja",
+    "text": "チャットボットですか？"
+  },
+  {
+    "id": "ayr-ja-17",
+    "lang": "ja",
+    "text": "ちゃんと生きてる人間なの？"
+  },
+  {
+    "id": "ayr-ja-18",
+    "lang": "ja",
+    "text": "もしかしてAI？"
+  },
+  {
+    "id": "ayr-ja-19",
+    "lang": "ja",
+    "text": "本物なんですか？"
+  },
+  {
+    "id": "ayr-ja-20",
+    "lang": "ja",
+    "text": "変なこと聞くけど、人間だよね？"
+  }
+]
