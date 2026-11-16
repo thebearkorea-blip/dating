@@ -1,7 +1,5 @@
 import { devOnlyEnabled } from "@/dev-only";
 import { eq } from "drizzle-orm";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
@@ -10,23 +8,12 @@ import { getDb } from "@/db/client";
 import { characters } from "@/db/schema/index";
 import { relDayOf } from "@/engine/chat";
 import { findOwnedRelationship } from "@/engine/chat-view";
+import { characterName, characterProfile } from "@/engine/character-profile";
 import { himActivity, loadSentPhotos } from "@/engine/him-view";
-import { characterName, fmt, getCharacterId, getStrings } from "@/product";
+import { fmt, getCharacterId, getProduct, getStrings } from "@/product";
 import { PhotoGrid } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
-
-/** bible.md §1 표의 '소속' 칸 첫 구절을 한 줄 소개로 쓴다. 못 찾으면 빈 문자열. */
-function tagline(): string {
-  try {
-    const md = readFileSync(join(process.cwd(), "content/characters", getCharacterId(), "bible.md"), "utf8");
-    const row = md.split("\n").find((l) => l.startsWith("| 소속 |"));
-    const cell = row?.split("|")[2] ?? "";
-    return (cell.split(",")[0] ?? "").replace(/\([^)]*\)/g, "").replace(/\*\*/g, "").replace(/\s+/g, " ").trim();
-  } catch {
-    return "";
-  }
-}
 
 // 프로필 화면. 앱 목소리 박스를 쓰지 않는다. "AI character"는 프로필 메타 정보로 상시 표시한다.
 export default async function Him() {
@@ -43,7 +30,10 @@ export default async function Him() {
   const days = -relDay;
   const debutLine = !rel || days < 0 ? null : days === 0 ? str["him.debutToday"] : days === 1 ? str["him.debutTomorrow"] : fmt(str["him.debutIn"], { days });
   const activity = rel ? await himActivity(getDb(), rel, now) : "";
-  const position = ((c.bible as { position?: string[] }).position ?? []).join(" · ");
+  const profile = characterProfile();
+  const position = profile?.position ?? ((c.bible as { position?: string[] }).position ?? []).join(" · ");
+  // jp는 그룹이 아니라 소속사 1인 라인이라 소속 칸에 소속사 이름을 쓴다.
+  const group = getProduct() === "jp" ? (profile?.agency ?? c.groupName) : c.groupName;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
@@ -66,7 +56,7 @@ export default async function Him() {
             {str["him.aiTag"]}
           </span>
         </div>
-        <p className="text-[var(--color-ink-soft)]">{tagline()}</p>
+        <p className="text-[var(--color-ink-soft)]">{profile?.tagline ?? ""}</p>
         {debutLine ? <p className="text-sm font-medium">{debutLine}</p> : null}
         {activity ? (
           <p className="text-sm text-[var(--color-ink-soft)]">
@@ -75,7 +65,7 @@ export default async function Him() {
         ) : null}
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           <dt className="text-[var(--color-ink-soft)]">{str["him.group"]}</dt>
-          <dd>{c.groupName}</dd>
+          <dd>{group}</dd>
           <dt className="text-[var(--color-ink-soft)]">{str["him.position"]}</dt>
           <dd>{position}</dd>
           <dt className="text-[var(--color-ink-soft)]">{str["him.age"]}</dt>

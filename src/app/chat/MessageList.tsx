@@ -193,7 +193,8 @@ export function MessageList(props: MessageListProps) {
 
   const scroller = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
-  const restore = useRef<{ h: number; top: number } | null>(null);
+  /** 이전 대화 로드 직전에 보던 말풍선(id)과 스크롤 영역 위쪽 기준 오프셋. */
+  const restore = useRef<{ id: string; top: number } | null>(null);
   const hasMoreBefore = useRef(initialMeta.hasMoreBefore);
   const loadingOlderRef = useRef(false);
   const inflight = useRef(false);
@@ -357,7 +358,8 @@ export function MessageList(props: MessageListProps) {
     const el = scroller.current;
     if (!el) return;
     if (restore.current) {
-      el.scrollTop = el.scrollHeight - restore.current.h + restore.current.top;
+      const bubble = el.querySelector<HTMLElement>(`[data-mid="${restore.current.id}"] [data-bubble]`);
+      if (bubble) el.scrollTop += bubble.getBoundingClientRect().top - el.getBoundingClientRect().top - restore.current.top;
       restore.current = null;
       return;
     }
@@ -389,7 +391,17 @@ export function MessageList(props: MessageListProps) {
       if (!res.ok) return;
       const data = (await res.json()) as Resp;
       const el = scroller.current;
-      if (el) restore.current = { h: el.scrollHeight, top: el.scrollTop };
+      if (el) {
+        // 보이는 첫 말풍선을 기준점으로. 위쪽에 생기고 사라지는 것(날짜 구분선·간격)은 말풍선 위치로 보정된다.
+        const edge = el.getBoundingClientRect().top;
+        for (const b of el.querySelectorAll<HTMLElement>("[data-mid] [data-bubble]")) {
+          const r = b.getBoundingClientRect();
+          if (r.bottom > edge) {
+            restore.current = { id: b.closest<HTMLElement>("[data-mid]")!.dataset.mid!, top: r.top - edge };
+            break;
+          }
+        }
+      }
       hasMoreBefore.current = data.hasMoreBefore;
       const next = new Map(byIdRef.current);
       for (const m of data.messages) if (!next.has(m.id)) next.set(m.id, m);
@@ -546,6 +558,8 @@ export function MessageList(props: MessageListProps) {
   const serverMine = lastMine && meta.mine?.id === lastMine.id ? meta.mine : null;
   const derivedRead = lastMineIdx >= 0 && items.slice(lastMineIdx + 1).some((m) => m.sender !== "user" && !m.local);
   const isRead = serverMine ? serverMine.status === "read" : derivedRead;
+  // 읽음 시각이 있으면 "Read 6:17 AM"만 보여 시각을 두 번 쓰지 않는다.
+  const readHasTime = isRead && !!serverMine?.readAt;
   const mineStatus = lastMineIdx < 0 ? null : isRead ? (serverMine?.readAt ? `${s.read} ${timeFmt.format(new Date(serverMine.readAt))}` : s.read) : s.delivered;
 
   const menuItem = menu ? byId.get(menu.id) : undefined;
@@ -559,8 +573,9 @@ export function MessageList(props: MessageListProps) {
 
   return (
     <div className="relative min-h-0 flex-1">
+      {/* 흐름 밖(overlay): 나타나고 사라져도 목록 위치가 밀리지 않는다. */}
+      {loadingOlder ? <p className="pointer-events-none absolute inset-x-0 top-1 z-10 text-center text-xs text-[var(--color-ink-soft)]">{s.loadingOlder}</p> : null}
       <div ref={scroller} onScroll={onScroll} className="h-full overflow-y-auto overscroll-contain px-4 py-3">
-        {loadingOlder ? <p className="py-2 text-center text-xs text-[var(--color-ink-soft)]">{s.loadingOlder}</p> : null}
         {items.length === 0 ? (
           <p className="py-16 text-center text-sm text-[var(--color-ink-soft)]">{s.empty}</p>
         ) : (
@@ -671,8 +686,8 @@ export function MessageList(props: MessageListProps) {
                   {m.local === "failed" ? <p className="mt-0.5 text-xs text-red-600">{s.notDelivered}</p> : null}
                   {showTime || (i === lastMineIdx && mineStatus) ? (
                     <p className="mt-0.5 text-xs text-[var(--color-ink-soft)]">
-                      {showTime ? timeFmt.format(d) : null}
-                      {showTime && i === lastMineIdx && mineStatus ? " · " : null}
+                      {showTime && !(i === lastMineIdx && readHasTime) ? timeFmt.format(d) : null}
+                      {showTime && i === lastMineIdx && mineStatus && !readHasTime ? " · " : null}
                       {i === lastMineIdx ? mineStatus : null}
                     </p>
                   ) : null}

@@ -7,7 +7,8 @@ import { validateContentDir } from "../../src/content/load.js";
 import { loadContent } from "../../src/db/load-content.js";
 import * as schema from "../../src/db/schema/index.js";
 import { loadCharacter } from "../../src/engine/chat.js";
-import { characterName, getStrings } from "../../src/product/index.js";
+import { characterName } from "../../src/engine/character-profile.js";
+import { getStrings } from "../../src/product/index.js";
 
 describe("캐릭터별 world 파일", () => {
   const db = drizzle(new PGlite(), { schema });
@@ -38,10 +39,17 @@ describe("캐릭터별 world 파일", () => {
 });
 
 describe("표시 이름·제품 문구", () => {
-  it("jp는 チュ・ヨヌ, us는 DB 이름 그대로(이전 표시 유지)", () => {
-    expect(characterName("주연후", "jp")).toBe("チュ・ヨヌ");
-    expect(characterName("서이한", "us")).toBe("서이한");
-    expect(characterName(undefined, "us")).toBe("Ihan");
+  it("프로필: jp 연후는 チュ・ヨヌ, us 이한은 Ihan", () => {
+    const prev = process.env.PRODUCT;
+    try {
+      process.env.PRODUCT = "jp";
+      expect(characterName("주연후", "yeonhu")).toBe("チュ・ヨヌ");
+      process.env.PRODUCT = "us";
+      expect(characterName("서이한", "ihan")).toBe("Ihan");
+    } finally {
+      if (prev === undefined) delete process.env.PRODUCT;
+      else process.env.PRODUCT = prev;
+    }
   });
   it("jp 배우 문구: 방영 카운트다운·所属, en은 그대로", () => {
     const ja = getStrings("jp");

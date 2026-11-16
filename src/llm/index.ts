@@ -191,6 +191,11 @@ const MOCK_REPLIES = [
   "Hmm, tell me more. I'm listening.",
   "Okay, wait, that's actually kind of funny. Say it again?",
 ] as const;
+const MOCK_REPLIES_JA = [
+  "あ、来てくれたんですね。ちょうどそのことを考えていました。",
+  "うん、もう少し聞かせてください。ちゃんと聞いていますよ。",
+  "ちょっと待って、それ、けっこうおもしろいです。もう一回言ってください。",
+] as const;
 
 export const mockProvider: LlmProvider = {
   provider: "mock",
@@ -198,8 +203,9 @@ export const mockProvider: LlmProvider = {
     const last = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
     let h = 0;
     for (const ch of last) h = (h * 31 + ch.codePointAt(0)!) >>> 0;
+    const replies = /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(last) ? MOCK_REPLIES_JA : MOCK_REPLIES;
     return {
-      text: MOCK_REPLIES[h % MOCK_REPLIES.length] as string,
+      text: replies[h % replies.length] as string,
       model: req.model,
       usage: { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0 },
     };

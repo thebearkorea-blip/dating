@@ -25,6 +25,16 @@ const activity = z
   })
   .strict();
 
+/** 화면·푸시에 보이는 프로필 문구(언어별). 이름·한 줄 소개·소속사·포지션. */
+const profile = z
+  .object({
+    display_name: z.string().min(1),
+    tagline: z.string().min(1),
+    agency: z.string().min(1),
+    position: z.string().min(1),
+  })
+  .strict();
+
 export const linesSchema = z
   .object({
     /** 무료 한도 소진 시 답장 대신 나가는 문장(한도·결제·사과 표현 금지) */
@@ -38,7 +48,11 @@ export const linesSchema = z
       .object({ en: activity.optional(), ko: activity.optional(), ja: activity.optional() })
       .strict()
       .refine((p) => LINE_LANGS.some((l) => p[l]), { message: "언어 하나 이상 필요" }),
+    /** 프로필(선택). 없는 언어는 기존 동작(DB 이름·bible 값)으로 대신한다 */
+    profile: z.object({ en: profile.optional(), ko: profile.optional(), ja: profile.optional() }).strict().optional(),
   })
   .strict();
 
 export type Lines = z.infer<typeof linesSchema>;
+
+export type LineProfile = z.infer<typeof profile>;

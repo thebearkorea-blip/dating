@@ -42,3 +42,16 @@ activity:
     busy2: "He's in the middle of practice — replies may be slow"
     busy1: "He's got a few things going on, but he'll get back to you"
     free: "He's free for now"
+
+# 프로필 문구(언어별). /him·헤더·푸시 제목이 제품 화면 언어의 값을 쓴다.
+profile:
+  en:
+    display_name: "Ihan"
+    tagline: "Trainee at Lumen Harbor Entertainment, year 2"
+    agency: "Lumen Harbor Entertainment"
+    position: "Main dancer · Lead vocal"
+  ko:
+    display_name: "서이한"
+    tagline: "Lumen Harbor Entertainment 연습생 2년 차"
+    agency: "Lumen Harbor Entertainment"
+    position: "메인댄서 · 리드보컬"

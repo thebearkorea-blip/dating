@@ -24,11 +24,6 @@ export function getStrings(p: Product = getProduct()): Strings {
   return p === "jp" ? ja : en;
 }
 
-/** 헤더·프로필·푸시에 보일 캐릭터 이름. 제품 값(character.displayName)이 있으면 그것, 없으면 DB 이름. */
-export function characterName(dbName: string | null | undefined, p: Product = getProduct()): string {
-  return getStrings(p)["character.displayName"] || dbName || getStrings(p)["character.fallbackName"];
-}
-
 /** "{name}" 자리표시자 치환. */
 export function fmt(template: string, vars: Record<string, string | number> = {}): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) => (k in vars ? String(vars[k]) : `{${k}}`));

@@ -5,7 +5,6 @@ export const en = {
   // 캐릭터 DB 행이 없을 때(jp 콘텐츠 준비 전) 쓰는 이름
   "character.fallbackName": "Ihan",
   // 헤더·프로필에 보일 이름. 빈 문자열이면 DB의 캐릭터 이름(us는 기존 표시 그대로)
-  "character.displayName": "",
   // 헤더
   "header.openProfile": "View {name}'s profile",
   "header.memories": "Memories",

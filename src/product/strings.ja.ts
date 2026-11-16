@@ -4,7 +4,6 @@ import type { Strings } from "./strings.en";
 export const ja: Strings = {
   "app.name": "ONDAY",
   "character.fallbackName": "彼",
-  "character.displayName": "チュ・ヨヌ",
   "header.openProfile": "{name}のプロフィールを見る",
   "header.memories": "思い出",
   "header.settings": "設定",
