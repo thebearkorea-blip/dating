@@ -29,15 +29,19 @@ export function ChatViewport() {
 }
 
 /** 서버에 보내고 결과를 목록에 반영한다. 성공이면 즉시 1회 조회, 실패면 "Not delivered"(글자 유지). 재시도도 같은 id(와 인용 대상)로 이 함수를 쓴다. */
-export async function deliver(list: MessageListHandle | null, id: string, text: string, replyTo: string | null = null): Promise<void> {
+export async function deliver(list: MessageListHandle | null, id: string, text: string, replyTo: string | null = null): Promise<"ok" | "limited" | "failed"> {
   let ok = false;
+  let limited = false;
   try {
-    ok = (await sendMessage(text, id, replyTo)).ok;
+    const r = await sendMessage(text, id, replyTo);
+    ok = r.ok;
+    limited = !!r.limited;
   } catch {
     ok = false;
   }
   if (ok) list?.refetch();
   else list?.markFailed(id);
+  return ok ? "ok" : limited ? "limited" : "failed";
 }
 
 /** 보내면 목록에 낙관적 말풍선이 바로 생긴다(MessageList). "입력 중" 표시는 서버 meta 몫. */
@@ -57,6 +61,7 @@ export function Composer({
   reply = null,
   onCancelReply,
   replyStrings,
+  slowDown = "Slow down a little. Try again in a moment.",
 }: {
   listRef: RefObject<MessageListHandle | null>;
   placeholder: string;
@@ -66,8 +71,11 @@ export function Composer({
   reply?: ReplyTarget | null;
   onCancelReply?: () => void;
   replyStrings?: ReplyStripStrings;
+  /** 연타 제한에 걸렸을 때 안내(글자는 "Not delivered" 말풍선에 남아 탭하면 다시 보낸다). */
+  slowDown?: string;
 }) {
   const [text, setText] = useState("");
+  const [limited, setLimited] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
   const form = useRef<HTMLFormElement>(null);
 
@@ -86,6 +94,11 @@ export function Composer({
 
   return (
     <div className="chat-composer">
+      {limited ? (
+        <p role="status" className="border-b border-[var(--color-line)] px-4 py-2 text-sm text-[var(--color-ink-soft)]">
+          {slowDown}
+        </p>
+      ) : null}
       {reply ? (
         <div className="flex items-center gap-2 border-b border-[var(--color-line)] px-4 py-2 text-sm">
           {reply.mediaId ? (
@@ -120,7 +133,11 @@ export function Composer({
           setText("");
           const id = crypto.randomUUID();
           listRef.current?.addOptimistic({ id, text: t, replyTo: reply });
-          void deliver(listRef.current, id, t, reply?.id ?? null);
+          void deliver(listRef.current, id, t, reply?.id ?? null).then((r) => {
+            if (r !== "limited") return;
+            setLimited(true);
+            setTimeout(() => setLimited(false), 6000);
+          });
           onCancelReply?.();
         }}
       >

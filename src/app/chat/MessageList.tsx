@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import type { MessageDto } from "@/engine/chat-view";
-import { setReaction } from "./actions";
+import { reportMessage, setReaction } from "./actions";
 import { MessageMenu } from "./MessageMenu";
 import { PHOTO_BUBBLE_IMPLEMENTED, PhotoBubble } from "./PhotoBubble";
 import { PhotoViewer } from "./PhotoViewer";
@@ -47,6 +47,14 @@ export interface ChatListStrings {
   rateSaved?: string;
   rateNote?: string;
   rateSave?: string;
+  // --- W4 --- 답장 신고
+  reportAction?: string;
+  reportTitle?: string;
+  reportInappropriate?: string;
+  reportHurtful?: string;
+  reportOutOfCharacter?: string;
+  reportOther?: string;
+  reportThanks?: string;
 }
 
 export const DEFAULT_STRINGS: Required<ChatListStrings> = {
@@ -82,6 +90,13 @@ export const DEFAULT_STRINGS: Required<ChatListStrings> = {
   rateSaved: "saved",
   rateNote: "note",
   rateSave: "Save",
+  reportAction: "Report",
+  reportTitle: "What was wrong with this message?",
+  reportInappropriate: "Inappropriate",
+  reportHurtful: "Hurtful",
+  reportOutOfCharacter: "Out of character",
+  reportOther: "Something else",
+  reportThanks: "Thanks, we'll take a look.",
 };
 
 /** 인용 답장 대상(입력창 위 띠·낙관적 말풍선). DTO의 replyTo와 같은 모양. */
@@ -713,8 +728,16 @@ export function MessageList(props: MessageListProps) {
           canReact={menuItem.sender === "char"}
           canReply={!!props.onReply}
           canCopy={!!menuItem.text.trim()}
+          canReport={menuItem.sender === "char" && !menuItem.local}
           current={menuItem.reactions.user}
-          labels={{ menu: s.menuLabel, reactions: s.reactionMenu, add: s.reactionAdd, remove: s.reactionRemove, reply: s.menuReply, copy: s.menuCopy }}
+          labels={{ menu: s.menuLabel, reactions: s.reactionMenu, add: s.reactionAdd, remove: s.reactionRemove, reply: s.menuReply,
+            copy: s.menuCopy,
+            report: s.reportAction,
+            reportTitle: s.reportTitle,
+            reportReasons: [s.reportInappropriate, s.reportHurtful, s.reportOutOfCharacter, s.reportOther],
+            reportThanks: s.reportThanks,
+          }}
+          onReport={(reason) => void reportMessage(menu.id, reason)}
           onReact={(e) => {
             void react(menu.id, e);
             closeMenu(true);

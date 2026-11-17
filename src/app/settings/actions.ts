@@ -10,6 +10,7 @@ import { deleteAccount as wipeAccount, deleteAllConversations as wipeConversatio
 import { pushSubscriptions, relationships, users } from "@/db/schema/index";
 import { getCharacterId } from "@/product";
 import { CITIES } from "../onboarding/cities";
+import { profileTz } from "./tz";
 
 const HM = /^([01]?\d|2[0-3]):[0-5]\d$/;
 
@@ -37,9 +38,11 @@ export async function saveProfile(formData: FormData): Promise<void> {
   const set: { displayName?: string; city?: string; tz?: string } = {};
   if (name) set.displayName = name;
   // 도시를 바꿨을 때만 시간대를 그 도시 값으로 맞춘다(그대로면 가입 때 받은 브라우저 시간대 유지).
-  if (city && city.id !== user.city) {
-    set.city = city.id;
-    set.tz = city.tz;
+  // --- W5 --- 도시 "other"는 브라우저 시간대(유효한 IANA일 때만)로 맞춘다.
+  if (city) {
+    const tz = profileTz(city.id, formData.get("tz"), user.city);
+    if (city.id !== user.city) set.city = city.id;
+    if (tz) set.tz = tz;
   }
   if (Object.keys(set).length > 0) await getDb().update(users).set(set).where(eq(users.id, user.id));
   revalidatePath("/settings");

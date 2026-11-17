@@ -20,6 +20,8 @@ export const EVENT_KINDS = [
   "app_open",
   "terms_accepted",
   "data_exported",
+  "support_request",
+  "reply_reported",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

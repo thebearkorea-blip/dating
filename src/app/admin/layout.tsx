@@ -10,6 +10,7 @@ const TABS = [
   ["cost", "비용"],
   ["funnel", "퍼널"],
   ["users", "사용자"],
+  ["support", "문의"],
 ] as const;
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

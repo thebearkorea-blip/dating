@@ -10,7 +10,16 @@ export interface MessageMenuLabels {
   remove: string;
   reply: string;
   copy: string;
+  // --- W4 ---
+  report: string;
+  reportTitle: string;
+  /** 사유 순서: inappropriate, hurtful, out_of_character, other. */
+  reportReasons: [string, string, string, string];
+  reportThanks: string;
 }
+
+/** onReport로 넘기는 사유 값(서버 REPORT_REASONS와 같다). */
+const REASON_VALUES = ["inappropriate", "hurtful", "out_of_character", "other"] as const;
 
 /**
  * 말풍선 작은 메뉴: 반응 6종(그의 메시지만) + Reply + Copy. 화면 고정 위치(스크롤러에 잘리지 않게).
@@ -22,11 +31,13 @@ export function MessageMenu({
   canReact,
   canReply,
   canCopy,
+  canReport = false,
   current,
   labels,
   onReact,
   onReply,
   onCopy,
+  onReport,
   onClose,
 }: {
   /** 말풍선의 화면 좌표(getBoundingClientRect). */
@@ -36,11 +47,14 @@ export function MessageMenu({
   canReact: boolean;
   canReply: boolean;
   canCopy: boolean;
+  /** 그의 메시지에만(W4). */
+  canReport?: boolean;
   current?: string;
   labels: MessageMenuLabels;
   onReact: (emoji: string) => void;
   onReply: () => void;
   onCopy: () => void;
+  onReport?: (reason: string) => void;
   /** restoreFocus: 키보드로 닫았으면 true(호출부가 트리거로 포커스를 돌려준다), 바깥 탭이면 false. */
   onClose: (restoreFocus: boolean) => void;
 }) {
@@ -48,6 +62,7 @@ export function MessageMenu({
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   const [pos, setPos] = useState<React.CSSProperties>({ visibility: "hidden" });
+  const [reporting, setReporting] = useState<"pick" | "thanks" | null>(null);
 
   // 위 공간이 충분하면 말풍선 위, 아니면 아래. 좌우는 화면 안으로.
   useLayoutEffect(() => {
@@ -59,7 +74,7 @@ export function MessageMenu({
     const top = anchor.top - h - 8 > 8 ? anchor.top - h - 8 : Math.min(anchor.bottom + 8, window.innerHeight - h - 8);
     const left = alignEnd ? Math.max(8, Math.min(anchor.right - w, vw - w - 8)) : Math.max(8, Math.min(anchor.left, vw - w - 8));
     setPos({ top, left });
-  }, [anchor, alignEnd]);
+  }, [anchor, alignEnd, reporting]);
 
   useEffect(() => {
     ref.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
@@ -69,6 +84,13 @@ export function MessageMenu({
     document.addEventListener("pointerdown", outside, true);
     return () => document.removeEventListener("pointerdown", outside, true);
   }, []);
+
+  useEffect(() => {
+    if (reporting === "pick") ref.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    if (reporting !== "thanks") return;
+    const t = setTimeout(() => closeRef.current(false), 1500);
+    return () => clearTimeout(t);
+  }, [reporting]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
@@ -98,7 +120,30 @@ export function MessageMenu({
       className="fixed z-30 flex flex-col gap-1 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-1.5 text-[var(--color-ink)] shadow-lg"
       style={pos}
     >
-      {canReact ? (
+      {reporting === "thanks" ? (
+        <p role="status" className="px-3 py-2 text-sm">
+          {labels.reportThanks}
+        </p>
+      ) : reporting === "pick" ? (
+        <div role="group" aria-label={labels.reportTitle} className="flex flex-col gap-0.5">
+          <p className="px-3 pt-1 text-xs text-[var(--color-ink-soft)]">{labels.reportTitle}</p>
+          {REASON_VALUES.map((v, i) => (
+            <button
+              key={v}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onReport?.(v);
+                setReporting("thanks");
+              }}
+              className={`${item} justify-start px-3 text-sm hover:bg-[var(--color-bg)]`}
+            >
+              {labels.reportReasons[i]}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {reporting ? null : canReact ? (
         <div role="group" aria-label={labels.reactions} className="flex gap-0.5">
           {USER_REACTIONS.map((e) => (
             <button
@@ -114,7 +159,7 @@ export function MessageMenu({
           ))}
         </div>
       ) : null}
-      {canReply || canCopy ? (
+      {reporting ? null : canReply || canCopy || canReport ? (
         <div className={`flex gap-1 ${canReact ? "border-t border-[var(--color-line)] pt-1" : ""}`}>
           {canReply ? (
             <button type="button" role="menuitem" onClick={onReply} className={`${item} flex-1 px-3 text-sm hover:bg-[var(--color-bg)]`}>
@@ -124,6 +169,11 @@ export function MessageMenu({
           {canCopy ? (
             <button type="button" role="menuitem" onClick={onCopy} className={`${item} flex-1 px-3 text-sm hover:bg-[var(--color-bg)]`}>
               {labels.copy}
+            </button>
+          ) : null}
+          {canReport && onReport ? (
+            <button type="button" role="menuitem" onClick={() => setReporting("pick")} className={`${item} flex-1 px-3 text-sm hover:bg-[var(--color-bg)]`}>
+              {labels.report}
             </button>
           ) : null}
         </div>

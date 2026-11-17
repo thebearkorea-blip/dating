@@ -15,7 +15,7 @@ import { characters, ratings, relationships } from "@/db/schema/index";
 import { AppVoice } from "../_components/AppVoice";
 import { DevBanner } from "../_components/DevBanner";
 import { characterName } from "@/engine/character-profile";
-import { chatFormat, chatListStrings, getCharacterId, getProduct, getStrings, fmt, replyStripStrings, safeTz } from "@/product";
+import { chatFormat, chatListStrings, getAvatarUrl, getCharacterId, getProduct, getStrings, fmt, replyStripStrings, safeTz } from "@/product";
 import { ChatClient } from "./ChatClient";
 import { ChatViewport } from "./Composer";
 import { ReconcileForm } from "./ReconcileForm";
@@ -67,6 +67,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ a
       <DevBanner />
       <ChatClient
         name={name}
+        avatarUrl={getAvatarUrl()}
         openProfileLabel={fmt(str["header.openProfile"], { name })}
         initialActivity={meta.activity}
         headerActions={
@@ -99,7 +100,7 @@ export default async function Chat({ searchParams }: { searchParams: Promise<{ a
         isBeta={user.isBeta}
         ratings={mine}
         canSend={status === "active"}
-        composer={{ placeholder: str["composer.placeholder"], label: str["composer.label"], sendLabel: str["composer.send"], reply: replyStripStrings(name, product) }}
+        composer={{ placeholder: str["composer.placeholder"], label: str["composer.label"], sendLabel: str["composer.send"], reply: replyStripStrings(name, product), slowDown: str["composer.slowDown"] }}
         install={{ installHintTitle: str["install.hint"], installHintBody: str["install.steps"], installHintDismiss: str["install.dismiss"] }}
       >
         <div className="max-h-[50%] flex-none overflow-y-auto">

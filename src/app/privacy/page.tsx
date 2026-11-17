@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProduct, getStrings } from "@/product";
+import { fmt, getProduct, getStrings } from "@/product";
 import { PrivacyJa } from "../legal/PrivacyJa";
 import { AppVoice } from "../_components/AppVoice";
 
@@ -25,7 +25,8 @@ export default function Privacy() {
         <h2 className="font-semibold">{str["privacy.thirdTitle"]}</h2>
         <p>{str["privacy.third"]}</p>
         <h2 className="font-semibold">{str["privacy.contactTitle"]}</h2>
-        <p>{str["privacy.contact"]}</p>
+        <p>{fmt(str["privacy.contact"], { contact: process.env.SUPPORT_EMAIL || str["privacy.contactVia"] })}</p>
+        <p>{str["privacy.cookies"]}</p>
       </AppVoice>
     </main>
   );

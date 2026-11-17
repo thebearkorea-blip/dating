@@ -1,5 +1,5 @@
 // /admin 집계. 서버 컴포넌트가 부르는 읽기 전용 쿼리(숫자는 여기서만 만든다).
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
 import { getCharacterId } from "../product";
 import { entitlements, events, llmUsage, messages, ratings, relationships, reviewFindings, users } from "../db/schema/index";
@@ -164,4 +164,50 @@ export async function userRows(db: Db, limit = 200) {
   return rows
     .map((r) => ({ ...r, lastActive: r.lastActive ? new Date(r.lastActive) : null }))
     .sort((a, b) => (b.lastActive?.getTime() ?? 0) - (a.lastActive?.getTime() ?? 0));
+}
+
+// --- W4 --- 문의·답장 신고
+export interface SupportItem {
+  id: string;
+  kind: "support_request" | "reply_reported";
+  at: Date;
+  userId: string | null;
+  category: string | null;
+  text: string | null;
+  reason: string | null;
+  msgId: string | null;
+  /** 신고된 메시지 본문(지워졌으면 null). */
+  msgText: string | null;
+}
+
+/** support_request·reply_reported 이벤트 최신순. 신고는 메시지 본문을 함께 붙인다. */
+export async function supportInbox(db: Db, limit = 100): Promise<SupportItem[]> {
+  const rows = await db
+    .select({ id: events.id, kind: events.kind, at: events.at, userId: events.userId, meta: events.meta })
+    .from(events)
+    .where(inArray(events.kind, ["support_request", "reply_reported"]))
+    .orderBy(desc(events.at))
+    .limit(limit);
+  const metaOf = (m: unknown): Record<string, unknown> => (m && typeof m === "object" ? (m as Record<string, unknown>) : {});
+  const str = (v: unknown) => (typeof v === "string" ? v : null);
+  const msgIds = [...new Set(rows.flatMap((r) => (r.kind === "reply_reported" ? [str(metaOf(r.meta).msgId)] : [])).filter((x): x is string => !!x))];
+  const texts = new Map<string, string>();
+  if (msgIds.length) {
+    for (const m of await db.select({ id: messages.id, text: messages.text }).from(messages).where(inArray(messages.id, msgIds))) texts.set(m.id, m.text);
+  }
+  return rows.map((r) => {
+    const meta = metaOf(r.meta);
+    const msgId = str(meta.msgId);
+    return {
+      id: String(r.id),
+      kind: r.kind as SupportItem["kind"],
+      at: r.at,
+      userId: r.userId,
+      category: str(meta.category),
+      text: str(meta.text),
+      reason: str(meta.reason),
+      msgId,
+      msgText: msgId ? (texts.get(msgId) ?? null) : null,
+    };
+  });
 }

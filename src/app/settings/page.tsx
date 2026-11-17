@@ -8,10 +8,11 @@ import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
 import { getQuotaToday } from "@/engine/quota";
-import { fmt, getCharacterId, getProduct, getStrings } from "@/product";
+import { fmt, getCharacterId, getProduct, getStrings, tabBarLabels } from "@/product";
 import { CITIES } from "../onboarding/cities";
 import { AppVoice } from "../_components/AppVoice";
 import { cancelSubscription, deleteAccount, deleteAllConversations, saveSettings, startCheckout } from "./actions";
+import { TabBar } from "../TabBar";
 import { ConfirmDelete } from "./ConfirmDelete";
 import { ProfileForm } from "./ProfileForm";
 import { PushToggle } from "./PushToggle";
@@ -33,7 +34,7 @@ export default async function Settings() {
   const str = getStrings();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4 pb-24">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{str["header.settings"]}</h1>
         <Link href="/chat" className="text-sm underline">
@@ -143,6 +144,7 @@ export default async function Settings() {
       <a href="#ai-notice" className="text-sm underline">
         {str["settings.showAiNotice"]}
       </a>
+      <TabBar labels={tabBarLabels()} />
     </main>
   );
 }

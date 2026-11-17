@@ -12,7 +12,8 @@ import { relDayOf } from "@/engine/chat";
 import { findOwnedRelationship } from "@/engine/chat-view";
 import { characterName, characterProfile } from "@/engine/character-profile";
 import { himActivity, loadSentPhotos } from "@/engine/him-view";
-import { fmt, getCharacterId, getProduct, getStrings } from "@/product";
+import { fmt, getAvatarUrl, getCharacterId, getProduct, getStrings, tabBarLabels } from "@/product";
+import { TabBar } from "../TabBar";
 import { PhotoGrid } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
@@ -34,24 +35,30 @@ export default async function Him() {
   const debutLine = !rel || days < 0 ? null : days === 0 ? str["him.debutToday"] : days === 1 ? str["him.debutTomorrow"] : fmt(str["him.debutIn"], { days });
   const activity = rel ? await himActivity(getDb(), rel, now) : "";
   const profile = characterProfile();
+  const avatar = getAvatarUrl();
   const position = profile?.position ?? ((c.bible as { position?: string[] }).position ?? []).join(" · ");
   // jp는 그룹이 아니라 소속사 1인 라인이라 소속 칸에 소속사 이름을 쓴다.
   const group = getProduct() === "jp" ? (profile?.agency ?? c.groupName) : c.groupName;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4 pb-24">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{str["him.title"]}</h1>
         <Link href="/chat" className="text-sm underline">
           {str["header.back"]}
         </Link>
       </header>
-      <div
-        aria-hidden="true"
-        className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-4xl font-semibold text-[var(--color-bubble-his-ink)]"
-      >
-        {name.slice(0, 1)}
-      </div>
+      {avatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={avatar} alt={fmt(str["photo.alt"], { name })} className="mx-auto h-28 w-28 rounded-full object-cover object-top" />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-4xl font-semibold text-[var(--color-bubble-his-ink)]"
+        >
+          {name.slice(0, 1)}
+        </div>
+      )}
       <section className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">{name}</h2>
@@ -75,6 +82,12 @@ export default async function Him() {
           <dd>{c.age}</dd>
         </dl>
       </section>
+      {profile?.tagline ? (
+        <section className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold">{fmt(str["him.about"], { name })}</h2>
+          <p className="text-sm">{fmt(str["him.aboutBody"], { name, tagline: profile.tagline })}</p>
+        </section>
+      ) : null}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">{fmt(str["him.photos"], { name })}</h2>
         {photos.length > 0 ? (
@@ -83,6 +96,7 @@ export default async function Him() {
           <p className="text-sm text-[var(--color-ink-soft)]">{str["him.noPhotos"]}</p>
         )}
       </section>
+      <TabBar labels={tabBarLabels()} />
     </main>
   );
 }

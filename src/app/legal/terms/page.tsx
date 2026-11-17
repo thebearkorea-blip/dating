@@ -1,12 +1,12 @@
 // 初稿 — 専門家確認前
-import { notFound } from "next/navigation";
 import { getProduct } from "@/product";
 import { LegalShell, PH, Section } from "../_shell";
+import { TermsUs } from "../TermsUs";
 
 const GOVERNING = `本規約は日本法を準拠法とし、本サービスに関して紛争が生じた場合は、${PH}地方裁判所を第一審の専属的合意管轄裁判所とします。`;
 
 export default function Terms() {
-  if (getProduct() !== "jp") notFound();
+  if (getProduct() !== "jp") return <TermsUs />;
   return (
     <LegalShell title="利用規約" placeholders={[GOVERNING]}>
       <div className="flex flex-col gap-4 text-sm">

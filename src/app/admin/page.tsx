@@ -3,6 +3,7 @@ import { FunnelTab } from "./funnel";
 import { RatingsTab } from "./ratings";
 import { requireAdmin } from "./require-admin";
 import { ReviewTab } from "./review";
+import { SupportTab } from "./support";
 import { UsersTab } from "./users";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       return <CostTab days={d} />;
     case "funnel":
       return <FunnelTab />;
+    case "support":
+      return <SupportTab />;
     case "users":
       return <UsersTab />;
     default:

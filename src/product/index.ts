@@ -15,6 +15,15 @@ export function getCharacterId(p: Product = getProduct()): string {
   return CHARACTER_IDS[p];
 }
 
+/** 제품별 프로필 사진(공개 Blob URL). SNS 프로필 사진 = ihan-p008(decisions). null이면 이니셜 대체. /api/media는 대화에 실린 사진만 내주므로 쓰지 않는다. */
+export const AVATAR_URLS: Record<Product, string | null> = {
+  us: "https://yuqwz3rujgoacxgf.public.blob.vercel-storage.com/photos/ihan/ihan-p008-2fsfsfIb8Lwimu5ZpCFBCDIRmklRhK.jpg",
+  jp: null,
+};
+export function getAvatarUrl(p: Product = getProduct()): string | null {
+  return AVATAR_URLS[p];
+}
+
 /** html lang 값. */
 export function getLang(p: Product = getProduct()): "en" | "ja" {
   return p === "jp" ? "ja" : "en";
@@ -74,6 +83,12 @@ export function formatDaySeparator(d: Date | string | number, tz: string, now: D
   return dayLabelAbsolute(date, tz, p);
 }
 
+/** 하단 탭바(클라이언트 컴포넌트)에 넘기는 문구. */
+export function tabBarLabels(p: Product = getProduct()) {
+  const s = getStrings(p);
+  return { nav: s["tab.nav"], chat: s["tab.chat"], him: s["tab.him"], memories: s["tab.memories"], settings: s["tab.settings"] };
+}
+
 /** 채팅 목록(클라이언트 컴포넌트)에 넘기는 직렬화 가능한 문구. 키는 MessageList의 ChatListStrings와 같다. */
 export function chatListStrings(name: string, p: Product = getProduct()) {
   const s = getStrings(p);
@@ -110,6 +125,14 @@ export function chatListStrings(name: string, p: Product = getProduct()) {
     rateSaved: s["rate.saved"],
     rateNote: s["rate.note"],
     rateSave: s["rate.save"],
+    // --- W4 ---
+    reportAction: s["report.action"],
+    reportTitle: s["report.title"],
+    reportInappropriate: s["report.inappropriate"],
+    reportHurtful: s["report.hurtful"],
+    reportOutOfCharacter: s["report.outOfCharacter"],
+    reportOther: s["report.other"],
+    reportThanks: s["report.thanks"],
   };
 }
 

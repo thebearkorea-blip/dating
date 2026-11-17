@@ -9,6 +9,7 @@ import { MessageList, type ChatListStrings, type ChatMeta, type MessageListHandl
 /** 채팅 화면의 클라이언트 쪽 뼈대: 헤더(활동 문구는 onMeta로 갱신) + 목록 + 입력창. MessageList ref를 여기서 쥔다. */
 export function ChatClient({
   name,
+  avatarUrl,
   openProfileLabel,
   initialActivity,
   headerActions,
@@ -28,6 +29,7 @@ export function ChatClient({
   children,
 }: {
   name: string;
+  avatarUrl?: string | null;
   openProfileLabel: string;
   initialActivity: string;
   headerActions: ReactNode;
@@ -44,7 +46,7 @@ export function ChatClient({
   ratings: Record<string, 1 | -1>;
   /** false면 입력창 대신 children(이별 뒤 화해 화면)을 그린다. */
   canSend: boolean;
-  composer: { placeholder: string; label: string; sendLabel: string; reply?: ReplyStripStrings };
+  composer: { placeholder: string; label: string; sendLabel: string; reply?: ReplyStripStrings; slowDown?: string };
   install: { installHintTitle: string; installHintBody: string; installHintDismiss: string };
   children?: ReactNode;
 }) {
@@ -64,12 +66,17 @@ export function ChatClient({
       <header className="chat-header">
         <div className="flex min-h-14 items-center justify-between gap-2 py-1">
           <Link href="/him" aria-label={openProfileLabel} className="flex min-w-0 items-center gap-3">
-            <span
-              aria-hidden="true"
-              className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-base font-semibold text-[var(--color-bubble-his-ink)]"
-            >
-              {Array.from(name)[0]?.toUpperCase()}
-            </span>
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt="" aria-hidden="true" className="h-10 w-10 flex-none rounded-full object-cover object-top" />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[var(--color-bubble-his)] text-base font-semibold text-[var(--color-bubble-his-ink)]"
+              >
+                {Array.from(name)[0]?.toUpperCase()}
+              </span>
+            )}
             <span className="min-w-0">
               <span className="block truncate text-base font-semibold leading-tight">{name}</span>
               <span className="block truncate text-xs leading-tight text-[var(--color-ink-soft)]">{activity}</span>
@@ -103,6 +110,7 @@ export function ChatClient({
           reply={reply}
           onCancelReply={cancelReply}
           replyStrings={composer.reply}
+          slowDown={composer.slowDown}
         /> : children}
     </>
   );

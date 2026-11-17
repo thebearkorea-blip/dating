@@ -8,7 +8,8 @@ import { now as clockNow } from "@/clock";
 import { getDb } from "@/db/client";
 import { maybeRecordAppOpen } from "@/engine/app-open";
 import { memories, relationships } from "@/db/schema/index";
-import { getCharacterId, getStrings } from "@/product";
+import { getCharacterId, getStrings, tabBarLabels } from "@/product";
+import { TabBar } from "../TabBar";
 import { deleteMemory } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function Me() {
   const str = getStrings();
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-4 p-4 pb-24">
       <header className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">{str["me.title"]}</h1>
         <Link href="/chat" className="text-sm underline">
@@ -54,6 +55,7 @@ export default async function Me() {
           </li>
         ))}
       </ul>
+      <TabBar labels={tabBarLabels()} />
     </main>
   );
 }

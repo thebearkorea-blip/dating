@@ -7,7 +7,7 @@ import { media } from "@/db/schema/index";
 import { devOnlyEnabled } from "@/dev-only";
 import { characterName } from "@/engine/character-profile";
 import { findOwnedRelationship } from "@/engine/chat-view";
-import { fmt, getCharacterId, getStrings } from "@/product";
+import { fmt, getAvatarUrl, getCharacterId, getStrings } from "@/product";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +31,7 @@ export default async function Landing() {
 
   const str = getStrings();
   const name = characterName(null);
-  const photo = await publicPhotoUrl();
+  const photo = getAvatarUrl() ?? (await publicPhotoUrl());
   const faq = [1, 2, 3, 4, 5] as const;
   const steps = ["land.step1", "land.step2", "land.step3"] as const;
   const section = "flex flex-col gap-3";

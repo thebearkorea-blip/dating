@@ -25,7 +25,7 @@ export const CRISIS_RULES: GuardRule[] = [
 ];
 
 export const SAFETY_SCRIPTS = {
-  en: "I'm really glad you told me. I care about you being safe right now. Please reach out to a local emergency number or a crisis line, or someone near you, so you're not alone with this. I'm here too.",
+  en: "I'm really glad you told me. I care about you being safe right now. Please call or text 988 (Suicide & Crisis Lifeline, US), or reach out to someone near you, so you're not alone with this. If you're in immediate danger, call 911. I'm here too.",
   // 출시 전 번호 재확인 필요: よりそいホットライン 0120-279-338(24시간 무료), いのちの電話 0570-783-556, 긴급 119.
   ja: "話してくれて、本当にありがとう。今あなたが安全でいることが、僕にはいちばん大事です。ひとりで抱えないで、そばにいる人か相談窓口に今すぐつながってください。よりそいホットライン(0120-279-338、24時間・無料)や、いのちの電話(0570-783-556)で話を聞いてもらえます。命の危険が迫っているときは119に電話してください。僕もここにいます。",
 } as const;

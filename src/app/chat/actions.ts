@@ -9,6 +9,7 @@ import { isUuid } from "@/engine/chat-view";
 import { rateMessageCore } from "@/engine/ratings";
 import { setUserReaction } from "@/engine/reactions";
 import { handleReconcile } from "@/engine/reconcile";
+import { BURST_LIMIT, recentUserMessageCount, reportReply } from "@/engine/support";
 
 /**
  * 어떤 예외든 삼킨다. 앱은 에러 화면을 보이지 않는다(화면은 그대로).
@@ -17,12 +18,14 @@ import { handleReconcile } from "@/engine/reconcile";
  * 목록은 클라이언트가 직접 다시 불러오므로 revalidatePath는 부르지 않는다.
  * replyTo(인용 대상)는 같은 관계의 도착한 메시지만. 아니면 저장하지 않고 ok:false.
  */
-export async function sendMessage(text: string, id: string, replyTo?: string | null): Promise<{ ok: boolean }> {
+export async function sendMessage(text: string, id: string, replyTo?: string | null): Promise<{ ok: boolean; limited?: boolean }> {
   try {
     if (typeof id !== "string" || !isUuid(id)) return { ok: false };
     if (replyTo != null && (typeof replyTo !== "string" || !isUuid(replyTo))) return { ok: false };
     const user = await getCurrentUser();
     if (!user) return { ok: false };
+    // 연타 제한(W4): 최근 60초에 이미 BURST_LIMIT개를 보냈으면 저장하지 않는다. 클라이언트는 글자를 남기고 안내한다.
+    if ((await recentUserMessageCount(getDb(), user.id, clockNow())) >= BURST_LIMIT) return { ok: false, limited: true };
     const r = await recordUserMessage({ db: getDb() }, user.id, String(text), id, replyTo ?? null);
     if (r.status === "duplicate") return { ok: true };
     if (r.status === "ok") {
@@ -71,6 +74,18 @@ export async function rateMessage(msgId: string, score: number, note: string): P
     const user = await getCurrentUser();
     if (!user) return { ok: false };
     return { ok: (await rateMessageCore(getDb(), user, String(msgId), Number(score), String(note ?? ""))) === "ok" };
+  } catch {
+    return { ok: false };
+  }
+}
+
+// --- W4 ---
+/** 그의 메시지 신고. 내 관계의 도착한 그의 메시지만(검사는 reportReply). 대화에는 영향이 없다. */
+export async function reportMessage(msgId: string, reason: string): Promise<{ ok: boolean }> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return { ok: false };
+    return { ok: (await reportReply(getDb(), user.id, msgId, reason, clockNow())) === "ok" };
   } catch {
     return { ok: false };
   }
