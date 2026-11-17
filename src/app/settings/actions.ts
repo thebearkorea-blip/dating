@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, signOut } from "@/auth/index";
 import { getDb } from "@/db/client";
 import { getBillingProvider } from "@/billing/index";
+import { cancelSubscriptionNow } from "@/billing/stripe";
 import { deleteAccount as wipeAccount, deleteAllConversations as wipeConversations } from "@/engine/data-deletion";
 import { pushSubscriptions, relationships, users } from "@/db/schema/index";
 import { getCharacterId } from "@/product";
@@ -92,6 +93,13 @@ export async function deleteAccount(): Promise<void> {
   const user = await getCurrentUser();
   if (!user) return;
   const clerkUserId = user.clerkUserId;
+  // 구독을 먼저 끊는다. 실패하면 삭제를 중단한다(과금이 계속되는 쪽이 더 나쁨).
+  try {
+    await cancelSubscriptionNow(getDb(), user.id);
+  } catch (e) {
+    console.error("cancelSubscriptionNow failed", user.id, e);
+    redirect("/settings?error=billing");
+  }
   await wipeAccount(getDb(), user.id);
   // dev-login 사용자(clerkUserId 없음)는 건너뛴다. Clerk 삭제가 실패해도 앱 데이터 삭제는 이미 끝났다.
   if (clerkUserId) {

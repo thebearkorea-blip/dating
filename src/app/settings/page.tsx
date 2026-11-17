@@ -19,7 +19,8 @@ import { PushToggle } from "./PushToggle";
 
 export const dynamic = "force-dynamic";
 
-export default async function Settings() {
+export default async function Settings({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+  const { error } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect(devOnlyEnabled() ? "/dev-login" : "/sign-in");
   const [rel] = await getDb()
@@ -42,6 +43,7 @@ export default async function Settings() {
         </Link>
       </header>
       <AppVoice screen="settings">
+        {error === "billing" ? <p role="alert">{str["billing.cancelFailed"]}</p> : null}
         <p>{str["billing.noGrowth"]}</p>
         {plan.plan === "paid" ? (
           <p>
@@ -71,6 +73,13 @@ export default async function Settings() {
             </button>
           </form>
         )}
+        {plan.plan === "paid" ? (
+          <p>
+            <a href="/api/stripe/portal" className="underline">
+              {str["billing.manage"]}
+            </a>
+          </p>
+        ) : null}
       </AppVoice>
       <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY ?? ""} label={str["settings.notifications"]} unavailableLabel={str["settings.notificationsUnavailable"]} />
       <ProfileForm

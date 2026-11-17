@@ -218,7 +218,7 @@ export const en = {
   "support.title": "Support",
   "support.faqTitle": "Common questions",
   "support.faq1.q": "How do I cancel my subscription?",
-  "support.faq1.a": "Open Settings and choose Cancel subscription. You keep access until the end of the period you already paid for.",
+  "support.faq1.a": "Open Settings and choose Cancel subscription. You keep access until the end of the period you already paid for. You can update your payment method and view receipts under Manage billing in Settings.",
   "support.faq2.q": "How do I delete my data?",
   "support.faq2.a": "In Settings you can delete only your conversations, or delete your account. Deleting your account removes everything we hold about you.",
   "support.faq3.q": "Can I download my data?",
@@ -263,6 +263,9 @@ export const en = {
   "privacy.contactVia": "the Support page (/support)",
   "privacy.cookies": "We only use essential cookies: one to keep you signed in and one to remember an invite link. We use no advertising or analytics cookies.",
   "safety.aiLine": "He's an AI character and can't help in an emergency. These people can.",
+  // --- B ---
+  "billing.manage": "Manage billing",
+  "billing.cancelFailed": "We couldn't cancel your subscription, so your account wasn't deleted. Please try again or contact support.",
 } as const;
 
 export type StringKey = keyof typeof en;
