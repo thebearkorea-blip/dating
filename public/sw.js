@@ -1,4 +1,16 @@
-// 최소 서비스워커: 푸시 수신 → 알림, 클릭 → /chat. fetch 캐시 없음.
+// 최소 서비스워커: 푸시 수신 → 알림, 클릭 → /chat. 탐색 요청만 network-first, 실패 시 /offline.html.
+const OFFLINE_URL = "/offline.html";
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open("offline-v1").then((c) => c.add(OFFLINE_URL)));
+  self.skipWaiting();
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.mode !== "navigate") return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE_URL).then((r) => r || Response.error())));
+});
+
 self.addEventListener("push", (event) => {
   let d = {};
   try {

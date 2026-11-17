@@ -7,10 +7,13 @@ import { getCurrentUser } from "@/auth/index";
 import { getPlanView } from "@/billing/index";
 import { getDb } from "@/db/client";
 import { relationships } from "@/db/schema/index";
+import { getQuotaToday } from "@/engine/quota";
 import { fmt, getCharacterId, getProduct, getStrings } from "@/product";
+import { CITIES } from "../onboarding/cities";
 import { AppVoice } from "../_components/AppVoice";
 import { cancelSubscription, deleteAccount, deleteAllConversations, saveSettings, startCheckout } from "./actions";
 import { ConfirmDelete } from "./ConfirmDelete";
+import { ProfileForm } from "./ProfileForm";
 import { PushToggle } from "./PushToggle";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +28,7 @@ export default async function Settings() {
     .limit(1);
   if (!rel) redirect("/onboarding");
   const plan = await getPlanView(getDb(), user.id, new Date());
+  const quota = await getQuotaToday(getDb(), user.id, new Date());
   const w = (rel.pushWindow as { start?: string; end?: string } | null) ?? {};
   const str = getStrings();
 
@@ -50,6 +54,7 @@ export default async function Settings() {
         <p>
           {str["billing.price"]} · {str["billing.features"]}
         </p>
+        <p>{fmt(str["account.quota"], { limit: String(quota.limit), left: String(quota.left) })}</p>
         {plan.plan === "paid" ? (
           plan.cancelAtPeriodEnd ? null : (
             <form action={cancelSubscription}>
@@ -67,11 +72,17 @@ export default async function Settings() {
         )}
       </AppVoice>
       <PushToggle publicKey={process.env.VAPID_PUBLIC_KEY ?? ""} label={str["settings.notifications"]} unavailableLabel={str["settings.notificationsUnavailable"]} />
+      <ProfileForm
+        displayName={user.displayName}
+        city={user.city}
+        labels={{
+          name: str["account.name"],
+          city: str["account.city"],
+          save: str["settings.save"],
+          cities: Object.fromEntries(CITIES.map((c) => [c.id, str[`city.${c.id}`]])),
+        }}
+      />
       <form action={saveSettings} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span>{str["settings.timeZone"]}</span>
-          <input name="tz" defaultValue={user.tz ?? "Asia/Seoul"} className="field" />
-        </label>
         <div className="flex gap-3">
           <label className="flex flex-1 flex-col gap-1">
             <span>{str["settings.messagesFrom"]}</span>
@@ -100,20 +111,29 @@ export default async function Settings() {
           </button>
         </SignOutButton>
         <p>
+          <a href="/api/me/export" className="underline">
+            {str["account.exportData"]}
+          </a>
+        </p>
+        <p className="flex flex-col gap-1">
+          <Link href="/support" className="underline">
+            {str["account.support"]}
+          </Link>
+          <Link href="/legal/terms" className="underline">
+            {str["account.termsLink"]}
+          </Link>
           <Link href="/privacy" className="underline">
             {str["privacy.title"]}
           </Link>
-        </p>
-        {getProduct() === "jp" ? (
-          <p className="flex flex-col gap-1">
+          <Link href="/safety" className="underline">
+            {str["account.safety"]}
+          </Link>
+          {getProduct() === "jp" ? (
             <Link href="/legal/tokushoho" className="underline">
               {str["legal.tokushoho"]}
             </Link>
-            <Link href="/legal/terms" className="underline">
-              {str["legal.terms"]}
-            </Link>
-          </p>
-        ) : null}
+          ) : null}
+        </p>
       </AppVoice>
       <section id="ai-notice" className="flex flex-col gap-1">
         <AppVoice screen="ai_notice">

@@ -111,7 +111,7 @@ describe("이벤트 12종", () => {
       expect(count(k), k).toBe(1);
     }
     expect((await db.select().from(events).where(eq(events.kind, "invite_link_open"))).length).toBeGreaterThanOrEqual(1);
-    expect(EVENT_KINDS).toHaveLength(12);
+    expect(EVENT_KINDS).toHaveLength(14);
   });
 });
 

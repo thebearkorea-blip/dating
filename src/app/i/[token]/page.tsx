@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/auth/index";
 import { getDb } from "@/db/client";
+import { devOnlyEnabled } from "@/dev-only";
 import { recordEvent } from "@/engine/events";
 import { platformIdentities } from "@/db/schema/index";
 import { getStrings } from "@/product";
@@ -19,7 +20,7 @@ async function claim(token: string): Promise<void> {
   if (!row || row.userId) notFound();
   await recordEvent(getDb(), (await getCurrentUser())?.id ?? null, "invite_link_open");
   (await cookies()).set(INVITE_COOKIE, token, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 });
-  redirect((await getCurrentUser()) ? "/onboarding" : "/dev-login");
+  redirect((await getCurrentUser()) ? "/onboarding" : devOnlyEnabled() ? "/dev-login" : "/sign-up");
 }
 
 export default async function InviteLanding({ params }: { params: Promise<{ token: string }> }) {

@@ -13,6 +13,8 @@ import { getCharacterId } from "@/product";
 import { CITIES } from "./cities";
 import { INVITE_COOKIE } from "./invite-cookie";
 
+const TERMS_VERSION = "2026-11-17";
+
 function validTz(tz: string): boolean {
   try {
     new Intl.DateTimeFormat(undefined, { timeZone: tz });
@@ -30,7 +32,8 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
   const city = CITIES.find((c) => c.id === formData.get("city"));
   const birthYear = Number(formData.get("birthYear"));
   const consent = formData.get("aiNotice") === "on";
-  if (!name || !city || !Number.isInteger(birthYear) || !consent) redirect("/onboarding?error=invalid");
+  const terms = formData.get("terms") === "on";
+  if (!name || !city || !Number.isInteger(birthYear) || !consent || !terms) redirect("/onboarding?error=invalid");
 
   const gate = ageGate(birthYear);
   if (gate.kind === "rejected") redirect("/onboarding?error=underage");
@@ -51,6 +54,8 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
       aiNoticeAcceptedAt: new Date(),
     })
     .where(eq(users.id, user.id));
+
+  await recordEvent(db, user.id, "terms_accepted", { once: "ever", meta: { version: TERMS_VERSION } });
 
   if (gate.kind === "preparing") redirect("/onboarding/preparing");
 

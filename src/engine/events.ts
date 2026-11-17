@@ -18,6 +18,8 @@ export const EVENT_KINDS = [
   "reconcile",
   "account_deleted",
   "app_open",
+  "terms_accepted",
+  "data_exported",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

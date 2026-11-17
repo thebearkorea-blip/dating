@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offline</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f3f8; --ink:#1d1a24; --soft:#6b6577; --accent:#5b4bdb; --accent-ink:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14111a; --ink:#f1eef7; --soft:#a9a2b8; --accent:#8b7dff; --accent-ink:#0f0c18; } }
+  body { margin:0; min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; text-align:center; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  h1 { font-size:20px; margin:0; }
+  p { font-size:14px; margin:0; color:var(--soft); }
+  button { background:var(--accent); color:var(--accent-ink); border:0; border-radius:12px; padding:12px 24px; font-size:16px; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>You're offline</h1>
+<p>Check your connection and try again.</p>
+<button type="button" onclick="location.reload()">Retry</button>
+</body>
+</html>

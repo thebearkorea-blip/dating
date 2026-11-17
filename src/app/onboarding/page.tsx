@@ -49,9 +49,24 @@ export default async function Onboarding({ searchParams }: { searchParams: Promi
           <input type="checkbox" name="aiNotice" required />
           <span>{str["ai.notice"]}</span>
         </label>
-        <Link href="/privacy" className="text-sm underline">
-          {str["privacy.title"]}
-        </Link>
+        <label className="flex items-start gap-2">
+          <input type="checkbox" name="terms" required />
+          <span>
+            {str["onboarding.agree"].split(/(\{terms\}|\{privacy\})/).map((part, i) =>
+              part === "{terms}" ? (
+                <Link key={i} href="/legal/terms" className="underline">
+                  {str["account.termsLink"]}
+                </Link>
+              ) : part === "{privacy}" ? (
+                <Link key={i} href="/privacy" className="underline">
+                  {str["account.privacyLink"]}
+                </Link>
+              ) : (
+                part
+              ),
+            )}
+          </span>
+        </label>
         <button type="submit" className="btn">
           {str["onboarding.continue"]}
         </button>

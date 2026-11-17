@@ -1,12 +1,17 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { getLang, getProduct, getStrings } from "@/product";
+import { characterName } from "@/engine/character-profile";
+import { fmt, getLang, getProduct, getStrings } from "@/product";
 import "./globals.css";
 
+const description = fmt(getStrings()["meta.description"], { name: characterName(null) });
+
 export const metadata: Metadata = {
-  title: "ONDAY",
-  description: "He is here.",
+  title: getStrings()["app.name"],
+  description,
+  openGraph: { title: getStrings()["app.name"], description, type: "website" },
+  twitter: { card: "summary_large_image", title: getStrings()["app.name"], description },
   appleWebApp: { capable: true, title: getStrings()["app.name"], statusBarStyle: "default" },
 };
 

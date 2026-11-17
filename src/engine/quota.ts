@@ -64,3 +64,12 @@ export async function consumeQuota(db: Db, userId: string, now: Date): Promise<b
   }
   return true;
 }
+
+/** 설정 화면 표시용(읽기 전용, 행을 바꾸지 않는다). 오늘 한도와 남은 횟수. 채팅 화면에는 쓰지 않는다. */
+export async function getQuotaToday(db: Db, userId: string, now: Date): Promise<{ limit: number; left: number }> {
+  const [row] = await db.select().from(entitlements).where(eq(entitlements.userId, userId)).limit(1);
+  if (!row) return { limit: limitOf(FREE_DAILY_QUOTA), left: limitOf(FREE_DAILY_QUOTA) };
+  const limit = limitOf(row.dailyQuota);
+  const used = row.quotaDay === kstParts(now).date ? row.quotaUsedToday : 0;
+  return { limit, left: Math.max(limit - used, 0) };
+}
