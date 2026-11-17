@@ -5,13 +5,13 @@ import { expireIfDue } from "../engine/quota.js";
 import { assertDevOnly } from "../dev-only.js";
 import { mockProvider } from "./mock.js";
 import type { BillingProvider } from "./provider.js";
-import { stripeProvider } from "./stripe.js";
+import { createStripeProvider } from "./stripe.js";
 
 export type { BillingProvider } from "./provider.js";
 
-/** 프로덕션은 Stripe, 그 밖에는 mock. mock을 프로덕션에서 고르면 dev-only 가드가 예외를 던진다. */
+/** STRIPE_SECRET_KEY가 있으면 Stripe, 없고 프로덕션이면 Stripe(호출 시 미설정 오류), 없고 dev면 mock. */
 export function getBillingProvider(db: Db, env: Record<string, string | undefined> = process.env): BillingProvider {
-  if (env.NODE_ENV === "production") return stripeProvider;
+  if (env.STRIPE_SECRET_KEY || env.NODE_ENV === "production") return createStripeProvider(db);
   assertDevOnly("mock billing", env);
   return mockProvider(db);
 }

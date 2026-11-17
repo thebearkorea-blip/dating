@@ -13,6 +13,7 @@ export const EVENT_KINDS = [
   "paywall_shown",
   "subscribe",
   "cancel",
+  "payment_failed",
   "invite_link_open",
   "breakup",
   "reconcile",

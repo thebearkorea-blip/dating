@@ -17,6 +17,10 @@ export const entitlements = billing.table("entitlements", {
   /** 아침 유료 안내를 마지막으로 보여 준 KST 날짜(YYYY-MM-DD). 하루 1회 상한 */
   paywallShownDay: text("paywall_shown_day"),
   callCredits: integer("call_credits").notNull().default(0),
+  /** Stripe 연동 식별자·상태. 결제 전에는 null */
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeStatus: text("stripe_status"),
 });
 
 /** LLM 호출 사용량·비용(원가 실측). FK는 걸지 않는다(스키마 격리). */
